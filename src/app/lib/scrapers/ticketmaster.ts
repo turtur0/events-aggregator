@@ -9,7 +9,7 @@ const RADIUS = '50'; // km
 
 export async function fetchTicketmasterEvents(
     page = 0,
-    size = 100
+    size = 20
 ): Promise<TicketmasterEvent[]> {
     // CHECK API KEY FIRST - before making the fetch call
     const API_KEY = process.env.TICKETMASTER_API_KEY;
@@ -61,7 +61,7 @@ export async function fetchAllTicketmasterEvents(): Promise<TicketmasterEvent[]>
     let page = 0;
     let hasMore = true;
 
-    while (hasMore && page < 10) { // Limit to 10 pages (1000 events) for MVP
+    while (hasMore && page < 1) { // Limit to 1 page (20 events) for MVP - CHANGE FOR MVP
         console.log(`Fetching Ticketmaster page ${page}...`);
 
         try {

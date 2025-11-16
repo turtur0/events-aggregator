@@ -13,16 +13,27 @@ export function normaliseTicketmasterEvent(
     event.dates.start.localTime
   );
   
-  const endDate = event.dates.end
-    ? parseTicketmasterDate(event.dates.end.localDate, event.dates.end.localTime)
-    : undefined;
+  // Only parse endDate if it exists AND has valid data
+  let endDate: Date | undefined;
+  if (event.dates.end?.localDate) {
+    try {
+      endDate = parseTicketmasterDate(
+        event.dates.end.localDate, 
+        event.dates.end.localTime
+      );
+    } catch (error) {
+      // If end date is invalid, just leave it undefined
+      console.warn(`Invalid end date for event ${event.id}, skipping`);
+      endDate = undefined;
+    }
+  }
   
   // Extract venue info
   const venue = event._embedded?.venues?.[0];
   const venueInfo = {
     name: venue?.name || 'Venue TBA',
-    address: venue?.address?.line1,
-    suburb: venue?.city?.name,
+    address: venue?.address?.line1 || 'TBA',
+    suburb: venue?.city?.name || 'Melbourne',
   };
   
   // Extract price info
@@ -35,13 +46,14 @@ export function normaliseTicketmasterEvent(
   const imageUrl = event.images
     ?.sort((a, b) => b.width - a.width)[0]?.url;
   
-  return {
+  // Create the normalised event object
+  const normalised: NormalisedEvent = {
     title: event.name,
-    description: event.description,
+    description: event.description || 'No description available',
     category: normaliseCategory(category),
     
     startDate,
-    endDate,
+    endDate, // Will be undefined if invalid
     
     venue: venueInfo,
     
@@ -56,6 +68,13 @@ export function normaliseTicketmasterEvent(
     sourceId: event.id,
     scrapedAt: new Date(),
   };
+  
+  // Remove endDate if it's undefined (don't send undefined to MongoDB)
+  if (normalised.endDate === undefined) {
+    delete normalised.endDate;
+  }
+  
+  return normalised;
 }
 
 function parseTicketmasterDate(date: string, time?: string): Date {
@@ -63,11 +82,20 @@ function parseTicketmasterDate(date: string, time?: string): Date {
   // time format: "19:30:00" (optional)
   
   if (time) {
-    return new Date(`${date}T${time}`);
+    const parsed = new Date(`${date}T${time}`);
+    // Check if date is valid
+    if (isNaN(parsed.getTime())) {
+      throw new Error(`Invalid date: ${date}T${time}`);
+    }
+    return parsed;
   }
   
   // If no time, set to midday to avoid timezone issues
-  return new Date(`${date}T12:00:00`);
+  const parsed = new Date(`${date}T12:00:00`);
+  if (isNaN(parsed.getTime())) {
+    throw new Error(`Invalid date: ${date}`);
+  }
+  return parsed;
 }
 
 function normaliseCategory(category: string): string {

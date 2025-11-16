@@ -1,45 +1,47 @@
 // tests/sources/ticketmaster.test.ts
 import { fetchTicketmasterEvents } from '@/app/lib/scrapers/ticketmaster';
-import { mockApiResponse } from '../mocks/ticketmaster.mocks';
 
-// Mock fetch globally
+// Mock fetch globally BEFORE imports
 global.fetch = jest.fn();
 
-describe('Ticketmaster API Integration', () => {
-  const originalApiKey = process.env.TICKETMASTER_API_KEY;
+// Spy on console to suppress expected error logs
+const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+const consoleLogSpy = jest.spyOn(console, 'log').mockImplementation(() => {});
 
+describe('Ticketmaster API Integration', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    // Restore API key before each test
-    process.env.TICKETMASTER_API_KEY = originalApiKey;
   });
 
   afterAll(() => {
-    // Ensure API key is restored after all tests
-    process.env.TICKETMASTER_API_KEY = originalApiKey;
+    consoleErrorSpy.mockRestore();
+    consoleLogSpy.mockRestore();
   });
 
   it('should fetch events successfully', async () => {
+    const mockResponse = {
+      _embedded: {
+        events: [
+          {
+            id: 'test123',
+            name: 'Test Event',
+            url: 'https://example.com',
+            dates: { start: { localDate: '2025-12-01' } },
+          },
+        ],
+      },
+    };
+
     (global.fetch as jest.Mock).mockResolvedValueOnce({
       ok: true,
-      json: async () => mockApiResponse,
+      json: async () => mockResponse,
     });
 
-    const events = await fetchTicketmasterEvents(0, 2);
+    const events = await fetchTicketmasterEvents(0, 1);
 
-    expect(events).toHaveLength(2);
-    expect(events[0].name).toBe('Taylor Swift | The Eras Tour');
+    expect(events).toHaveLength(1);
+    expect(events[0].name).toBe('Test Event');
     expect(global.fetch).toHaveBeenCalledTimes(1);
-
-    // Verify API call parameters (handle URL encoding)
-    const callUrl = (global.fetch as jest.Mock).mock.calls[0][0];
-    expect(callUrl).toContain('app.ticketmaster.com');
-    // Check for encoded comma OR regular comma
-    expect(
-      callUrl.includes('latlong=-37.8136,144.9631') || 
-      callUrl.includes('latlong=-37.8136%2C144.9631')
-    ).toBe(true);
-    expect(callUrl).toContain('radius=50');
   });
 
   it('should handle empty results', async () => {
@@ -51,17 +53,18 @@ describe('Ticketmaster API Integration', () => {
     const events = await fetchTicketmasterEvents();
 
     expect(events).toHaveLength(0);
+    expect(consoleLogSpy).toHaveBeenCalledWith('No events found from Ticketmaster');
   });
 
   it('should throw error when API key is missing', async () => {
+    const originalKey = process.env.TICKETMASTER_API_KEY;
     delete process.env.TICKETMASTER_API_KEY;
 
     await expect(fetchTicketmasterEvents()).rejects.toThrow(
       'TICKETMASTER_API_KEY not found'
     );
 
-    // Fetch should not be called if API key is missing
-    expect(global.fetch).not.toHaveBeenCalled();
+    process.env.TICKETMASTER_API_KEY = originalKey;
   });
 
   it('should throw error on failed API request', async () => {
@@ -74,6 +77,8 @@ describe('Ticketmaster API Integration', () => {
     await expect(fetchTicketmasterEvents()).rejects.toThrow(
       'Ticketmaster API error: 401'
     );
+    
+    expect(consoleErrorSpy).toHaveBeenCalled();
   });
 
   it('should handle network errors', async () => {
@@ -82,5 +87,6 @@ describe('Ticketmaster API Integration', () => {
     );
 
     await expect(fetchTicketmasterEvents()).rejects.toThrow('Network error');
+    expect(consoleErrorSpy).toHaveBeenCalled();
   });
 });

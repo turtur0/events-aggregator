@@ -35,7 +35,8 @@ const EventSchema = new Schema<IEvent>({
   },
   description: {
     type: String,
-    required: true,
+    required: false, // ← Changed from true
+    default: 'No description available',
   },
   category: {
     type: String,
@@ -49,12 +50,13 @@ const EventSchema = new Schema<IEvent>({
   },
   endDate: {
     type: Date,
+    required: false, // Already optional, but be explicit
   },
   
   venue: {
     name: { type: String, required: true },
-    address: { type: String, required: true },
-    suburb: { type: String, required: true },
+    address: { type: String, required: false, default: 'TBA' }, // ← Made optional
+    suburb: { type: String, required: false, default: 'Melbourne' }, // ← Made optional
   },
   
   priceMin: Number,

@@ -50,13 +50,13 @@ describe('Ticketmaster Normalisation', () => {
             expect(result.priceMin).toBe(0);
             expect(result.priceMax).toBe(0);
         });
-
+        
         it('should handle minimal events with missing optional fields', () => {
             const result = normaliseTicketmasterEvent(mockMinimalEvent);
 
             expect(result.title).toBe('Mystery Event');
             expect(result.category).toBe('Other'); // Default category
-            expect(result.description).toBeUndefined();
+            expect(result.description).toBe('No description available'); // ← Updated
             expect(result.priceMin).toBeUndefined();
             expect(result.priceMax).toBeUndefined();
             expect(result.isFree).toBe(true); // No price = free
