@@ -1,10 +1,10 @@
 // tests/sources/ticketmaster.test.ts
-import { fetchTicketmasterEvents } from '@/app/lib/scrapers/ticketmaster';
+import { fetchTicketmasterEvents } from '../../src/app/lib/scrapers/ticketmaster';
 
-// Mock fetch globally BEFORE imports
+// Mock fetch globally
 global.fetch = jest.fn();
 
-// Spy on console to suppress expected error logs
+// Spy on console to suppress logs during tests
 const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
 const consoleLogSpy = jest.spyOn(console, 'log').mockImplementation(() => {});
 
@@ -42,6 +42,12 @@ describe('Ticketmaster API Integration', () => {
     expect(events).toHaveLength(1);
     expect(events[0].name).toBe('Test Event');
     expect(global.fetch).toHaveBeenCalledTimes(1);
+    
+    // Verify API call includes Melbourne coordinates (URL encoded)
+    const callUrl = (global.fetch as jest.Mock).mock.calls[0][0];
+    expect(callUrl).toContain('latlong=-37.8136%2C144.9631'); // %2C is URL-encoded comma
+    expect(callUrl).toContain('radius=50');
+    expect(callUrl).toContain('app.ticketmaster.com');
   });
 
   it('should handle empty results', async () => {

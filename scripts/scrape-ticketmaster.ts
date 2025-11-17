@@ -21,20 +21,20 @@ async function scrapeTicketmaster() {
         const rawEvents = await fetchAllTicketmasterEvents();
         console.log(`Fetched ${rawEvents.length} events\n`);
 
-        // Normalize and insert events
+        // Normalise and insert events
         let inserted = 0;
         let updated = 0;
         let errors = 0;
 
         for (const rawEvent of rawEvents) {
             try {
-                const normalizedEvent = normaliseTicketmasterEvent(rawEvent);
+                const normalisedEvent = normaliseTicketmasterEvent(rawEvent);
 
                 // Upsert: update if exists, insert if new
                 const result = await Event.findOneAndUpdate(
-                    { source: 'ticketmaster', sourceId: normalizedEvent.sourceId },
+                    { source: 'ticketmaster', sourceId: normalisedEvent.sourceId },
                     {
-                        ...normalizedEvent,
+                        ...normalisedEvent,
                         lastUpdated: new Date(),
                     },
                     { upsert: true, new: true, setDefaultsOnInsert: true }

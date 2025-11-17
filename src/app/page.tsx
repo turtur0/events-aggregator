@@ -1,10 +1,15 @@
+// app/page.tsx
 import { connectDB } from './lib/db';
 import Event from './lib/models/Event';
+
+// Force dynamic rendering (no caching)
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
 
 export default async function Home() {
   await connectDB();
 
-  // Get count of events (will be 0 initially)
+  // Get count of events
   const eventCount = await Event.countDocuments();
 
   return (
@@ -21,6 +26,11 @@ export default async function Home() {
           <h2 className="text-2xl font-semibold mb-2">
             Events in Database: {eventCount}
           </h2>
+          {eventCount === 0 && (
+            <p className="text-sm mt-2">
+              Run <code className="bg-gray-100 px-2 py-1 rounded">npm run scrape:ticketmaster</code> to populate events
+            </p>
+          )}
         </div>
       </div>
     </main>

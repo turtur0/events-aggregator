@@ -1,4 +1,4 @@
-// tests/mocks/ticketmaster.mock.ts
+// tests/mocks/ticketmaster.mocks.ts
 import { TicketmasterEvent } from '../../src/app/lib/types';
 
 export const mockTicketmasterEvent: TicketmasterEvent = {

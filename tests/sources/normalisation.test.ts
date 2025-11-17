@@ -1,3 +1,4 @@
+// tests/sources/normalisation.test.ts
 import { normaliseTicketmasterEvent } from '../../src/app/lib/utils/normalisation';
 import {
     mockTicketmasterEvent,
@@ -56,7 +57,7 @@ describe('Ticketmaster Normalisation', () => {
 
             expect(result.title).toBe('Mystery Event');
             expect(result.category).toBe('Other'); // Default category
-            expect(result.description).toBe('No description available'); // ← Updated
+            expect(result.description).toBe('No description available');
             expect(result.priceMin).toBeUndefined();
             expect(result.priceMax).toBeUndefined();
             expect(result.isFree).toBe(true); // No price = free
