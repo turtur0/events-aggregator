@@ -1,47 +1,38 @@
-// tests/mocks/ticketmaster.mocks.ts
-import { TicketmasterEvent } from '../../src/app/lib/types';
+import { TicketmasterEvent } from "@/app/lib/types";
 
 export const mockTicketmasterEvent: TicketmasterEvent = {
-  id: 'vv17G9Z9MaNYD4P',
-  name: 'Taylor Swift | The Eras Tour',
-  description: 'An epic journey through Taylor Swift\'s musical eras',
-  url: 'https://www.ticketmaster.com.au/event/123456',
+  id: 'TM001',
+  name: 'Test Concert',
+  description: 'An amazing test concert',
+  url: 'https://ticketmaster.com/test',
   dates: {
     start: {
       localDate: '2025-12-15',
-      localTime: '19:30:00',
+      localTime: '19:00:00',
     },
   },
   classifications: [
     {
       segment: { name: 'Music' },
-      genre: { name: 'Pop' },
+      genre: { name: 'Rock' },
     },
   ],
   priceRanges: [
     {
-      min: 89.5,
-      max: 299.99,
+      min: 50,
+      max: 150,
       currency: 'AUD',
     },
   ],
   images: [
-    {
-      url: 'https://s1.ticketm.net/dam/a/123/image.jpg',
-      width: 1024,
-      height: 768,
-    },
-    {
-      url: 'https://s1.ticketm.net/dam/a/123/thumb.jpg',
-      width: 205,
-      height: 115,
-    },
+    { url: 'https://example.com/image1.jpg', width: 1024, height: 768 },
+    { url: 'https://example.com/image2.jpg', width: 512, height: 384 },
   ],
   _embedded: {
     venues: [
       {
-        name: 'Marvel Stadium',
-        address: { line1: 'Olympic Boulevard' },
+        name: 'Test Arena',
+        address: { line1: '123 Test St' },
         city: { name: 'Melbourne' },
         state: { name: 'Victoria' },
       },
@@ -50,9 +41,9 @@ export const mockTicketmasterEvent: TicketmasterEvent = {
 };
 
 export const mockFreeEvent: TicketmasterEvent = {
-  id: 'free123',
-  name: 'Free Community Concert',
-  url: 'https://www.ticketmaster.com.au/event/free123',
+  id: 'TM002',
+  name: 'Free Festival',
+  url: 'https://ticketmaster.com/free',
   dates: {
     start: {
       localDate: '2025-11-20',
@@ -65,27 +56,100 @@ export const mockFreeEvent: TicketmasterEvent = {
       currency: 'AUD',
     },
   ],
+  _embedded: {
+    venues: [
+      {
+        name: 'Federation Square',
+        city: { name: 'Melbourne' },
+      },
+    ],
+  },
 };
 
 export const mockMinimalEvent: TicketmasterEvent = {
-  id: 'minimal123',
-  name: 'Mystery Event',
-  url: 'https://www.ticketmaster.com.au/event/minimal123',
+  id: 'TM003',
+  name: 'Minimal Event',
+  url: 'https://ticketmaster.com/minimal',
   dates: {
     start: {
-      localDate: '2025-11-25',
+      localDate: '2025-12-01',
     },
   },
 };
 
-export const mockApiResponse = {
-  _embedded: {
-    events: [mockTicketmasterEvent, mockFreeEvent],
+export const mockMultiDayEvent: TicketmasterEvent = {
+  id: 'TM004',
+  name: 'Music Festival',
+  url: 'https://ticketmaster.com/festival',
+  dates: {
+    start: {
+      localDate: '2025-12-20',
+      localTime: '10:00:00',
+    },
+    end: {
+      localDate: '2025-12-22',
+      localTime: '23:00:00',
+    },
   },
-  page: {
-    size: 2,
-    totalElements: 2,
-    totalPages: 1,
-    number: 0,
+  _embedded: {
+    venues: [
+      {
+        name: 'Sidney Myer Music Bowl',
+        address: { line1: 'King Domain' },
+        city: { name: 'Melbourne' },
+      },
+    ],
+  },
+};
+
+export const mockDuplicateEvents: TicketmasterEvent[] = [
+  {
+    id: 'TM005A',
+    name: 'HAIR - THE MUSICAL',
+    url: 'https://ticketmaster.com/hair1',
+    dates: {
+      start: {
+        localDate: '2025-12-10',
+        localTime: '19:30:00',
+      },
+    },
+    _embedded: {
+      venues: [
+        {
+          name: 'Comedy Theatre',
+          city: { name: 'Melbourne' },
+        },
+      ],
+    },
+  },
+  {
+    id: 'TM005B',
+    name: 'Hair - The Musical',
+    url: 'https://ticketmaster.com/hair2',
+    dates: {
+      start: {
+        localDate: '2025-12-11',
+        localTime: '14:00:00',
+      },
+    },
+    _embedded: {
+      venues: [
+        {
+          name: 'Comedy Theatre',
+          city: { name: 'Melbourne' },
+        },
+      ],
+    },
+  },
+];
+
+export const mockInvalidDateEvent: TicketmasterEvent = {
+  id: 'TM006',
+  name: 'Invalid Date Event',
+  url: 'https://ticketmaster.com/invalid',
+  dates: {
+    start: {
+      localDate: 'not-a-date',
+    },
   },
 };
