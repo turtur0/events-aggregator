@@ -3,29 +3,39 @@ import { EventCardSkeleton } from "@/components/event-card-skeleton";
 import { EmptyState } from "@/components/empty-state";
 import { Pagination } from "@/components/pagination";
 import { SearchBar } from "@/components/search-bar";
+import { EventFilters } from "@/components/event-filters";
 import { Suspense } from "react";
 import { SerializedEvent } from "./lib/models/Event";
 
 async function EventsGrid({ 
   page, 
-  searchQuery 
+  searchQuery,
+  category,
+  subcategory,
+  dateFilter,
+  freeOnly,
 }: { 
   page: number; 
   searchQuery: string;
+  category: string;
+  subcategory: string;
+  dateFilter: string;
+  freeOnly: boolean;
 }) {
-  // Build API URL
+  // Build API URL with all filters
   const params = new URLSearchParams({
     page: page.toString(),
   });
   
-  if (searchQuery.trim()) {
-    params.set('q', searchQuery.trim());
-  }
+  if (searchQuery.trim()) params.set('q', searchQuery.trim());
+  if (category) params.set('category', category);
+  if (subcategory) params.set('subcategory', subcategory);
+  if (dateFilter) params.set('date', dateFilter);
+  if (freeOnly) params.set('free', 'true');
 
-  // Fetch from API route (uses relevance scoring)
   const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
   const response = await fetch(`${baseUrl}/api/events?${params.toString()}`, {
-    cache: 'no-store', // Always get fresh data
+    cache: 'no-store',
   });
 
   if (!response.ok) {
@@ -38,11 +48,13 @@ async function EventsGrid({
 
   // Show empty state for no results
   if (eventsData.length === 0) {
-    if (searchQuery.trim()) {
+    const hasFilters = searchQuery || category || subcategory || dateFilter || freeOnly;
+    
+    if (hasFilters) {
       return (
         <EmptyState
           title="No events found"
-          description={`No events match "${searchQuery}". Try adjusting your search.`}
+          description="No events match your filters. Try adjusting your search criteria."
         />
       );
     }
@@ -58,15 +70,9 @@ async function EventsGrid({
     <>
       {/* Results count */}
       <div className="mb-4 text-sm text-muted-foreground">
-        {searchQuery.trim() ? (
-          <span>
-            Found <strong>{totalEvents}</strong> event{totalEvents !== 1 ? 's' : ''} matching "{searchQuery}"
-          </span>
-        ) : (
-          <span>
-            Showing <strong>{totalEvents}</strong> upcoming event{totalEvents !== 1 ? 's' : ''}
-          </span>
-        )}
+        <span>
+          Found <strong>{totalEvents}</strong> event{totalEvents !== 1 ? 's' : ''}
+        </span>
       </div>
 
       {/* Events Grid */}
@@ -100,14 +106,25 @@ function EventsGridSkeleton() {
 export default async function Home({
   searchParams,
 }: {
-  searchParams: Promise<{ page?: string; q?: string }>;
+  searchParams: Promise<{ 
+    page?: string; 
+    q?: string;
+    category?: string;
+    subcategory?: string;
+    date?: string;
+    free?: string;
+  }>;
 }) {
   const params = await searchParams;
   const currentPage = Number(params.page) || 1;
   const searchQuery = params.q || '';
+  const category = params.category || '';
+  const subcategory = params.subcategory || '';
+  const dateFilter = params.date || '';
+  const freeOnly = params.free === 'true';
 
-  // Create a unique key for Suspense that includes both page and search
-  const suspenseKey = `${currentPage}-${searchQuery}`;
+  // Create unique key for Suspense
+  const suspenseKey = `${currentPage}-${searchQuery}-${category}-${subcategory}-${dateFilter}-${freeOnly}`;
 
   return (
     <main className="container py-8">
@@ -123,8 +140,13 @@ export default async function Home({
       </div>
 
       {/* Search Bar */}
-      <div className="mb-8">
+      <div className="mb-6">
         <SearchBar />
+      </div>
+
+      {/* Filters */}
+      <div className="mb-8">
+        <EventFilters />
       </div>
 
       {/* Events Section */}
@@ -133,7 +155,14 @@ export default async function Home({
           {searchQuery ? 'Search Results' : 'Upcoming Events'}
         </h2>
         <Suspense fallback={<EventsGridSkeleton />} key={suspenseKey}>
-          <EventsGrid page={currentPage} searchQuery={searchQuery} />
+          <EventsGrid 
+            page={currentPage} 
+            searchQuery={searchQuery}
+            category={category}
+            subcategory={subcategory}
+            dateFilter={dateFilter}
+            freeOnly={freeOnly}
+          />
         </Suspense>
       </div>
     </main>

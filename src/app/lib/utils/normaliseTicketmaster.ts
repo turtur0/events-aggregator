@@ -4,42 +4,18 @@ export function normaliseTicketmasterEvent(
   event: TicketmasterEvent
 ): NormalisedEvent {
   const classification = event.classifications?.[0];
-  
-  // Get raw classification data
   const segment = classification?.segment?.name || 'Other';
-  const genre = classification?.genre?.name;
-  const subGenre = classification?.subGenre?.name;
+  const genre = classification?.genre?.name || '';
+  const subGenre = classification?.subGenre?.name || '';
 
-  // Log for debugging
-  console.log(`\nNormalizing: ${event.name}`);
-  console.log(`  Segment: ${segment}, Genre: ${genre}, SubGenre: ${subGenre}`);
+  // Map to our category system
+  const { category, subcategory } = mapCategory(segment, genre, subGenre, event.name);
 
-  const { category, subcategory } = normaliseCategoryAndSubcategory(
-    segment,
-    genre,
-    subGenre,
-    event.name
-  );
+  // Parse dates
+  const startDate = parseDate(event.dates.start.localDate, event.dates.start.localTime);
+  const endDate = parseEndDate(event.dates.end, event.dates.start.localDate);
 
-  console.log(`  → Mapped to: ${category}${subcategory ? ` / ${subcategory}` : ''}`);
-
-  const startDate = parseTicketmasterDate(
-    event.dates.start.localDate,
-    event.dates.start.localTime
-  );
-
-  let endDate: Date | undefined;
-  if (event.dates.end?.localDate && event.dates.end.localDate !== event.dates.start.localDate) {
-    try {
-      endDate = parseTicketmasterDate(
-        event.dates.end.localDate, 
-        event.dates.end.localTime
-      );
-    } catch {
-      // Silently skip invalid end date
-    }
-  }
-
+  // Extract venue
   const venue = event._embedded?.venues?.[0];
   const venueInfo = {
     name: venue?.name || 'Venue TBA',
@@ -47,31 +23,28 @@ export function normaliseTicketmasterEvent(
     suburb: venue?.city?.name || 'Melbourne',
   };
 
+  // Extract pricing
   const { priceMin, priceMax, isFree } = extractPriceInfo(event);
 
-  const imageUrl = event.images
-    ?.sort((a, b) => b.width - a.width)[0]?.url;
+  // Get best quality image
+  const imageUrl = event.images?.sort((a, b) => b.width - a.width)[0]?.url;
 
+  // Fallback booking URL
   const bookingUrl = event.url || `https://www.ticketmaster.com.au/event/${event.id}`;
 
   return {
     title: event.name,
     description: event.description || 'No description available',
     category,
-    subcategory, // Make sure this is included!
-
+    subcategory,
     startDate,
     endDate,
-
     venue: venueInfo,
-
     priceMin,
     priceMax,
     isFree,
-
     bookingUrl,
     imageUrl,
-
     source: 'ticketmaster',
     sourceId: event.id,
     scrapedAt: new Date(),
@@ -79,202 +52,159 @@ export function normaliseTicketmasterEvent(
 }
 
 /**
- * Simplified category mapping - uses genre as primary signal
+ * Map Ticketmaster categories to our simplified system
  */
-function normaliseCategoryAndSubcategory(
+function mapCategory(
   segment: string,
-  genre?: string,
-  subGenre?: string,
-  eventTitle?: string
+  genre: string,
+  subGenre: string,
+  title: string
 ): { category: string; subcategory?: string } {
-  const segmentLower = segment.toLowerCase();
-  const genreLower = genre?.toLowerCase() || '';
-  const subGenreLower = subGenre?.toLowerCase() || '';
-  const titleLower = eventTitle?.toLowerCase() || '';
+  const seg = segment.toLowerCase();
+  const combined = `${genre} ${subGenre} ${title}`.toLowerCase();
 
   // MUSIC
-  if (segmentLower === 'music') {
-    // Try subGenre first, then genre
-    const subcategory = mapMusicSubcategory(subGenreLower, genreLower);
-    return { category: 'music', subcategory };
-  }
-
-  // THEATRE / ARTS
-  if (segmentLower === 'arts & theatre' || segmentLower.includes('theatre') || segmentLower === 'arts') {
-    const subcategory = mapTheatreSubcategory(genreLower, subGenreLower, titleLower);
-    return { category: 'theatre', subcategory };
+  if (seg === 'music') {
+    return { category: 'music', subcategory: getMusicSubcategory(combined) };
   }
 
   // SPORTS
-  if (segmentLower === 'sports') {
-    const subcategory = mapSportsSubcategory(genreLower, subGenreLower);
-    return { category: 'sports', subcategory };
+  if (seg === 'sports') {
+    return { category: 'sports', subcategory: getSportsSubcategory(combined) };
+  }
+
+  // THEATRE & ARTS
+  if (seg.includes('theatre') || seg === 'arts') {
+    return { category: 'theatre', subcategory: getTheatreSubcategory(combined) };
   }
 
   // FAMILY
-  if (segmentLower.includes('family') || genreLower.includes('family')) {
-    const subcategory = mapFamilySubcategory(genreLower, titleLower);
-    return { category: 'family', subcategory };
+  if (seg.includes('family') || combined.includes('family') || combined.includes('kids')) {
+    return { category: 'family', subcategory: getFamilySubcategory(combined) };
   }
 
   // FILM
-  if (segmentLower === 'film') {
+  if (seg === 'film') {
     return { category: 'arts', subcategory: 'Film & Cinema' };
   }
 
-  // DEFAULT
+  // OTHER
   return { category: 'other' };
 }
 
-function mapMusicSubcategory(subGenre: string, genre: string): string | undefined {
-  const text = `${subGenre} ${genre}`.toLowerCase();
-
-  if (text.includes('rock') || text.includes('alternative') || text.includes('indie')) {
-    return 'Rock & Alternative';
-  }
-  if (text.includes('pop') || text.includes('electronic') || text.includes('dance') || text.includes('edm')) {
-    return 'Pop & Electronic';
-  }
-  if (text.includes('hip hop') || text.includes('hip-hop') || text.includes('rap') || text.includes('r&b') || text.includes('rnb')) {
-    return 'Hip Hop & R&B';
-  }
-  if (text.includes('jazz') || text.includes('blues')) {
-    return 'Jazz & Blues';
-  }
-  if (text.includes('classical') || text.includes('orchestra') || text.includes('symphony')) {
-    return 'Classical & Orchestra';
-  }
-  if (text.includes('country') || text.includes('folk') || text.includes('bluegrass')) {
-    return 'Country & Folk';
-  }
-  if (text.includes('metal') || text.includes('punk') || text.includes('hardcore')) {
-    return 'Metal & Punk';
-  }
-  if (text.includes('world') || text.includes('latin') || text.includes('reggae') || text.includes('african')) {
-    return 'World Music';
-  }
-
+/**
+ * Music subcategory mapping
+ */
+function getMusicSubcategory(text: string): string | undefined {
+  if (text.match(/rock|alternative|indie/)) return 'Rock & Alternative';
+  if (text.match(/pop|electronic|dance|edm|techno/)) return 'Pop & Electronic';
+  if (text.match(/hip hop|hip-hop|rap|r&b|rnb/)) return 'Hip Hop & R&B';
+  if (text.match(/jazz|blues/)) return 'Jazz & Blues';
+  if (text.match(/classical|orchestra|symphony|philharmonic/)) return 'Classical & Orchestra';
+  if (text.match(/country|folk|bluegrass|americana/)) return 'Country & Folk';
+  if (text.match(/metal|punk|hardcore/)) return 'Metal & Punk';
+  if (text.match(/world|latin|reggae|african|ethnic/)) return 'World Music';
   return undefined;
 }
 
-function mapTheatreSubcategory(genre: string, subGenre: string, title: string): string | undefined {
-  const text = `${genre} ${subGenre} ${title}`.toLowerCase();
-
-  if (text.includes('musical')) {
-    return 'Musicals';
-  }
-  if (text.includes('ballet') || text.includes('dance')) {
-    return 'Ballet & Dance';
-  }
-  if (text.includes('opera')) {
-    return 'Opera';
-  }
-  if (text.includes('comedy') && !text.includes('festival')) {
-    return 'Comedy Shows';
-  }
-  if (text.includes('shakespeare')) {
-    return 'Shakespeare';
-  }
-  if (text.includes('cabaret')) {
-    return 'Cabaret';
-  }
-  if (text.includes('drama') || text.includes('play')) {
-    return 'Drama';
-  }
-  if (text.includes('circus')) {
-    return 'Circus & Magic';
-  }
-
-  return undefined;
-}
-
-function mapSportsSubcategory(genre: string, subGenre: string): string | undefined {
-  const text = `${genre} ${subGenre}`.toLowerCase();
-
-  if (text.includes('afl') || (text.includes('football') && text.includes('australian'))) {
-    return 'AFL';
-  }
-  if (text.includes('cricket')) {
-    return 'Cricket';
-  }
-  if (text.includes('soccer') || text.includes('football') && !text.includes('afl')) {
-    return 'Soccer';
-  }
-  if (text.includes('basketball')) {
-    return 'Basketball';
-  }
-  if (text.includes('tennis')) {
-    return 'Tennis';
-  }
-  if (text.includes('rugby')) {
-    return 'Rugby';
-  }
-  if (text.includes('motor') || text.includes('racing') || text.includes('f1')) {
-    return 'Motorsports';
-  }
-
+/**
+ * Sports subcategory mapping
+ */
+function getSportsSubcategory(text: string): string | undefined {
+  if (text.match(/\bafl\b|australian football/)) return 'AFL';
+  if (text.match(/cricket/)) return 'Cricket';
+  if (text.match(/soccer|football/) && !text.includes('afl')) return 'Soccer';
+  if (text.match(/basketball|nbl/)) return 'Basketball';
+  if (text.match(/tennis/)) return 'Tennis';
+  if (text.match(/rugby|nrl/)) return 'Rugby';
+  if (text.match(/motor|racing|\bf1\b|formula|nascar/)) return 'Motorsports';
   return 'Other Sports';
 }
 
-function mapFamilySubcategory(genre: string, title: string): string | undefined {
-  const text = `${genre} ${title}`.toLowerCase();
+/**
+ * Theatre subcategory mapping
+ */
+function getTheatreSubcategory(text: string): string | undefined {
+  if (text.match(/musical/)) return 'Musicals';
+  if (text.match(/ballet|dance/)) return 'Ballet & Dance';
+  if (text.match(/opera/)) return 'Opera';
+  if (text.match(/comedy/) && !text.match(/festival/)) return 'Comedy Shows';
+  if (text.match(/shakespeare/)) return 'Shakespeare';
+  if (text.match(/cabaret/)) return 'Cabaret';
+  if (text.match(/circus|magic|illusionist/)) return 'Circus & Magic';
+  if (text.match(/drama|play/)) return 'Drama';
+  return undefined;
+}
 
-  if (text.includes('circus') || text.includes('magic')) {
-    return 'Circus & Magic';
-  }
-  if (text.includes('kids') || text.includes('children')) {
-    return 'Kids Shows';
-  }
-  if (text.includes('education')) {
-    return 'Educational';
-  }
-
+/**
+ * Family subcategory mapping
+ */
+function getFamilySubcategory(text: string): string | undefined {
+  if (text.match(/circus|magic/)) return 'Circus & Magic';
+  if (text.match(/kids|children/)) return 'Kids Shows';
+  if (text.match(/education|learning/)) return 'Educational';
   return 'Family Entertainment';
 }
 
+/**
+ * Extract price information from event
+ */
 function extractPriceInfo(event: TicketmasterEvent): {
   priceMin?: number;
   priceMax?: number;
   isFree: boolean;
 } {
-  if (!event.priceRanges || event.priceRanges.length === 0) {
-    return {
-      priceMin: undefined,
-      priceMax: undefined,
-      isFree: false,
-    };
+  if (!event.priceRanges?.length) {
+    return { priceMin: undefined, priceMax: undefined, isFree: false };
   }
 
-  const prices = event.priceRanges;
+  const validPrices = event.priceRanges.filter(
+    p => p.min != null && !isNaN(p.min) && p.max != null && !isNaN(p.max)
+  );
 
-  const allMins = prices
-    .map(p => p.min)
-    .filter(p => p !== undefined && p !== null && !isNaN(p));
+  if (!validPrices.length) {
+    return { priceMin: undefined, priceMax: undefined, isFree: false };
+  }
 
-  const allMaxs = prices
-    .map(p => p.max)
-    .filter(p => p !== undefined && p !== null && !isNaN(p));
-
-  const priceMin = allMins.length > 0 ? Math.min(...allMins) : undefined;
-  const priceMax = allMaxs.length > 0 ? Math.max(...allMaxs) : undefined;
-
-  const isFree = priceMin === 0 || (priceMin === undefined && priceMax === 0);
+  const priceMin = Math.min(...validPrices.map(p => p.min));
+  const priceMax = Math.max(...validPrices.map(p => p.max));
+  const isFree = priceMin === 0;
 
   return {
-    priceMin: priceMin && priceMin > 0 ? Math.round(priceMin) : undefined,
-    priceMax: priceMax && priceMax > 0 ? Math.round(priceMax) : undefined,
+    priceMin: priceMin > 0 ? Math.round(priceMin) : undefined,
+    priceMax: priceMax > 0 ? Math.round(priceMax) : undefined,
     isFree,
   };
 }
 
-function parseTicketmasterDate(date: string, time?: string): Date {
-  const parsed = time
-    ? new Date(`${date}T${time}`)
-    : new Date(`${date}T12:00:00`);
+/**
+ * Parse Ticketmaster date with optional time
+ */
+function parseDate(date: string, time?: string): Date {
+  const dateStr = time ? `${date}T${time}` : `${date}T12:00:00`;
+  const parsed = new Date(dateStr);
 
   if (isNaN(parsed.getTime())) {
-    throw new Error(`Invalid date: ${date}${time ? `T${time}` : ''}`);
+    throw new Error(`Invalid date: ${dateStr}`);
   }
 
   return parsed;
+}
+
+/**
+ * Parse end date if it exists and is different from start date
+ */
+function parseEndDate(
+  endDateObj?: { localDate: string; localTime?: string },
+  startDate?: string
+): Date | undefined {
+  if (!endDateObj?.localDate || endDateObj.localDate === startDate) {
+    return undefined;
+  }
+
+  try {
+    return parseDate(endDateObj.localDate, endDateObj.localTime);
+  } catch {
+    return undefined; // Invalid end date, skip silently
+  }
 }

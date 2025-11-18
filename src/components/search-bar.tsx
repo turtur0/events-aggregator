@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter, useSearchParams, usePathname } from 'next/navigation';
 import { Search, X, Loader2 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
@@ -13,48 +13,45 @@ export function SearchBar() {
   
   const [searchTerm, setSearchTerm] = useState(searchParams.get('q') || '');
   const [isSearching, setIsSearching] = useState(false);
-  const [lastSearchTerm, setLastSearchTerm] = useState(searchParams.get('q') || ''); // Track last search
 
-  const updateSearchParams = useCallback((value: string) => {
-    const params = new URLSearchParams(searchParams.toString());
-    
-    if (value.trim()) {
-      params.set('q', value.trim());
-      
-      // Only reset to page 1 if the search query actually changed
-      if (value.trim() !== lastSearchTerm.trim()) {
-        params.set('page', '1');
-        setLastSearchTerm(value.trim());
-      }
-    } else {
-      params.delete('q');
-      params.set('page', '1'); // Reset to page 1 when clearing search
-      setLastSearchTerm('');
-    }
-    
-    router.push(`${pathname}?${params.toString()}`, { scroll: false });
-    setIsSearching(false);
-  }, [searchParams, pathname, router, lastSearchTerm]);
-
+  // Sync input with URL when user navigates (back/forward button)
   useEffect(() => {
-    // Update lastSearchTerm when URL changes (e.g., browser back button)
-    const currentQuery = searchParams.get('q') || '';
-    if (currentQuery !== lastSearchTerm) {
-      setLastSearchTerm(currentQuery);
+    const urlQuery = searchParams.get('q') || '';
+    if (urlQuery !== searchTerm) {
+      setSearchTerm(urlQuery);
     }
-  }, [searchParams, lastSearchTerm]);
+  }, [searchParams.get('q')]); // Only depend on the 'q' param, not all searchParams
 
+  // Debounced search - only runs when searchTerm changes
   useEffect(() => {
-    if (searchTerm !== (searchParams.get('q') || '')) {
-      setIsSearching(true);
+    const urlQuery = searchParams.get('q') || '';
+    
+    // Don't update if it matches what's already in URL
+    if (searchTerm === urlQuery) {
+      setIsSearching(false);
+      return;
     }
+
+    setIsSearching(true);
 
     const timer = setTimeout(() => {
-      updateSearchParams(searchTerm);
+      const params = new URLSearchParams(searchParams.toString());
+      
+      if (searchTerm.trim()) {
+        params.set('q', searchTerm.trim());
+      } else {
+        params.delete('q');
+      }
+      
+      // Only reset to page 1 when search term changes
+      params.set('page', '1');
+      
+      router.push(`${pathname}?${params.toString()}`, { scroll: false });
+      setIsSearching(false);
     }, 500);
 
     return () => clearTimeout(timer);
-  }, [searchTerm, updateSearchParams, searchParams]);
+  }, [searchTerm]); // Only depend on searchTerm
 
   const handleClear = () => {
     setSearchTerm('');
