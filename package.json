@@ -10,7 +10,7 @@
     "test": "jest",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",
-    "scrape:ticketmaster": "tsx scripts/scrape-ticketmaster.ts"
+    "scrape:all": "tsx scripts/scrape-all.ts"
   },
   "dependencies": {
     "@radix-ui/react-dropdown-menu": "^2.1.16",
