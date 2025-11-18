@@ -1,9 +1,14 @@
-// Ticketmaster raw response types
+/**
+ * Ticketmaster API response types
+ * Based on Ticketmaster Discovery API v2
+ * @see https://developer.ticketmaster.com/products-and-docs/apis/discovery-api/v2/
+ */
+
 export interface TicketmasterEvent {
-  info: string | undefined;
   id: string;
   name: string;
   description?: string;
+  info?: string;
   url: string;
   dates: {
     start: {
@@ -46,30 +51,14 @@ export interface TicketmasterEvent {
   };
 }
 
-// Normalised event format
-export interface NormalisedEvent {
-  title: string;
-  description?: string;
-  category: string;
-  subcategory?: string; // NEW
-  
-  startDate: Date;
-  endDate?: Date;
-  
-  venue: {
-    name: string;
-    address?: string;
-    suburb?: string;
+export interface TicketmasterResponse {
+  _embedded?: {
+    events: TicketmasterEvent[];
   };
-  
-  priceMin?: number;
-  priceMax?: number;
-  isFree: boolean;
-  
-  bookingUrl: string;
-  imageUrl?: string;
-  
-  source: 'ticketmaster' | 'eventbrite' | 'artscentre';
-  sourceId: string;
-  scrapedAt: Date;
+  page: {
+    size: number;
+    totalElements: number;
+    totalPages: number;
+    number: number;
+  };
 }
