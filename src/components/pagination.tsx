@@ -72,7 +72,7 @@ export function Pagination({ currentPage, totalPages }: PaginationProps) {
                             key={page}
                             href={createPageURL(page)}
                             className={`
-                px-4 py-2 rounded-md border min-w-[40px] text-center
+                px-4 py-2 rounded-md border min-w-10 text-center
                 ${page === currentPage
                                     ? 'bg-primary text-primary-foreground'
                                     : 'hover:bg-accent'

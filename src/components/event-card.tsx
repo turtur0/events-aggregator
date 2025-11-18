@@ -92,19 +92,19 @@ export function EventCard({ event }: EventCardProps) {
 
           {/* Date */}
           <div className="flex items-center gap-2 text-sm text-muted-foreground mb-2">
-            <Calendar className="h-4 w-4 flex-shrink-0" />
+            <Calendar className="h-4 w-4 shrink-0" />
             <span className="line-clamp-1">{formatDate()}</span>
           </div>
 
           {/* Venue */}
           <div className="flex items-center gap-2 text-sm text-muted-foreground mb-2">
-            <MapPin className="h-4 w-4 flex-shrink-0" />
+            <MapPin className="h-4 w-4 shrink-0" />
             <span className="line-clamp-1">{event.venue.name}</span>
           </div>
 
           {/* Price */}
           <div className="flex items-center gap-2 text-sm font-semibold">
-            <DollarSign className="h-4 w-4 flex-shrink-0" />
+            <DollarSign className="h-4 w-4 shrink-0" />
             <span>{formatPrice()}</span>
           </div>
         </CardContent>
