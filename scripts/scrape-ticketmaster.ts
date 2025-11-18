@@ -6,7 +6,7 @@ dotenv.config({ path: path.resolve(process.cwd(), '.env.local') });
 
 import { connectDB, disconnectDB } from '@/app/lib/db';
 import { fetchAllTicketmasterEvents } from '@/app/lib/scrapers/ticketmaster';
-import { normaliseTicketmasterEvent } from '@/app/lib/utils/normalisation';
+import { normaliseTicketmasterEvent } from '@/app/lib/utils/normaliseTicketmaster';
 import Event from '@/app/lib/models/Event';
 
 async function scrapeTicketmaster() {

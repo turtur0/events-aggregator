@@ -6,6 +6,7 @@ import { Badge } from "./ui/badge";
 import { Button } from "./ui/button";
 import { SerializedEvent } from "@/app/lib/models/Event";
 import { format, isSameDay, isSameMonth } from "date-fns";
+import { getCategoryLabel } from "@/app/lib/categories";
 
 interface EventCardProps {
   event: SerializedEvent;
@@ -23,26 +24,22 @@ export function EventCard({ event }: EventCardProps) {
 
   const formatDate = () => {
     try {
-      const start = new Date(event.startDate); // Now works with string
+      const start = new Date(event.startDate);
       
-      // Single day event
       if (!event.endDate) {
         return format(start, "EEE, MMM d, yyyy");
       }
       
-      const end = new Date(event.endDate); // Now works with string
+      const end = new Date(event.endDate);
       
-      // Multi-day event on same day (shouldn't happen, but handle it)
       if (isSameDay(start, end)) {
         return format(start, "EEE, MMM d, yyyy");
       }
       
-      // Multi-day event in same month
       if (isSameMonth(start, end)) {
         return `${format(start, "MMM d")} - ${format(end, "d, yyyy")}`;
       }
       
-      // Multi-day event spanning months
       return `${format(start, "MMM d")} - ${format(end, "MMM d, yyyy")}`;
       
     } catch {
@@ -80,10 +77,17 @@ export function EventCard({ event }: EventCardProps) {
         </div>
 
         <CardContent className="p-4">
-          {/* Category Badge */}
-          <Badge variant="secondary" className="mb-2">
-            {event.category}
-          </Badge>
+          {/* Category Badges */}
+          <div className="flex gap-2 mb-2 flex-wrap">
+            <Badge variant="secondary">
+              {getCategoryLabel(event.category)}
+            </Badge>
+            {event.subcategory && (
+              <Badge variant="outline">
+                {event.subcategory}
+              </Badge>
+            )}
+          </div>
 
           {/* Title */}
           <h3 className="font-bold text-lg line-clamp-2 mb-2">

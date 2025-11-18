@@ -1,5 +1,6 @@
 // Ticketmaster raw response types
 export interface TicketmasterEvent {
+  info: string | undefined;
   id: string;
   name: string;
   description?: string;
@@ -17,6 +18,7 @@ export interface TicketmasterEvent {
   classifications?: Array<{
     segment: { name: string };
     genre?: { name: string };
+    subGenre?: { name: string };
   }>;
   priceRanges?: Array<{
     min: number;
@@ -44,11 +46,12 @@ export interface TicketmasterEvent {
   };
 }
 
-// Normalised event format (what goes in MongoDB)
+// Normalised event format
 export interface NormalisedEvent {
   title: string;
   description?: string;
   category: string;
+  subcategory?: string; // NEW
   
   startDate: Date;
   endDate?: Date;

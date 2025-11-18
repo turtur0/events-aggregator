@@ -68,7 +68,7 @@ function createEventKey(event: TicketmasterEvent): string {
         .replace(/[^\w\s]/g, '')
         .trim()
         .replace(/\s+/g, '-');
-    
+
     return `${normalizedName}::${venueName}`;
 }
 
@@ -79,7 +79,7 @@ function mergeEventDates(existing: TicketmasterEvent, incoming: TicketmasterEven
     // Keep the event with the earliest start date as the primary
     const existingDate = new Date(existing.dates.start.localDate);
     const incomingDate = new Date(incoming.dates.start.localDate);
-    
+
     if (incomingDate < existingDate) {
         // Incoming has earlier date, use it as primary
         return {
@@ -90,7 +90,7 @@ function mergeEventDates(existing: TicketmasterEvent, incoming: TicketmasterEven
             }
         };
     }
-    
+
     // Keep existing as primary, extend end date if needed
     return {
         ...existing,
@@ -109,7 +109,7 @@ export async function fetchAllTicketmasterEvents(): Promise<TicketmasterEvent[]>
     let hasMore = true;
     let totalRawEventsFetched = 0;
     let duplicatesSkipped = 0;
-    const MAX_PAGES = 1; // Adjust for production
+    const MAX_PAGES = 1;
 
     console.log('Fetching unique Ticketmaster events...\n');
 
@@ -124,15 +124,20 @@ export async function fetchAllTicketmasterEvents(): Promise<TicketmasterEvent[]>
 
             totalRawEventsFetched += events.length;
 
-            // Smart deduplication by name + venue
+            // DEBUG: Log first event's classification structure
+            if (page === 0 && events.length > 0) {
+                console.log('\n=== DEBUG: Sample Event Classification ===');
+                console.log('Event:', events[0].name);
+                console.log('Classifications:', JSON.stringify(events[0].classifications, null, 2));
+                console.log('=========================================\n');
+            }
+
             events.forEach(event => {
                 const eventKey = createEventKey(event);
-                
+
                 if (!uniqueEventsMap.has(eventKey)) {
-                    // First occurrence - add it
                     uniqueEventsMap.set(eventKey, event);
                 } else {
-                    // Duplicate found - merge dates
                     const existing = uniqueEventsMap.get(eventKey)!;
                     const merged = mergeEventDates(existing, event);
                     uniqueEventsMap.set(eventKey, merged);
@@ -143,7 +148,6 @@ export async function fetchAllTicketmasterEvents(): Promise<TicketmasterEvent[]>
             console.log(`   Page ${page + 1}: ${events.length} raw events | ${uniqueEventsMap.size} unique so far (${duplicatesSkipped} duplicates merged)`);
             page++;
 
-            // Rate limit: 200ms = 5 req/sec
             await new Promise(resolve => setTimeout(resolve, 200));
 
         } catch (error) {

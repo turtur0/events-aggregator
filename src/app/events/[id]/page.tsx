@@ -4,6 +4,7 @@ import Link from "next/link";
 import { Calendar, MapPin, DollarSign, ExternalLink, ArrowLeft } from "lucide-react";
 import { connectDB } from "@/app/lib/db";
 import Event from "@/app/lib/models/Event";
+import { Header } from "@/components/header";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
@@ -55,19 +56,16 @@ export default async function EventPage({ params }: EventPageProps) {
         try {
             const start = new Date(event.startDate);
 
-            // Single day event
             if (!event.endDate) {
                 return format(start, "EEEE, MMMM d, yyyy");
             }
 
             const end = new Date(event.endDate);
 
-            // Multi-day event
             if (isSameMonth(start, end)) {
                 return `${format(start, "EEEE, MMMM d")} - ${format(end, "d, yyyy")}`;
             }
 
-            // Spanning multiple months
             return `${format(start, "MMMM d")} - ${format(end, "MMMM d, yyyy")}`;
 
         } catch {
@@ -80,7 +78,6 @@ export default async function EventPage({ params }: EventPageProps) {
             const start = new Date(event.startDate);
             const startTime = format(start, "h:mm a");
 
-            // If multi-day, show time range or just start time
             if (event.endDate) {
                 return `Starts ${startTime} daily`;
             }
@@ -129,10 +126,15 @@ export default async function EventPage({ params }: EventPageProps) {
 
                         {/* Title & Category */}
                         <div className="mb-6">
-                            <div className="flex items-center gap-2 mb-3">
+                            <div className="flex items-center gap-2 mb-3 flex-wrap">
                                 <Badge variant="secondary">
                                     {event.category}
                                 </Badge>
+                                {event.subcategory && (
+                                    <Badge variant="outline">
+                                        {event.subcategory}
+                                    </Badge>
+                                )}
                                 {event.endDate && (
                                     <Badge variant="outline">
                                         Multi-day Event
@@ -231,7 +233,6 @@ export default async function EventPage({ params }: EventPageProps) {
                                         Get Tickets
                                         <ExternalLink className="h-4 w-4 ml-2" />
                                     </a>
-
                                 </Button>
 
                                 <p className="text-xs text-muted-foreground text-center mt-4">

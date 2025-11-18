@@ -4,6 +4,7 @@ export interface IEvent {
   title: string;
   description: string;
   category: string;
+  subcategory?: string;
   
   startDate: Date;
   endDate?: Date;
@@ -42,6 +43,12 @@ const EventSchema = new Schema<IEvent>({
   category: {
     type: String,
     required: true,
+    index: true, // Index for filtering
+  },
+  subcategory: {
+    type: String,
+    required: false,
+    index: true, // Index for filtering
   },
   
   startDate: {
@@ -100,10 +107,9 @@ const EventSchema = new Schema<IEvent>({
 EventSchema.index({ title: 'text', description: 'text', 'venue.name': 'text' });
 
 // Compound index for filtering
-EventSchema.index({ startDate: 1, category: 1 });
+EventSchema.index({ startDate: 1, category: 1, subcategory: 1 });
 
-// UPDATED: Use title + venue + source as unique constraint
-// This prevents "HAIR - THE MUSICAL" at "Comedy Theatre" from being added multiple times
+// Unique constraint
 EventSchema.index(
   { 
     title: 1, 
@@ -113,14 +119,12 @@ EventSchema.index(
   { unique: true }
 );
 
-// Also keep sourceId index for reference (non-unique now)
 EventSchema.index({ source: 1, sourceId: 1 });
 
 const Event: Model<IEvent> = mongoose.models.Event || mongoose.model<IEvent>('Event', EventSchema);
 
 export default Event;
 
-// NEW: Add serialized type for client components
 export interface SerializedEvent extends Omit<IEvent, 'startDate' | 'endDate' | 'scrapedAt' | 'lastUpdated'> {
   _id: string;
   startDate: string;

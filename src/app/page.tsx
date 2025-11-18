@@ -49,6 +49,7 @@ async function EventsGrid({
     title: event.title,
     description: event.description,
     category: event.category,
+    subcategory: event.subcategory,
     startDate: event.startDate.toISOString(),
     endDate: event.endDate?.toISOString(),
     venue: event.venue,
