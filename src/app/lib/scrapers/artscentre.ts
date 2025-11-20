@@ -29,7 +29,7 @@ interface EventDetailRaw {
     dates: Date[];
     runningTime?: string;
     ageRecommendation?: string;
-}
+}4
 
 interface ScrapeOptions {
     maxCategories ?: number;
