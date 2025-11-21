@@ -1,105 +1,53 @@
-/**
- * Arts Centre Melbourne Scraper – Debug Sitemap
- */
-
-import puppeteer from 'puppeteer-extra';
-import StealthPlugin from 'puppeteer-extra-plugin-stealth';
-import dotenv from 'dotenv';
-import path from 'path';
+// debugPage.ts
+import puppeteer from 'puppeteer';
 import fs from 'fs';
 
-// Import underlying Puppeteer types explicitly
-import type { Page, HTTPResponse } from 'puppeteer';
-
-dotenv.config({ path: path.resolve(process.cwd(), '.env.local') });
-
-puppeteer.use(StealthPlugin());
-
-const SITEMAP_URL = 'https://www.artscentremelbourne.com.au/sitemap.xml';
-
-async function main() {
-    console.log('🌐 Arts Centre Melbourne Sitemap Debugger');
-
-    const browser = await puppeteer.launch({
-        headless: true,
-        args: ['--no-sandbox', '--disable-setuid-sandbox'],
-        ignoreDefaultArgs: ['--enable-automation'],
-    });
-
-    try {
-        const page = await browser.newPage();
-        await setupStealthPage(page);
-
-        await debugSitemapFetch(page, SITEMAP_URL);
-    } finally {
-        await browser.close();
-        console.log('🌐 Browser closed');
-    }
+interface PageDebugInfo {
+  url: string;
+  title: string;
+  domSnapshot: string;
+  innerTextSnapshot: string;
+  networkRequests: string[];
 }
 
-async function setupStealthPage(page: Page) {
-    await page.setViewport({ width: 1920, height: 1080 });
+/**
+ * Debugs a webpage by capturing DOM, inner text, and network requests
+ * @param url The URL of the page to debug
+ */
+async function debugPage(url: string) {
+  const browser = await puppeteer.launch({ headless: true });
+  const page = await browser.newPage();
 
-    await page.setUserAgent(
-        'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) ' +
-        'AppleWebKit/537.36 (KHTML, like Gecko) ' +
-        'Chrome/120.0.0.0 Safari/537.36'
-    );
+  const networkRequests: string[] = [];
+  page.on('request', (request) => {
+    networkRequests.push(request.url());
+  });
 
-    await page.setExtraHTTPHeaders({ 'Accept-Language': 'en-AU,en;q=0.9' });
+  await page.goto(url, { waitUntil: 'networkidle2' });
 
-    // Block heavy resources
-    await page.setRequestInterception(true);
-    page.on('request', (req) => {
-        const blocked = ['image', 'stylesheet', 'font', 'media'];
-        blocked.includes(req.resourceType()) ? req.abort() : req.continue();
-    });
+  const domSnapshot = await page.content(); // Full HTML
+  const innerTextSnapshot = await page.evaluate(() => document.body.innerText);
 
-    // Anti-detection tweaks
-    await page.evaluateOnNewDocument(() => {
-        Object.defineProperty(navigator, 'webdriver', { get: () => false });
-        Object.defineProperty(navigator, 'languages', { get: () => ['en-AU', 'en'] });
-        // @ts-ignore
-        if (!(window as any).chrome) (window as any).chrome = { runtime: {} };
-    });
+  const debugInfo: PageDebugInfo = {
+    url,
+    title: await page.title(),
+    domSnapshot,
+    innerTextSnapshot,
+    networkRequests,
+  };
+
+  // Save snapshot to file for inspection
+  fs.writeFileSync('pageDebug.json', JSON.stringify(debugInfo, null, 2));
+
+  console.log(`Debug info saved to pageDebug.json for ${url}`);
+  await browser.close();
 }
 
-async function debugSitemapFetch(page: Page, url: string) {
-    console.log('\n🔎 Running sitemap debugger...\n');
-
-    let mainResponse: HTTPResponse | null = null;
-    page.on('response', (response: HTTPResponse) => {
-        const reqUrl = response.url().split('#')[0];
-        const tgtUrl = url.split('#')[0];
-        if (!mainResponse && reqUrl === tgtUrl) {
-            mainResponse = response;
-        }
-    });
-
-    const response = await page.goto(url, {
-        waitUntil: 'networkidle2',
-        timeout: 60000,
-    });
-
-    const finalUrl = page.url();
-    const status = response?.status();
-    const headers = response?.headers();
-
-    console.log(`➡️ Final URL: ${finalUrl}`);
-    console.log(`➡️ HTTP Status: ${status}`);
-    console.log(`➡️ Content-Type: ${headers?.['content-type']}`);
-    console.log(`➡️ Response Headers:`);
-    console.log(headers);
-
-    const raw = await page.evaluate(() => document.documentElement.outerHTML);
-
-    console.log('\n📄 First 2000 characters of sitemap response:');
-    console.log(raw.substring(0, 2000));
-
-    fs.writeFileSync('debug-sitemap.html', raw);
-    console.log('\n💾 Saved raw sitemap content → debug-sitemap.html');
-
-    console.log('\n🔍 Debugger complete.\n');
+// Example usage
+const url = process.argv[2]; // Run: ts-node debugPage.ts "https://example.com"
+if (!url) {
+  console.error('Please provide a URL as an argument.');
+  process.exit(1);
 }
 
-main();
+debugPage(url).catch(console.error);

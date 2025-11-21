@@ -1,8 +1,6 @@
 import { NormalisedEvent, ScrapeResult } from './types';
 import { fetchAllTicketmasterEvents, normaliseTicketmasterEvent } from './ticketmaster';
-import { scrapeArtsCentre } from './artscentre';
 
-export { scrapeArtsCentre } from './artscentre';
 export { fetchAllTicketmasterEvents, normaliseTicketmasterEvent } from './ticketmaster';
 export * from './types';
 
@@ -31,13 +29,6 @@ export async function scrapeAll(options?: ScrapeAllOptions): Promise<{
   // Scrape Ticketmaster
   if (sources.includes('ticketmaster')) {
     const result = await scrapeTicketmaster(verbose);
-    results.push(result);
-    allEvents.push(...result.events);
-  }
-
-  // Scrape Arts Centre
-  if (sources.includes('artscentre')) {
-    const result = await scrapeArtsCentreSource(verbose);
     results.push(result);
     allEvents.push(...result.events);
   }
@@ -87,38 +78,6 @@ async function scrapeTicketmaster(verbose: boolean): Promise<ScrapeResult> {
     return {
       events: [],
       stats: { source: 'ticketmaster', fetched, normalised, errors: 1, duration: Date.now() - start }
-    };
-  }
-}
-
-/**
- * Scrape Arts Centre and return normalised events
- */
-async function scrapeArtsCentreSource(verbose: boolean): Promise<ScrapeResult> {
-  const start = Date.now();
-
-  if (verbose) console.log('🎭 Scraping Arts Centre...');
-
-  try {
-    const events = await scrapeArtsCentre();
-
-    if (verbose) console.log(`   ✅ Arts Centre: ${events.length} events\n`);
-
-    return {
-      events,
-      stats: {
-        source: 'artscentre',
-        fetched: events.length,
-        normalised: events.length,
-        errors: 0,
-        duration: Date.now() - start
-      }
-    };
-  } catch (error) {
-    console.error('   ❌ Arts Centre failed:', error);
-    return {
-      events: [],
-      stats: { source: 'artscentre', fetched: 0, normalised: 0, errors: 1, duration: Date.now() - start }
     };
   }
 }

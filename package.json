@@ -13,7 +13,7 @@
     "scrape": "tsx scripts/scrape-all.ts",
     "scrape:ticketmaster": "tsx scripts/scrape-ticketmaster.ts",
     "scrape:artscentre": "tsx scripts/scrape-artscentre.ts --test",
-    "debug:artscentre": "tsx scripts/debug-sitemap.ts"
+    "debug": "tsx scripts/debug-sitemap.ts https://marrinergroup.com.au/shows"
   },
   "dependencies": {
     "@radix-ui/react-dropdown-menu": "^2.1.16",
