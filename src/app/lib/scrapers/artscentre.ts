@@ -10,7 +10,7 @@ import axios from 'axios';
 import * as cheerio from 'cheerio';
 import puppeteer from 'puppeteer-extra';
 import StealthPlugin from 'puppeteer-extra-plugin-stealth';
-import { Browser, Page } from 'puppeteer';
+import { Page } from 'puppeteer';
 import { NormalisedEvent } from './types';
 
 puppeteer.use(StealthPlugin());
@@ -24,8 +24,6 @@ const CONFIG = {
     batchSize: 5,
     batchDelayMs: 15000,
     pageTimeoutMs: 30000,
-    maxRetries: 2,
-    maxConcurrent: 1,
 };
 
 interface SitemapEvent {
@@ -43,7 +41,6 @@ const randomDelay = (min: number, max: number) => delay(min + Math.random() * (m
 // ==========================
 // MAIN EXPORT
 // ==========================
-
 export async function scrapeArtsCentre(testLimit?: number): Promise<NormalisedEvent[]> {
     console.log('🎭 Arts Centre Melbourne Scraper (Respectful mode enabled)');
 
@@ -52,26 +49,26 @@ export async function scrapeArtsCentre(testLimit?: number): Promise<NormalisedEv
 
     if (!sitemapEvents.length) return [];
 
-    const toScrape = testLimit ? sitemapEvents.slice(0, testLimit) : sitemapEvents;
+    const currentYear = new Date().getFullYear();
+    const futureEvents = sitemapEvents.filter(e => e.year >= currentYear);
+    if (!futureEvents.length) return [];
+
+    const toScrape = testLimit ? futureEvents.slice(0, testLimit) : futureEvents;
     if (testLimit) console.log(`🧪 TEST MODE: Processing ${toScrape.length} events\n`);
 
-    return await scrapeWithStealth(toScrape);
+    return scrapeWithStealth(toScrape);
 }
 
 // ==========================
-// SITEMAP FETCHING (WORKING)
+// SITEMAP FETCHING
 // ==========================
-
 async function fetchEventsFromSitemapWithPuppeteer(): Promise<SitemapEvent[]> {
     console.log('🌐 Fetching sitemap using Puppeteer...');
-
     const browser = await puppeteer.launch({
         headless: true,
         args: [
-            '--no-sandbox',
-            '--disable-setuid-sandbox',
-            '--disable-infobars',
-            '--disable-dev-shm-usage',
+            '--no-sandbox', '--disable-setuid-sandbox',
+            '--disable-infobars', '--disable-dev-shm-usage',
             '--disable-blink-features=AutomationControlled',
             '--window-size=1920,1080',
         ],
@@ -80,30 +77,13 @@ async function fetchEventsFromSitemapWithPuppeteer(): Promise<SitemapEvent[]> {
 
     const page = await browser.newPage();
     await setupStealthPage(page);
-
-    await page.goto(SITEMAP_URL, {
-        waitUntil: 'networkidle2',
-        timeout: CONFIG.pageTimeoutMs,
-    });
-
-    // 🔹 Grab the outerHTML so we keep <urlset> and all XML content
+    await page.goto(SITEMAP_URL, { waitUntil: 'networkidle2', timeout: CONFIG.pageTimeoutMs });
     const html = await page.evaluate(() => document.documentElement.outerHTML);
-
     await browser.close();
 
-    // Parse the XML content
     const events: SitemapEvent[] = [];
-    const currentYear = new Date().getFullYear();
-
     const $ = cheerio.load(html, { xmlMode: true });
-    const urlElements = $('url');
-
-    if (!urlElements.length) {
-        console.warn('⚠️ Sitemap fetched but no <url> elements detected');
-        return [];
-    }
-
-    urlElements.each((_, elem) => {
+    $('url').each((_, elem) => {
         const url = $(elem).find('loc').text().trim();
         const lastmod = $(elem).find('lastmod').text().trim();
         processUrl(url, lastmod, events);
@@ -113,31 +93,16 @@ async function fetchEventsFromSitemapWithPuppeteer(): Promise<SitemapEvent[]> {
     return events.sort((a, b) => a.year - b.year);
 }
 
-
-/**
- * Updated URL processor
- * - Does not skip events from previous years by default
- * - Extracts year from URL
- * - Adds slug, category, subcategory
- */
 function processUrl(url: string, lastmod: string, events: SitemapEvent[]) {
     if (!url.includes('/whats-on/')) return;
 
     const yearMatch = url.match(/\/(20\d{2})/);
     const year = yearMatch ? parseInt(yearMatch[1]) : new Date().getFullYear();
-
     const slug = url.split('/').filter(Boolean).pop()!;
     const category = guessCategoryFromUrl(url);
 
-    events.push({
-        url,
-        lastmod,
-        year,
-        slug,
-        ...category,
-    });
+    events.push({ url, lastmod, year, slug, ...category });
 }
-
 
 function guessCategoryFromUrl(url: string) {
     const map: Record<string, { category: string; subcategory: string }> = {
@@ -166,7 +131,6 @@ function guessCategoryFromUrl(url: string) {
 // ==========================
 // PUPPETEER STEALTH SCRAPING
 // ==========================
-
 async function scrapeWithStealth(sitemapEvents: SitemapEvent[]): Promise<NormalisedEvent[]> {
     console.log('🌐 Launching stealth browser...');
     const browser = await puppeteer.launch({
@@ -189,15 +153,19 @@ async function scrapeWithStealth(sitemapEvents: SitemapEvent[]): Promise<Normali
             const sitemap = sitemapEvents[i];
             const progress = `[${i + 1}/${sitemapEvents.length}]`;
 
+            let event: NormalisedEvent | null = null;
             try {
-                const event = await scrapePage(page, sitemap);
-                events.push(event || createFallbackEvent(sitemap));
-                console.log(`✅ ${progress} ${event?.title || sitemap.slug}`);
+                event = await scrapePage(page, sitemap);
             } catch {
-                const fallback = createFallbackEvent(sitemap);
-                events.push(fallback);
-                console.log(`❌ ${progress} Error, fallback: ${fallback.title}`);
+                event = createFallbackEvent(sitemap, 'sitemap-fallback');
             }
+
+            events.push(event);
+
+            const modeIcon = event.scrapeMode === 'react-page' ? '✅'
+                : event.scrapeMode === 'captcha-blocked' ? '🔐' : '⚠️';
+
+            console.log(`${modeIcon} ${progress} [${event.scrapeMode}] ${event.title} ${event.fallback ? '(fallback)' : ''}`);
 
             if (i < sitemapEvents.length - 1) {
                 await randomDelay(CONFIG.minDelayMs, CONFIG.maxDelayMs);
@@ -213,9 +181,7 @@ async function scrapeWithStealth(sitemapEvents: SitemapEvent[]): Promise<Normali
 
 async function setupStealthPage(page: Page) {
     await page.setViewport({ width: 1920, height: 1080 });
-    await page.setUserAgent(
-        'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
-    );
+    await page.setUserAgent('Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36');
     await page.setExtraHTTPHeaders({ 'Accept-Language': 'en-AU,en;q=0.9' });
 
     await page.setRequestInterception(true);
@@ -230,10 +196,11 @@ async function setupStealthPage(page: Page) {
     });
 }
 
-async function scrapePage(page: Page, sitemap: SitemapEvent): Promise<NormalisedEvent | null> {
+async function scrapePage(page: Page, sitemap: SitemapEvent): Promise<NormalisedEvent> {
     await page.goto(sitemap.url, { waitUntil: 'networkidle2', timeout: CONFIG.pageTimeoutMs });
-    const captchaSolved = await handleCaptchaIfPresent(page);
-    if (captchaSolved) await page.waitForNavigation({ waitUntil: 'networkidle2', timeout: 10000 }).catch(() => { });
+
+    const captchaDetected = await detectCaptcha(page);
+    if (captchaDetected) return createFallbackEvent(sitemap, 'captcha-blocked');
 
     await page.waitForSelector('h1, [class*="event"]', { timeout: 10000 }).catch(() => { });
     await delay(1000);
@@ -285,8 +252,9 @@ async function scrapePage(page: Page, sitemap: SitemapEvent): Promise<Normalised
         };
     });
 
-    if (!data?.title) return null;
     const now = new Date();
+    if (!data?.title) return createFallbackEvent(sitemap, 'sitemap-fallback');
+
     return {
         title: data.title,
         description: data.description || `${sitemap.subcategory} at Arts Centre Melbourne`,
@@ -304,80 +272,26 @@ async function scrapePage(page: Page, sitemap: SitemapEvent): Promise<Normalised
         sourceId: sitemap.slug,
         scrapedAt: now,
         lastUpdated: now,
+        scrapeMode: 'react-page',
+        fallback: false,
     };
 }
 
 // ==========================
-// CAPTCHA
+// CAPTCHA DETECTION
 // ==========================
-
-async function handleCaptchaIfPresent(page: Page): Promise<boolean> {
+async function detectCaptcha(page: Page): Promise<boolean> {
     const captcha = await page.$('[class*="captcha"], input[name*="captcha"], [id*="captcha"]');
     if (!captcha) return false;
 
-    console.log('🔐 CAPTCHA detected...');
-    const question = await page.evaluate(() => {
-        const selectors = [
-            'label[for*="captcha"]', '.captcha-question',
-            '[class*="captcha"] label', '[class*="captcha"] p',
-            '[class*="challenge"] label'
-        ];
-        for (const sel of selectors) {
-            const el = document.querySelector(sel);
-            if (el?.textContent?.trim()) return el.textContent.trim();
-        }
-        return null;
-    });
-
-    if (!question) return false;
-    const answer = solveTextCaptcha(question);
-    if (!answer) return false;
-
-    const input = await page.$('input[name*="captcha"], input[type="text"][id*="captcha"], input[type="text"]');
-    if (input) await humanType(page, input, answer);
-
-    const submit = await page.$('button[type="submit"], input[type="submit"], button:not([type])');
-    if (submit) { await submit.click(); console.log(`✅ CAPTCHA solved: ${answer}`); return true; }
-
-    return false;
-}
-
-function solveTextCaptcha(q: string): string | null {
-    const question = q.toLowerCase();
-    const digitMath = question.match(/(\d+)\s*([+\-*x×]|plus|minus|times)\s*(\d+)/);
-    if (digitMath) {
-        const a = parseInt(digitMath[1]), b = parseInt(digitMath[3]), op = digitMath[2];
-        if (op === '+' || op === 'plus') return String(a + b);
-        if (op === '-' || op === 'minus') return String(a - b);
-        if (op === '*' || op === 'x' || op === '×' || op === 'times') return String(a * b);
-    }
-
-    const nums: Record<string, number> = { zero: 0, one: 1, two: 2, three: 3, four: 4, five: 5, six: 6, seven: 7, eight: 8, nine: 9, ten: 10, eleven: 11, twelve: 12 };
-    const wordMath = question.match(/(zero|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve)\s+(plus|minus|times|and)\s+(zero|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve)/);
-    if (wordMath) {
-        const a = nums[wordMath[1]], b = nums[wordMath[3]], op = wordMath[2];
-        if (op === 'plus' || op === 'and') return String(a + b);
-        if (op === 'minus') return String(a - b);
-        if (op === 'times') return String(a * b);
-    }
-
-    if (question.includes('capital') && question.includes('australia')) return 'canberra';
-    if (question.includes('capital') && question.includes('victoria')) return 'melbourne';
-    if (question.includes('color') || question.includes('colour')) return question.includes('sky') ? 'blue' : 'green';
-
-    return null;
-}
-
-async function humanType(page: Page, element: any, text: string) {
-    await element.click();
-    for (const char of text) await page.keyboard.type(char, { delay: 50 + Math.random() * 100 });
+    console.log('🔐 CAPTCHA detected on page');
+    return true;
 }
 
 // ==========================
 // FALLBACK
 // ==========================
-
-function createFallbackEvent(sitemap: SitemapEvent): NormalisedEvent {
+function createFallbackEvent(sitemap: SitemapEvent, mode: 'captcha-blocked' | 'sitemap-fallback'): NormalisedEvent {
     const now = new Date();
     return {
         title: slugToTitle(sitemap.slug),
@@ -396,6 +310,8 @@ function createFallbackEvent(sitemap: SitemapEvent): NormalisedEvent {
         sourceId: sitemap.slug,
         scrapedAt: now,
         lastUpdated: now,
+        scrapeMode: mode,
+        fallback: true,
     };
 }
 

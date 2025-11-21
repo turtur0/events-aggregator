@@ -1,30 +1,32 @@
-// Normalised event that all scrapers output
 export interface NormalisedEvent {
   title: string;
   description: string;
   category: string;
   subcategory?: string;
-  
-  startDate: Date; 
+
+  startDate: Date;
   endDate?: Date;
-  
+
   venue: {
     name: string;
     address: string;
     suburb: string;
   };
-  
+
   priceMin?: number;
   priceMax?: number;
   isFree: boolean;
-  
+
   bookingUrl: string;
   imageUrl?: string;
-  
-  source: 'ticketmaster' | 'artscentre' | 'eventbrite';
+
+  source: 'ticketmaster' | 'artscentre';
   sourceId: string;
   scrapedAt: Date;
   lastUpdated: Date;
+
+  scrapeMode?: 'react-page' | 'captcha-blocked' | 'sitemap-fallback';
+  fallback?: boolean;
 }
 
 // Ticketmaster API response types
