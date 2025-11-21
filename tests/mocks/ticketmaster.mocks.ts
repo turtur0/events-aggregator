@@ -1,10 +1,10 @@
-import { TicketmasterEvent } from "@/app/lib/scrapers";
+import { TicketmasterEvent } from "@/app/lib/scrapers/types";
 
 export const mockTicketmasterEvent: TicketmasterEvent = {
   id: 'TM001',
   name: 'Test Concert',
   description: 'An amazing test concert',
-  info: 'An amazing test concert', // NEW: Added info field
+  info: 'An amazing test concert',
   url: 'https://ticketmaster.com/test',
   dates: {
     start: {
@@ -16,7 +16,7 @@ export const mockTicketmasterEvent: TicketmasterEvent = {
     {
       segment: { name: 'Music' },
       genre: { name: 'Rock' },
-      subGenre: { name: 'Hard Rock' }, // NEW: Added subGenre
+      subGenre: { name: 'Hard Rock' },
     },
   ],
   priceRanges: [
@@ -45,7 +45,6 @@ export const mockTicketmasterEvent: TicketmasterEvent = {
 export const mockFreeEvent: TicketmasterEvent = {
   id: 'TM002',
   name: 'Free Festival',
-  info: undefined, // NEW: Explicitly set optional field
   url: 'https://ticketmaster.com/free',
   dates: {
     start: {
@@ -72,7 +71,6 @@ export const mockFreeEvent: TicketmasterEvent = {
 export const mockMinimalEvent: TicketmasterEvent = {
   id: 'TM003',
   name: 'Minimal Event',
-  info: undefined, // NEW
   url: 'https://ticketmaster.com/minimal',
   dates: {
     start: {
@@ -84,7 +82,6 @@ export const mockMinimalEvent: TicketmasterEvent = {
 export const mockMultiDayEvent: TicketmasterEvent = {
   id: 'TM004',
   name: 'Music Festival',
-  info: undefined, // NEW
   url: 'https://ticketmaster.com/festival',
   dates: {
     start: {
@@ -111,7 +108,6 @@ export const mockDuplicateEvents: TicketmasterEvent[] = [
   {
     id: 'TM005A',
     name: 'HAIR - THE MUSICAL',
-    info: undefined, // NEW
     url: 'https://ticketmaster.com/hair1',
     dates: {
       start: {
@@ -131,7 +127,6 @@ export const mockDuplicateEvents: TicketmasterEvent[] = [
   {
     id: 'TM005B',
     name: 'Hair - The Musical',
-    info: undefined, // NEW
     url: 'https://ticketmaster.com/hair2',
     dates: {
       start: {
@@ -153,7 +148,6 @@ export const mockDuplicateEvents: TicketmasterEvent[] = [
 export const mockInvalidDateEvent: TicketmasterEvent = {
   id: 'TM006',
   name: 'Invalid Date Event',
-  info: undefined, // NEW
   url: 'https://ticketmaster.com/invalid',
   dates: {
     start: {
