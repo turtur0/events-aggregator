@@ -12,7 +12,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
-import { Filter, X, Plus, Minus } from 'lucide-react';
+import { Filter, X, Plus, Minus, Users } from 'lucide-react';
 import { useState } from 'react';
 
 export function EventFilters() {
@@ -26,6 +26,7 @@ export function EventFilters() {
   const subcategory = searchParams.get('subcategory') || 'all';
   const dateFilter = searchParams.get('date') || 'all';
   const freeOnly = searchParams.get('free') === 'true';
+  const accessibleOnly = searchParams.get('accessible') === 'true';
 
   const updateURL = (key: string, value: string | boolean) => {
     const params = new URLSearchParams(searchParams.toString());
@@ -64,15 +65,29 @@ export function EventFilters() {
     params.delete('subcategory');
     params.delete('date');
     params.delete('free');
+    params.delete('accessible');
     params.set('page', '1');
 
     router.push(`${pathname}?${params.toString()}`, { scroll: false });
   };
 
   const hasActiveFilters =
-    category !== 'all' || subcategory !== 'all' || dateFilter !== 'all' || freeOnly;
+    category !== 'all' || 
+    subcategory !== 'all' || 
+    dateFilter !== 'all' || 
+    freeOnly || 
+    accessibleOnly;
 
   const selectedCategory = CATEGORIES.find(cat => cat.value === category);
+
+  // Count active filters
+  const activeFilterCount = [
+    category !== 'all',
+    subcategory !== 'all',
+    dateFilter !== 'all',
+    freeOnly,
+    accessibleOnly,
+  ].filter(Boolean).length;
 
   return (
     <div className="bg-card border rounded-lg p-4 space-y-4">
@@ -80,6 +95,11 @@ export function EventFilters() {
         <div className="flex items-center gap-2">
           <Filter className="h-4 w-4 text-muted-foreground" />
           <h3 className="font-semibold">Filters</h3>
+          {activeFilterCount > 0 && (
+            <span className="text-xs bg-primary text-primary-foreground rounded-full px-2 py-0.5">
+              {activeFilterCount}
+            </span>
+          )}
         </div>
 
         <div className="flex items-center gap-2">
@@ -107,7 +127,8 @@ export function EventFilters() {
       </div>
 
       {showFilters && (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+          {/* Category */}
           <div className="space-y-2">
             <Label>Category</Label>
             <Select value={category} onValueChange={handleCategoryChange}>
@@ -125,6 +146,7 @@ export function EventFilters() {
             </Select>
           </div>
 
+          {/* Subcategory */}
           <div className="space-y-2">
             <Label>Subcategory</Label>
             <Select
@@ -146,6 +168,7 @@ export function EventFilters() {
             </Select>
           </div>
 
+          {/* Date */}
           <div className="space-y-2">
             <Label>Date</Label>
             <Select value={dateFilter} onValueChange={(value) => updateURL('date', value)}>
@@ -157,10 +180,12 @@ export function EventFilters() {
                 <SelectItem value="today">Today</SelectItem>
                 <SelectItem value="this-week">This week</SelectItem>
                 <SelectItem value="this-month">This month</SelectItem>
+                <SelectItem value="next-month">Next month</SelectItem>
               </SelectContent>
             </Select>
           </div>
 
+          {/* Price Filter */}
           <div className="space-y-2">
             <Label>Price</Label>
             <div className="flex items-center space-x-2 h-10">
@@ -169,8 +194,24 @@ export function EventFilters() {
                 checked={freeOnly}
                 onCheckedChange={(checked) => updateURL('free', checked)}
               />
-              <Label htmlFor="free-only" className="cursor-pointer">
-                Free events only
+              <Label htmlFor="free-only" className="cursor-pointer text-sm">
+                Free only
+              </Label>
+            </div>
+          </div>
+
+          {/* Accessibility Filter */}
+          <div className="space-y-2">
+            <Label>Accessibility</Label>
+            <div className="flex items-center space-x-2 h-10">
+              <Switch
+                id="accessible-only"
+                checked={accessibleOnly}
+                onCheckedChange={(checked) => updateURL('accessible', checked)}
+              />
+              <Label htmlFor="accessible-only" className="cursor-pointer text-sm flex items-center gap-1">
+                <Users className="h-3 w-3" />
+                Accessible
               </Label>
             </div>
           </div>

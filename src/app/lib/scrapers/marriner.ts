@@ -1,4 +1,9 @@
-import { load } from 'cheerio';
+// ============================================
+// marriner.ts - Enhanced Marriner Group Scraper
+// Extracts full descriptions, videos, and booking info
+// ============================================
+
+import { load, CheerioAPI } from 'cheerio';
 import { NormalisedEvent } from './types';
 import { mapMarrinerCategory } from '../utils/category-mapper';
 
@@ -12,6 +17,8 @@ interface RawShow {
     venue: string;
     description?: string;
     imageUrl?: string;
+    videoUrl?: string;
+    bookingInfo?: string;
 }
 
 export interface ScrapeOptions {
@@ -20,162 +27,128 @@ export interface ScrapeOptions {
     usePuppeteer?: boolean;
 }
 
-/**
- * Main scraper function
- */
 export async function scrapeMarrinerGroup(opts: ScrapeOptions = {}): Promise<NormalisedEvent[]> {
-    // Step 1: Get show URLs with Puppeteer (handles lazy loading)
-    const showUrls = opts.usePuppeteer !== false
-        ? await fetchShowUrls(opts.maxShows || 50)
-        : [];
+    console.log('🎭 Scraping Marriner Group...');
 
-    // Step 2: Fetch details for each show with Cheerio
+    // Get show URLs (Puppeteer for lazy loading)
+    const urls = opts.usePuppeteer !== false ? await fetchShowUrls(opts.maxShows || 50) : [];
+    console.log(`   Found ${urls.length} show URLs`);
+
+    // Fetch details with Cheerio
     const rawShows: RawShow[] = [];
-    const fetchLimit = Math.min(opts.maxDetailFetches || showUrls.length, showUrls.length);
-    
-    for (let i = 0; i < fetchLimit; i++) {
-        const raw = await fetchShowDetails(showUrls[i]);
-        if (raw) rawShows.push(raw);
-        await new Promise(r => setTimeout(r, 800)); // Rate limiting
+    const limit = Math.min(opts.maxDetailFetches || urls.length, urls.length);
+
+    for (let i = 0; i < limit; i++) {
+        const raw = await fetchShowDetails(urls[i]);
+        if (raw) {
+            rawShows.push(raw);
+            console.log(`   ✓ ${i + 1}/${limit}: ${raw.title}`);
+        }
+        await delay(800);
     }
 
-    // Step 3: Normalize to standard event format
-    const events = rawShows
-        .map(toNormalisedEvent)
-        .filter((e): e is NormalisedEvent => e !== null);
-
+    const events = rawShows.map(toNormalisedEvent).filter((e): e is NormalisedEvent => e !== null);
+    console.log(`   ✅ ${events.length} events processed`);
     return events;
 }
 
-/**
- * Fetch show URLs using Puppeteer (handles React lazy loading)
- */
 async function fetchShowUrls(maxShows: number): Promise<string[]> {
     const puppeteer = await import('puppeteer');
-    const browser = await puppeteer.launch({ 
-        headless: true, 
-        args: ['--no-sandbox', '--disable-setuid-sandbox'] 
-    });
+    const browser = await puppeteer.launch({ headless: true, args: ['--no-sandbox', '--disable-setuid-sandbox'] });
     const page = await browser.newPage();
     await page.setUserAgent(HEADERS['User-Agent']);
     await page.setViewport({ width: 1920, height: 1080 });
-
-    await page.goto(`${BASE_URL}/shows`, { 
-        waitUntil: 'networkidle2', 
-        timeout: 30000 
-    });
-
-    await new Promise(r => setTimeout(r, 2000));
+    await page.goto(`${BASE_URL}/shows`, { waitUntil: 'networkidle2', timeout: 30000 });
+    await delay(2000);
 
     const urls = new Set<string>();
-    let consecutiveNoChange = 0;
-    const maxScrollAttempts = 20;
-    let scrollAttempts = 0;
+    let noChange = 0, attempts = 0;
 
-    // Scroll to load all shows
-    while (consecutiveNoChange < 4 && scrollAttempts < maxScrollAttempts) {
-        const prevSize = urls.size;
-
-        const newUrls = await page.evaluate(() => {
-            const links = Array.from(document.querySelectorAll('a[href*="/shows/"]'));
-            return links
+    while (noChange < 4 && attempts < 20) {
+        const prev = urls.size;
+        const found = await page.evaluate(() =>
+            Array.from(document.querySelectorAll('a[href*="/shows/"]'))
                 .map(a => (a as HTMLAnchorElement).href)
-                .filter(href => {
-                    const path = href.replace('https://marrinergroup.com.au', '');
-                    return path.startsWith('/shows/') && path.length > '/shows/'.length;
-                });
-        });
+                .filter(h => h.includes('/shows/') && h !== 'https://marrinergroup.com.au/shows')
+        );
+        found.forEach(u => urls.add(u));
 
-        newUrls.forEach(url => urls.add(url));
-
-        if (urls.size === prevSize) {
-            consecutiveNoChange++;
-        } else {
-            consecutiveNoChange = 0;
-        }
-
-        await page.evaluate(() => {
-            window.scrollBy({ top: window.innerHeight * 0.8, behavior: 'smooth' });
-        });
-
-        await new Promise(r => setTimeout(r, 2000));
-        scrollAttempts++;
-
+        noChange = urls.size === prev ? noChange + 1 : 0;
+        await page.evaluate(() => window.scrollBy({ top: window.innerHeight * 0.8, behavior: 'smooth' }));
+        await delay(2000);
+        attempts++;
         if (maxShows && urls.size >= maxShows) break;
     }
 
     await browser.close();
-
-    const urlArray = Array.from(urls);
-    return maxShows ? urlArray.slice(0, maxShows) : urlArray;
+    return Array.from(urls).slice(0, maxShows);
 }
 
-/**
- * Fetch individual show details with Cheerio
- */
 async function fetchShowDetails(url: string): Promise<RawShow | null> {
     try {
         const res = await fetch(url, { headers: HEADERS });
         if (!res.ok) return null;
-        
-        const html = await res.text();
-        const $ = load(html);
 
+        const $ = load(await res.text());
         const title = $('h1').first().text().trim();
         if (!title) return null;
 
         const dateText = $('.dates').first().text().trim();
         if (!dateText) return null;
 
-        const venue = $('.location').first().text().trim() || extractVenueFromTitle(title);
-        const description = $('meta[name="description"]').attr('content')?.trim() || title;
+        // Extract venue from h2 (e.g., "at the Princess Theatre, Melbourne")
+        const venueText = $('h2').first().text().trim();
+        const venue = extractVenueFromText(venueText) || extractVenueFromTitle(title);
 
-        // Extract image (skip logos)
-        let imageUrl: string | undefined;
-        imageUrl = $('meta[property="og:image"]').attr('content');
-        
-        if (!imageUrl) {
-            const contentImages = $('img').toArray();
-            for (const img of contentImages) {
-                const src = $(img).attr('src') || '';
-                const alt = $(img).attr('alt') || '';
-                
-                if (!src.includes('logo') && !src.includes('icon') && !src.includes('nav') &&
-                    !alt.toLowerCase().includes('logo')) {
-                    imageUrl = src;
-                    break;
-                }
-            }
-        }
-        
-        if (imageUrl && !imageUrl.startsWith('http')) {
-            imageUrl = imageUrl.startsWith('/') 
-                ? `${BASE_URL}${imageUrl}` 
-                : `${BASE_URL}/${imageUrl}`;
-        }
+        // Full description from .description div
+        const descParagraphs = $('.description p').map((_, el) => $(el).text().trim()).get();
+        const description = descParagraphs.filter(p => p.length > 0 && !p.startsWith('---')).join('\n\n').substring(0, 1500);
 
-        return { url, title, dateText, venue, description, imageUrl };
-    } catch (err) {
-        return null;
-    }
+        // Video URL
+        const videoUrl = $('.videos iframe').first().attr('src');
+
+        // Booking info
+        const bookingInfo = $('.info').text().trim().substring(0, 500);
+
+        // Image
+        const imageUrl = extractImage($);
+
+        return { url, title, dateText, venue, description, imageUrl, videoUrl, bookingInfo };
+    } catch { return null; }
 }
 
-/**
- * Extract venue from title (fallback)
- */
+function extractVenueFromText(text: string): string | null {
+    const match = text.match(/at\s+(?:the\s+)?(.+?),?\s*Melbourne/i);
+    if (match) return match[1].trim();
+
+    const venues = ['Princess Theatre', 'Comedy Theatre', 'Regent Theatre', 'Forum Melbourne'];
+    for (const v of venues) if (text.toLowerCase().includes(v.toLowerCase())) return v;
+    return null;
+}
+
 function extractVenueFromTitle(title: string): string {
     const venues = ['Princess Theatre', 'Comedy Theatre', 'Regent Theatre', 'Forum Melbourne'];
-    for (const venue of venues) {
-        if (title.toLowerCase().includes(venue.toLowerCase())) {
-            return venue;
-        }
-    }
+    for (const v of venues) if (title.toLowerCase().includes(v.toLowerCase())) return v;
     return 'Marriner Venue';
 }
 
-/**
- * Convert raw show to normalized event
- */
+function extractImage($: CheerioAPI): string | undefined {
+    let img = $('meta[property="og:image"]').attr('content');
+    if (!img) {
+        const contentImgs = $('img').toArray();
+        for (const el of contentImgs) {
+            const src = $(el).attr('src') || '';
+            const alt = $(el).attr('alt') || '';
+            if (!src.includes('logo') && !src.includes('icon') && !alt.toLowerCase().includes('logo')) {
+                img = src;
+                break;
+            }
+        }
+    }
+    if (img && !img.startsWith('http')) img = `${BASE_URL}${img.startsWith('/') ? '' : '/'}${img}`;
+    return img;
+}
+
 function toNormalisedEvent(raw: RawShow): NormalisedEvent | null {
     const dates = parseDateRange(raw.dateText);
     if (!dates.startDate) return null;
@@ -189,16 +162,11 @@ function toNormalisedEvent(raw: RawShow): NormalisedEvent | null {
         subcategory,
         startDate: dates.startDate,
         endDate: dates.endDate,
-        venue: { 
-            name: raw.venue, 
-            address: getVenueAddress(raw.venue), 
-            suburb: 'Melbourne' 
-        },
-        priceMin: undefined,
-        priceMax: undefined,
+        venue: { name: raw.venue, address: getVenueAddress(raw.venue), suburb: 'Melbourne' },
         isFree: false,
         bookingUrl: raw.url,
         imageUrl: raw.imageUrl,
+        videoUrl: raw.videoUrl,
         source: 'marriner',
         sourceId: slugify(raw.title),
         scrapedAt: new Date(),
@@ -206,84 +174,56 @@ function toNormalisedEvent(raw: RawShow): NormalisedEvent | null {
     };
 }
 
-/**
- * Get venue address
- */
-function getVenueAddress(venueName: string): string {
-    const addresses: Record<string, string> = {
+function getVenueAddress(venue: string): string {
+    const addrs: Record<string, string> = {
         'Princess Theatre': '163 Spring St, Melbourne VIC 3000',
         'Regent Theatre': '191 Collins St, Melbourne VIC 3000',
         'Comedy Theatre': '240 Exhibition St, Melbourne VIC 3000',
         'Forum Melbourne': '154 Flinders St, Melbourne VIC 3000',
     };
-    return addresses[venueName] || 'Melbourne CBD';
+    return addrs[venue] || 'Melbourne CBD';
 }
 
-/**
- * Parse date range
- * Formats: "15 Nov 2025 — 25 Nov 2025", "21 Nov 2025", "22 & 23 Nov 2025"
- */
 function parseDateRange(text: string): { startDate: Date | null; endDate?: Date } {
     if (!text || text === 'TBA') return { startDate: null };
-    
+
     const year = new Date().getFullYear();
-    const nextYear = year + 1;
-    
-    // Handle "&" separator (e.g., "22 & 23 Nov 2025")
+    const next = year + 1;
+
+    // Handle "22 & 23 Nov 2025"
     if (text.includes('&')) {
-        const parts = text.split('&').map(p => p.trim());
-        
-        if (/^\d{1,2}$/.test(parts[0]) && parts[1]) {
-            const firstDay = parts[0];
-            const secondTokens = parts[1].trim().split(/\s+/);
-            
-            if (secondTokens.length >= 3) {
-                const secondDay = secondTokens[0];
-                const month = secondTokens[1];
-                const yearStr = secondTokens[2];
-                
-                const firstDate = parseDate(`${firstDay} ${month} ${yearStr}`, parseInt(yearStr), parseInt(yearStr) + 1);
-                const secondDate = parseDate(`${secondDay} ${month} ${yearStr}`, parseInt(yearStr), parseInt(yearStr) + 1);
-                
-                return { startDate: firstDate, endDate: secondDate ?? undefined };
+        const [first, rest] = text.split('&').map(s => s.trim());
+        if (/^\d{1,2}$/.test(first) && rest) {
+            const tokens = rest.split(/\s+/);
+            if (tokens.length >= 3) {
+                const [day, month, yr] = [tokens[0], tokens[1], tokens[2]];
+                return {
+                    startDate: parseDate(`${first} ${month} ${yr}`, year, next),
+                    endDate: parseDate(`${day} ${month} ${yr}`, year, next) ?? undefined,
+                };
             }
         }
-        
-        const firstDate = parseDate(parts[0], year, nextYear);
-        const secondDate = parseDate(parts[1], year, nextYear);
-        return { startDate: firstDate, endDate: secondDate ?? undefined };
     }
-    
-    // Handle em dash or hyphen separator
-    const parts = text.split(/\s*[—–\-]\s*/).map(p => p.trim());
-    const startDate = parseDate(parts[0], year, nextYear);
-    const endDate = parts[1] ? parseDate(parts[1], year, nextYear) : undefined;
-    
-    return { startDate, endDate: endDate ?? undefined };
+
+    // Handle range with dash/em-dash
+    const parts = text.split(/\s*[—–\-]\s*/).map(s => s.trim());
+    const start = parseDate(parts[0], year, next);
+    const end = parts[1] ? parseDate(parts[1], year, next) : undefined;
+    return { startDate: start, endDate: end ?? undefined };
 }
 
-/**
- * Parse single date string
- */
-function parseDate(dateStr: string, currentYear: number, nextYear: number): Date | null {
-    if (!dateStr) return null;
-    
-    let d = new Date(dateStr);
-    
-    if (isNaN(d.getTime()) && !dateStr.match(/\d{4}/)) {
-        d = new Date(`${dateStr} ${currentYear}`);
-        
-        if (d < new Date()) {
-            d = new Date(`${dateStr} ${nextYear}`);
-        }
+function parseDate(str: string, year: number, next: number): Date | null {
+    if (!str) return null;
+    let d = new Date(str);
+    if (isNaN(d.getTime()) && !str.match(/\d{4}/)) {
+        d = new Date(`${str} ${year}`);
+        if (d < new Date()) d = new Date(`${str} ${next}`);
     }
-    
     return isNaN(d.getTime()) ? null : d;
 }
 
-/**
- * Create URL-safe slug
- */
 function slugify(text: string): string {
     return text.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
 }
+
+function delay(ms: number) { return new Promise(r => setTimeout(r, ms)); }

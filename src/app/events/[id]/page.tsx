@@ -1,15 +1,16 @@
 import { notFound } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
-import { Calendar, MapPin, DollarSign, ExternalLink, ArrowLeft } from "lucide-react";
+import { Calendar, MapPin, DollarSign, ExternalLink, ArrowLeft, Users, Clock, Video, Info } from "lucide-react";
 import { connectDB } from "@/app/lib/db";
 import Event from "@/app/lib/models/Event";
 import { Header } from "@/components/layout/header";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { format, isSameMonth } from "date-fns";
+import { getCategoryLabel } from "@/app/lib/categories";
 
 interface EventPageProps {
     params: Promise<{ id: string }>;
@@ -42,6 +43,19 @@ export default async function EventPage({ params }: EventPageProps) {
         notFound();
     }
 
+    // Helper to convert Map to object
+    const mapToObject = (map: any) => {
+        if (!map) return {};
+        if (typeof map.get === 'function') {
+            const obj: Record<string, any> = {};
+            for (const [key, value] of map) {
+                obj[key] = value;
+            }
+            return obj;
+        }
+        return map;
+    };
+
     // Serialize dates for client components
     const event = {
         ...eventDoc,
@@ -50,6 +64,8 @@ export default async function EventPage({ params }: EventPageProps) {
         endDate: eventDoc.endDate?.toISOString(),
         scrapedAt: eventDoc.scrapedAt.toISOString(),
         lastUpdated: eventDoc.lastUpdated.toISOString(),
+        sourceIds: mapToObject(eventDoc.sourceIds),
+        bookingUrls: mapToObject(eventDoc.bookingUrls),
     };
 
     const formatDate = () => {
@@ -97,6 +113,10 @@ export default async function EventPage({ params }: EventPageProps) {
         return "Check booking link for pricing";
     };
 
+    // Get all booking URLs
+    const bookingUrls = event.bookingUrls || {};
+    const hasMultipleSources = event.sources && event.sources.length > 1;
+
     return (
         <>
             <main className="container py-8">
@@ -128,23 +148,36 @@ export default async function EventPage({ params }: EventPageProps) {
                         <div className="mb-6">
                             <div className="flex items-center gap-2 mb-3 flex-wrap">
                                 <Badge variant="secondary">
-                                    {event.category}
+                                    {getCategoryLabel(event.category)}
                                 </Badge>
-                                {event.subcategory && (
-                                    <Badge variant="outline">
-                                        {event.subcategory}
+                                {event.subcategories?.map((sub) => (
+                                    <Badge key={sub} variant="outline">
+                                        {sub}
                                     </Badge>
-                                )}
+                                ))}
                                 {event.endDate && (
                                     <Badge variant="outline">
                                         Multi-day Event
                                     </Badge>
                                 )}
+                                {event.ageRestriction && (
+                                    <Badge variant="destructive">
+                                        {event.ageRestriction}
+                                    </Badge>
+                                )}
                             </div>
                             <h1 className="text-4xl font-bold mb-2">{event.title}</h1>
-                            <p className="text-muted-foreground">
-                                Source: {event.source.charAt(0).toUpperCase() + event.source.slice(1)}
-                            </p>
+                            <div className="flex items-center gap-2 text-muted-foreground">
+                                <p>
+                                    Primary source: {event.primarySource.charAt(0).toUpperCase() + event.primarySource.slice(1)}
+                                </p>
+                                {hasMultipleSources && (
+                                    <>
+                                        <span>•</span>
+                                        <p>{event.sources.length} sources</p>
+                                    </>
+                                )}
+                            </div>
                         </div>
 
                         <Separator className="my-6" />
@@ -156,6 +189,47 @@ export default async function EventPage({ params }: EventPageProps) {
                                 {event.description}
                             </p>
                         </div>
+
+                        {/* Video */}
+                        {event.videoUrl && (
+                            <>
+                                <Separator className="my-6" />
+                                <div className="mb-6">
+                                    <h2 className="text-2xl font-bold mb-4 flex items-center gap-2">
+                                        <Video className="h-6 w-6" />
+                                        Preview
+                                    </h2>
+                                    <div className="relative w-full aspect-video rounded-lg overflow-hidden">
+                                        <iframe
+                                            src={event.videoUrl}
+                                            className="w-full h-full"
+                                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                                            allowFullScreen
+                                        />
+                                    </div>
+                                </div>
+                            </>
+                        )}
+
+                        {/* Accessibility */}
+                        {event.accessibility && event.accessibility.length > 0 && (
+                            <>
+                                <Separator className="my-6" />
+                                <div className="mb-6">
+                                    <h2 className="text-2xl font-bold mb-4 flex items-center gap-2">
+                                        <Users className="h-6 w-6" />
+                                        Accessibility
+                                    </h2>
+                                    <div className="flex flex-wrap gap-2">
+                                        {event.accessibility.map((feature) => (
+                                            <Badge key={feature} variant="secondary">
+                                                {feature}
+                                            </Badge>
+                                        ))}
+                                    </div>
+                                </div>
+                            </>
+                        )}
 
                         <Separator className="my-6" />
 
@@ -170,6 +244,33 @@ export default async function EventPage({ params }: EventPageProps) {
                                 </CardContent>
                             </Card>
                         </div>
+
+                        {/* Multiple Sources Info */}
+                        {hasMultipleSources && (
+                            <>
+                                <Separator className="my-6" />
+                                <Card>
+                                    <CardHeader>
+                                        <CardTitle className="flex items-center gap-2">
+                                            <Info className="h-5 w-5" />
+                                            Event Information Sources
+                                        </CardTitle>
+                                    </CardHeader>
+                                    <CardContent>
+                                        <p className="text-sm text-muted-foreground mb-4">
+                                            This event has been verified across multiple sources for accuracy.
+                                        </p>
+                                        <div className="flex flex-wrap gap-2">
+                                            {event.sources.map((source: string) => (
+                                                <Badge key={source} variant="outline">
+                                                    {source.charAt(0).toUpperCase() + source.slice(1)}
+                                                </Badge>
+                                            ))}
+                                        </div>
+                                    </CardContent>
+                                </Card>
+                            </>
+                        )}
                     </div>
 
                     {/* Sidebar - Right Column */}
@@ -191,6 +292,22 @@ export default async function EventPage({ params }: EventPageProps) {
                                 </div>
 
                                 <Separator className="my-4" />
+
+                                {/* Duration */}
+                                {event.duration && (
+                                    <>
+                                        <div className="mb-6">
+                                            <div className="flex items-start gap-3">
+                                                <Clock className="h-5 w-5 text-muted-foreground mt-0.5" />
+                                                <div>
+                                                    <p className="font-semibold mb-1">Duration</p>
+                                                    <p className="text-sm text-muted-foreground">{event.duration}</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <Separator className="my-4" />
+                                    </>
+                                )}
 
                                 {/* Location */}
                                 <div className="mb-6">
@@ -214,16 +331,21 @@ export default async function EventPage({ params }: EventPageProps) {
                                 <div className="mb-6">
                                     <div className="flex items-start gap-3">
                                         <DollarSign className="h-5 w-5 text-muted-foreground mt-0.5" />
-                                        <div>
+                                        <div className="w-full">
                                             <p className="font-semibold mb-1">Price</p>
-                                            <p className="text-sm text-muted-foreground">{formatPrice()}</p>
+                                            <p className="text-sm text-muted-foreground mb-2">{formatPrice()}</p>
+                                            {event.priceDetails && (
+                                                <p className="text-xs text-muted-foreground">
+                                                    {event.priceDetails}
+                                                </p>
+                                            )}
                                         </div>
                                     </div>
                                 </div>
 
                                 <Separator className="my-4" />
 
-                                {/* Book Now Button */}
+                                {/* Primary Booking Button */}
                                 <Button asChild className="w-full" size="lg">
                                     <a
                                         href={event.bookingUrl}
@@ -234,6 +356,36 @@ export default async function EventPage({ params }: EventPageProps) {
                                         <ExternalLink className="h-4 w-4 ml-2" />
                                     </a>
                                 </Button>
+
+                                {/* Additional booking links */}
+                                {hasMultipleSources && Object.keys(bookingUrls).length > 1 && (
+                                    <div className="mt-4 space-y-2">
+                                        <p className="text-xs text-muted-foreground text-center">
+                                            Also available on:
+                                        </p>
+                                        {Object.entries(bookingUrls).map(([source, url]) => {
+                                            if (source === event.primarySource) return null;
+                                            return (
+                                                <Button
+                                                    key={source}
+                                                    asChild
+                                                    variant="outline"
+                                                    size="sm"
+                                                    className="w-full"
+                                                >
+                                                    <a
+                                                        href={url as string}
+                                                        target="_blank"
+                                                        rel="noopener noreferrer"
+                                                    >
+                                                        {source.charAt(0).toUpperCase() + source.slice(1)}
+                                                        <ExternalLink className="h-3 w-3 ml-2" />
+                                                    </a>
+                                                </Button>
+                                            );
+                                        })}
+                                    </div>
+                                )}
 
                                 <p className="text-xs text-muted-foreground text-center mt-4">
                                     You'll be redirected to the official ticketing site

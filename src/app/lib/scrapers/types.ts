@@ -1,5 +1,5 @@
 // ============================================
-// types.ts - Updated Ticketmaster Types
+// types.ts - Enhanced Scraper Types
 // ============================================
 
 export interface NormalisedEvent {
@@ -7,6 +7,7 @@ export interface NormalisedEvent {
   description: string;
   category: string;
   subcategory?: string;
+  subcategories?: string[];  // Support multiple
 
   startDate: Date;
   endDate?: Date;
@@ -19,15 +20,54 @@ export interface NormalisedEvent {
 
   priceMin?: number;
   priceMax?: number;
+  priceDetails?: string;
   isFree: boolean;
 
   bookingUrl: string;
   imageUrl?: string;
+  videoUrl?: string;
+
+  // Additional fields
+  accessibility?: string[];
+  ageRestriction?: string;
+  duration?: string;
 
   source: 'ticketmaster' | 'marriner' | 'whatson';
   sourceId: string;
   scrapedAt: Date;
   lastUpdated: Date;
+}
+
+// For deduplication
+export interface EventForDedup {
+  _id?: string;
+  title: string;
+  startDate: Date;
+  endDate?: Date;
+  venue: { name: string; address: string; suburb: string };
+  source: string;
+  sourceId: string;
+  description?: string;
+  category?: string;
+  subcategory?: string;
+  subcategories?: string[];
+  imageUrl?: string;
+  videoUrl?: string;
+  priceMin?: number;
+  priceMax?: number;
+  priceDetails?: string;
+  isFree?: boolean;
+  bookingUrl?: string;
+  accessibility?: string[];
+  ageRestriction?: string;
+  duration?: string;
+}
+
+export interface DuplicateMatch {
+  event1Id: string;
+  event2Id: string;
+  confidence: number;
+  reason: string;
 }
 
 // ============================================
@@ -41,13 +81,13 @@ export interface TicketmasterEvent {
   info?: string; // Additional info field that Ticketmaster sometimes includes
   url?: string;
   dates: {
-    start: { 
-      localDate: string; 
+    start: {
+      localDate: string;
       localTime?: string;
       dateTime?: string; // ISO datetime
     };
-    end?: { 
-      localDate: string; 
+    end?: {
+      localDate: string;
       localTime?: string;
       dateTime?: string;
     };
@@ -58,15 +98,15 @@ export interface TicketmasterEvent {
   };
   classifications?: Array<{
     primary?: boolean;
-    segment?: { 
+    segment?: {
       id?: string;
       name: string;
     };
-    genre?: { 
+    genre?: {
       id?: string;
       name: string;
     };
-    subGenre?: { 
+    subGenre?: {
       id?: string;
       name: string;
     };
@@ -79,14 +119,14 @@ export interface TicketmasterEvent {
       name?: string;
     };
   }>;
-  priceRanges?: Array<{ 
+  priceRanges?: Array<{
     type?: string;
     currency?: string; // e.g., "AUD", "USD"
-    min?: number; 
+    min?: number;
     max?: number;
   }>;
-  images?: Array<{ 
-    url: string; 
+  images?: Array<{
+    url: string;
     width: number;
     height?: number; // Some images include height
     ratio?: string; // e.g., "16_9", "3_2"
@@ -97,11 +137,11 @@ export interface TicketmasterEvent {
       name: string;
       type?: string;
       id?: string;
-      address?: { 
+      address?: {
         line1?: string;
         line2?: string;
       };
-      city?: { 
+      city?: {
         name: string;
       };
       state?: {
@@ -156,27 +196,10 @@ export interface TicketmasterEvent {
   };
 }
 
-// ============================================
-// Scraper Options
-// ============================================
 
+// Scraper options
 export interface ScrapeOptions {
   maxCategories?: number;
   maxEventsPerCategory?: number;
   specificCategories?: string[];
-}
-
-// ============================================
-// Scrape Result
-// ============================================
-
-export interface ScrapeResult {
-  events: NormalisedEvent[];
-  stats: {
-    source: string;
-    fetched: number;
-    normalised: number;
-    errors: number;
-    duration: number;
-  };
 }

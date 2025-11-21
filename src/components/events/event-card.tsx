@@ -1,6 +1,6 @@
 import Link from "next/link";
 import Image from "next/image";
-import { Calendar, MapPin, DollarSign } from "lucide-react";
+import { Calendar, MapPin, DollarSign, Users, Clock } from "lucide-react";
 import { Card, CardContent, CardFooter } from "../ui/card";
 import { Badge } from "../ui/badge";
 import { Button } from "../ui/button";
@@ -47,6 +47,9 @@ export function EventCard({ event }: EventCardProps) {
     }
   };
 
+  // Show up to 2 subcategories
+  const displaySubcategories = event.subcategories?.slice(0, 2) || [];
+
   return (
     <Card className="overflow-hidden hover:shadow-lg transition-shadow duration-300">
       <Link href={`/events/${event._id}`}>
@@ -66,11 +69,25 @@ export function EventCard({ event }: EventCardProps) {
             </div>
           )}
           
-          {/* Multi-day badge */}
-          {event.endDate && (
-            <div className="absolute top-2 right-2">
+          {/* Top badges */}
+          <div className="absolute top-2 right-2 flex flex-col gap-1">
+            {event.endDate && (
               <Badge variant="secondary" className="bg-background/90 backdrop-blur">
                 Multi-day
+              </Badge>
+            )}
+            {event.sources && event.sources.length > 1 && (
+              <Badge variant="secondary" className="bg-background/90 backdrop-blur">
+                {event.sources.length} sources
+              </Badge>
+            )}
+          </div>
+
+          {/* Age restriction badge */}
+          {event.ageRestriction && (
+            <div className="absolute top-2 left-2">
+              <Badge variant="destructive" className="bg-red-600/90 backdrop-blur">
+                {event.ageRestriction}
               </Badge>
             </div>
           )}
@@ -82,9 +99,14 @@ export function EventCard({ event }: EventCardProps) {
             <Badge variant="secondary">
               {getCategoryLabel(event.category)}
             </Badge>
-            {event.subcategory && (
+            {displaySubcategories.map((sub) => (
+              <Badge key={sub} variant="outline">
+                {sub}
+              </Badge>
+            ))}
+            {event.subcategories && event.subcategories.length > 2 && (
               <Badge variant="outline">
-                {event.subcategory}
+                +{event.subcategories.length - 2}
               </Badge>
             )}
           </div>
@@ -106,11 +128,27 @@ export function EventCard({ event }: EventCardProps) {
             <span className="line-clamp-1">{event.venue.name}</span>
           </div>
 
+          {/* Duration */}
+          {event.duration && (
+            <div className="flex items-center gap-2 text-sm text-muted-foreground mb-2">
+              <Clock className="h-4 w-4 shrink-0" />
+              <span className="line-clamp-1">{event.duration}</span>
+            </div>
+          )}
+
           {/* Price */}
           <div className="flex items-center gap-2 text-sm font-semibold">
             <DollarSign className="h-4 w-4 shrink-0" />
             <span>{formatPrice()}</span>
           </div>
+
+          {/* Accessibility indicator */}
+          {event.accessibility && event.accessibility.length > 0 && (
+            <div className="flex items-center gap-2 text-sm text-muted-foreground mt-2">
+              <Users className="h-4 w-4 shrink-0" />
+              <span className="line-clamp-1">Accessible venue</span>
+            </div>
+          )}
         </CardContent>
       </Link>
 
