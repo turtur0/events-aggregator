@@ -81,20 +81,21 @@ export const CATEGORIES: CategoryConfig[] = [
   },
 ];
 
-// Helper to get category label from value
+// Helpers
 export function getCategoryLabel(value: string): string {
   const category = CATEGORIES.find(cat => cat.value === value);
   return category?.label || value;
 }
 
-// Helper to get all subcategories for a category
 export function getSubcategories(categoryValue: string): string[] {
   const category = CATEGORIES.find(cat => cat.value === categoryValue);
   return category?.subcategories || [];
 }
 
-// Helper to check if a subcategory exists
-export function isValidSubcategory(categoryValue: string, subcategory: string): boolean {
+export function isValidSubcategory(
+  categoryValue: string,
+  subcategory: string
+): boolean {
   const subcategories = getSubcategories(categoryValue);
   return subcategories.includes(subcategory);
 }
