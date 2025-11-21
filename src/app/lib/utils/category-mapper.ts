@@ -64,6 +64,44 @@ export function mapTicketmasterCategory(
 }
 
 /**
+ * Map Marriner shows to category/subcategory
+ */
+export function mapMarrinerCategory(title: string, venue: string): CategoryMapResult {
+  const combined = `${title} ${venue}`.toLowerCase();
+
+  // Opera
+  if (combined.includes('opera')) {
+    return { category: 'theatre', subcategory: 'Opera' };
+  }
+
+  // Musicals
+  if (combined.includes('musical') || 
+      /christmas carol|anastasia|wicked|hamilton|lion king|phantom/i.test(title)) {
+    return { category: 'theatre', subcategory: 'Musicals' };
+  }
+
+  // Ballet/Dance
+  if (combined.includes('ballet') || combined.includes('dance')) {
+    return { category: 'theatre', subcategory: 'Ballet & Dance' };
+  }
+
+  // Comedy
+  if (combined.includes('comedy')) {
+    return { category: 'theatre', subcategory: 'Comedy Shows' };
+  }
+
+  // Music concerts (Forum Melbourne is primarily a music venue)
+  if (venue === 'Forum Melbourne' && 
+      !combined.includes('opera') && 
+      !combined.includes('theatre')) {
+    return { category: 'music', subcategory: undefined };
+  }
+
+  // Default to theatre for Princess/Regent/Comedy theatres
+  return { category: 'theatre', subcategory: undefined };
+}
+
+/**
  * Find best matching subcategory from text
  */
 function findBestMatch(

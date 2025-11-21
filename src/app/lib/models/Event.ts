@@ -43,12 +43,12 @@ const EventSchema = new Schema<IEvent>({
   category: {
     type: String,
     required: true,
-    index: true, // Index for filtering
+    index: true,
   },
   subcategory: {
     type: String,
     required: false,
-    index: true, // Index for filtering
+    index: true,
   },
   
   startDate: {
@@ -83,7 +83,7 @@ const EventSchema = new Schema<IEvent>({
   
   source: {
     type: String,
-    enum: ['ticketmaster', 'eventbrite', 'artscentre'],
+    enum: ['ticketmaster', 'marriner', 'artscentre'],
     required: true,
   },
   sourceId: {
