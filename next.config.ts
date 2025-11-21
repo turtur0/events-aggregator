@@ -31,6 +31,10 @@ const nextConfig = {
         hostname: 'admin.marrinergroup.com.au',
         pathname: '/uploads/**',
       },
+      {
+        protocol: 'https',
+        hostname: 'whatson.melbourne.vic.gov.au',
+      },
     ],
   },
 };

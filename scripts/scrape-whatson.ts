@@ -8,101 +8,55 @@ dotenv.config({ path: path.resolve(process.cwd(), '.env.local') });
 
 import { connectDB, disconnectDB } from '@/app/lib/db';
 import { scrapeWhatsOnMelbourne, WhatsOnScrapeOptions } from '@/app/lib/scrapers/whatson';
-import Event from '@/app/lib/models/Event';
+import { processEventsWithDeduplication } from './scrape-with-dedup';
 
 const SCRAPE_OPTIONS: WhatsOnScrapeOptions = {
     categories: ['theatre', 'music'], // Add more: 'festivals', 'family', etc.
-    maxPages: 3,                      // Max pages to scrape per category
-    maxEventsPerCategory: 50,         // Limit events per category
+    maxPages: 2,                      // Max pages to scrape per category
+    maxEventsPerCategory: 25,         // Limit events per category
 };
 
-async function scrapeWhatsOn() {
-    console.log('🎭 What\'s On Melbourne Scraper\n');
-    console.log('📋 Options:', SCRAPE_OPTIONS, '\n');
+export async function scrapeWhatsOnWithDedup(customOptions?: WhatsOnScrapeOptions) {
+  console.log('🎭 What\'s On Melbourne Scraper with Deduplication\n');
 
-    try {
-        await connectDB();
+  try {
+    await connectDB();
 
-        // Step 1: Scrape events
-        const startTime = Date.now();
-        const events = await scrapeWhatsOnMelbourne(SCRAPE_OPTIONS);
-        const scrapeDuration = ((Date.now() - startTime) / 1000).toFixed(1);
+    // Use custom options if provided, otherwise use defaults
+    const options = customOptions || SCRAPE_OPTIONS;
+    
+    console.log(`📋 Scrape settings:`);
+    console.log(`   • Categories: ${options.categories?.join(', ') || 'all'}`);
+    console.log(`   • Max pages per category: ${options.maxPages || 'unlimited'}`);
+    console.log(`   • Max events per category: ${options.maxEventsPerCategory || 'unlimited'}\n`);
 
-        console.log(`\n✅ Scraped ${events.length} events in ${scrapeDuration}s\n`);
+    const events = await scrapeWhatsOnMelbourne(options);
 
-        if (events.length === 0) {
-            console.log('⚠️  No events found. Exiting.\n');
-            return;
-        }
+    console.log(`\n✅ Scraped ${events.length} events from What's On`);
 
-        // Step 2: Process events with deduplication
-        let inserted = 0, updated = 0, skipped = 0;
+    const stats = await processEventsWithDeduplication(events, 'whatson');
 
-        for (const event of events) {
-            try {
-                // Check if event already exists by source + sourceId
-                const existing = await Event.findOne({
-                    source: 'whatson',
-                    sourceId: event.sourceId,
-                });
+    console.log(`\n${'='.repeat(70)}`);
+    console.log('✅ What\'s On Processing Complete');
+    console.log(`${'='.repeat(70)}`);
+    console.log(`📊 Summary:`);
+    console.log(`   • Inserted: ${stats.inserted} new events`);
+    console.log(`   • Updated:  ${stats.updated} same-source events`);
+    console.log(`   • Merged:   ${stats.merged} cross-source duplicates`);
+    console.log(`   • Skipped:  ${stats.skipped} errors`);
+    console.log(`   • Total:    ${events.length} events processed\n`);
 
-                if (existing) {
-                    // Update existing event
-                    const updateData = {
-                        ...event,
-                        lastUpdated: new Date(),
-                        // Preserve existing data if new data is missing
-                        description: event.description || existing.description,
-                        imageUrl: event.imageUrl || existing.imageUrl,
-                        priceMin: event.priceMin ?? existing.priceMin,
-                        priceMax: event.priceMax ?? existing.priceMax,
-                        venue: {
-                            name: event.venue.name || existing.venue.name,
-                            address: event.venue.address || existing.venue.address,
-                            suburb: event.venue.suburb || existing.venue.suburb,
-                        },
-                    };
-
-                    await Event.updateOne(
-                        { _id: existing._id },
-                        { $set: updateData }
-                    );
-                    updated++;
-                    console.log(`   ↻ Updated: ${event.title}`);
-                } else {
-                    // Insert new event
-                    await Event.create(event);
-                    inserted++;
-                    console.log(`   + Inserted: ${event.title}`);
-                }
-            } catch (error: any) {
-                // Handle duplicate key errors
-                if (error.code === 11000) {
-                    skipped++;
-                    console.log(`   ⊘ Skipped (duplicate): ${event.title}`);
-                } else {
-                    console.error(`   ❌ Error processing "${event.title}":`, error.message);
-                }
-            }
-        }
-
-        // Step 3: Summary
-        console.log(`\n${'='.repeat(70)}`);
-        console.log('✅ Database Update Complete');
-        console.log(`${'='.repeat(70)}`);
-        console.log(`📊 Summary:`);
-        console.log(`   • Inserted: ${inserted} new events`);
-        console.log(`   • Updated:  ${updated} existing events`);
-        console.log(`   • Skipped:  ${skipped} duplicates`);
-        console.log(`   • Total:    ${events.length} events processed`);
-        console.log(`   • Duration: ${scrapeDuration}s\n`);
-
-    } catch (error) {
-        console.error('\n❌ Scraping failed:', error);
-        process.exit(1);
-    } finally {
-        await disconnectDB();
-    }
+  } finally {
+    await disconnectDB();
+  }
 }
 
-scrapeWhatsOn();
+// Allow running directly
+if (require.main === module) {
+  scrapeWhatsOnWithDedup()
+    .then(() => process.exit(0))
+    .catch(err => {
+      console.error('❌ Fatal error:', err);
+      process.exit(1);
+    });
+}

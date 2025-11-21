@@ -24,7 +24,7 @@ export interface NormalisedEvent {
   bookingUrl: string;
   imageUrl?: string;
 
-  source: 'ticketmaster' | 'artscentre' | 'marriner' | 'whatson';
+  source: 'ticketmaster' | 'marriner' | 'whatson';
   sourceId: string;
   scrapedAt: Date;
   lastUpdated: Date;

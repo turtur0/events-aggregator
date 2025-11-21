@@ -22,7 +22,7 @@ export interface IEvent {
   bookingUrl: string;
   imageUrl?: string;
   
-  source: 'ticketmaster' | 'marriner' | 'artscentre';
+  source: 'ticketmaster' | 'marriner' | 'whatson';
   sourceId: string;
   
   scrapedAt: Date;
@@ -83,7 +83,7 @@ const EventSchema = new Schema<IEvent>({
   
   source: {
     type: String,
-    enum: ['ticketmaster', 'marriner', 'artscentre'],
+    enum: ['ticketmaster', 'marriner', 'whatson'],
     required: true,
   },
   sourceId: {
