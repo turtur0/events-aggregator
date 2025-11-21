@@ -84,14 +84,14 @@ async function checkRobotsTxt(): Promise<{ allowed: boolean; content: string }> 
   try {
     const response = await fetch('https://whatson.melbourne.vic.gov.au/robots.txt');
     const content = await response.text();
-    
+
     // Check if /things-to-do or /tags are disallowed
     const disallowedPaths = content
       .split('\n')
       .filter(line => line.toLowerCase().startsWith('disallow:'))
       .map(line => line.split(':')[1]?.trim());
 
-    const isAllowed = !disallowedPaths.some(path => 
+    const isAllowed = !disallowedPaths.some(path =>
       path && (path.includes('/things-to-do') || path.includes('/tags'))
     );
 
@@ -151,7 +151,7 @@ function analyzeElement($: any, element: any): ElementAnalysis {
  */
 function extractEventCards($: any): EventCard[] {
   const events: EventCard[] = [];
-  
+
   // Try common patterns for event cards
   const cardSelectors = [
     'article',
@@ -164,11 +164,11 @@ function extractEventCards($: any): EventCard[] {
 
   for (const selector of cardSelectors) {
     const cards = $(selector);
-    
+
     if (cards.length > 0) {
       cards.slice(0, 5).each((_: any, card: any) => {
         const $card = $(card);
-        
+
         const title = $card.find('h1, h2, h3, h4, [class*="title"]').first().text().trim();
         const description = $card.find('p, [class*="description"]').first().text().trim();
         const venue = $card.find('[class*="venue"], [class*="location"]').first().text().trim();
@@ -227,8 +227,8 @@ async function analyzeDetailPage(url: string): Promise<any> {
       address: $('[class*="address"]').first().text().trim(),
       dates: $('time, [class*="date"]').map((_: any, el: any) => $(el).text().trim()).get(),
       priceRange: $('[class*="price"]').first().text().trim(),
-      description: $('meta[name="description"]').attr('content') || 
-                   $('p').first().text().trim().substring(0, 200),
+      description: $('meta[name="description"]').attr('content') ||
+        $('p').first().text().trim().substring(0, 200),
       bookingUrl: $('a[href*="book"], a[href*="ticket"], a[class*="book"]').first().attr('href'),
       structuredData: structuredData.length > 0 ? structuredData[0] : null,
     };
@@ -243,10 +243,10 @@ async function analyzeDetailPage(url: string): Promise<any> {
 function assessFeasibility($: any, robotsAllowed: boolean): any {
   const hasStructuredData = $('script[type="application/ld+json"]').length > 0;
   const hasApiEndpoints = $.html().includes('/api/') || $.html().includes('data-api');
-  const hasReactOrVue = $.html().includes('__NEXT_DATA__') || 
-                        $.html().includes('data-react') || 
-                        $.html().includes('data-v-');
-  
+  const hasReactOrVue = $.html().includes('__NEXT_DATA__') ||
+    $.html().includes('data-react') ||
+    $.html().includes('data-v-');
+
   const eventLinks = $('a[href*="/things-to-do"]').length;
   const hasContent = eventLinks > 0;
 
@@ -326,33 +326,22 @@ function generateRecommendations($: any, feasibility: any): string[] {
 function suggestSelectors($: any): Record<string, string> {
   const suggestions: Record<string, string> = {};
 
-  // Event cards
-  if ($('article').length > 0) {
-    suggestions.eventCard = 'article';
-  } else if ($('[class*="card"]').length > 0) {
-    suggestions.eventCard = '[class*="card"]';
-  }
-
-  // Event links
-  if ($('a[href*="/things-to-do"]').length > 0) {
-    suggestions.eventLink = 'a[href*="/things-to-do"]';
-  }
-
-  // Titles
-  suggestions.title = 'h1, h2, h3';
+  // Event cards - What's On Melbourne specific
+  suggestions.eventCard = '.page-preview';
+  suggestions.eventLink = '.page-preview a.main-link[href*="/things-to-do/"]';
+  suggestions.title = 'h2.title';
+  suggestions.summary = 'p.summary';
+  suggestions.image = 'img.page_image';
 
   // Dates
-  if ($('time').length > 0) {
+  if ($('time[datetime]').length > 0) {
     suggestions.date = 'time[datetime]';
-  } else {
-    suggestions.date = '[class*="date"]';
   }
 
-  // Venue
-  suggestions.venue = '[class*="venue"], [class*="location"]';
-
-  // Price
-  suggestions.price = '[class*="price"]';
+  // On detail pages
+  suggestions.detailTitle = 'h1';
+  suggestions.detailVenue = '[class*="venue"], [class*="location"]';
+  suggestions.detailPrice = '[class*="price"]';
 
   return suggestions;
 }
@@ -365,7 +354,7 @@ export async function debugWhatsOnMelbourne(
   outputFile: string = 'whatson-debug-report.json'
 ): Promise<DebugReport> {
   const url = `https://whatson.melbourne.vic.gov.au/tags/${category}`;
-  
+
   console.log('🔍 Debugging What\'s On Melbourne');
   console.log(`   URL: ${url}\n`);
 
@@ -396,46 +385,43 @@ export async function debugWhatsOnMelbourne(
 
     const selectorAnalysis = {
       eventCards: [
-        'article',
-        '[class*="card"]',
-        '[class*="event"]',
-        '[class*="listing"]',
-      ].map(sel => analyzeSelectorMatches($, sel, 2)),
-      
-      titles: [
-        'h1', 'h2', 'h3',
-        '[class*="title"]',
-        '[class*="heading"]',
+        '.page-preview',
+        '[data-listing-type="event"]',
       ].map(sel => analyzeSelectorMatches($, sel, 3)),
-      
+
+      titles: [
+        'h2.title',
+        '.page-preview h2',
+      ].map(sel => analyzeSelectorMatches($, sel, 3)),
+
       descriptions: [
-        'p',
-        '[class*="description"]',
-        '[class*="summary"]',
-      ].map(sel => analyzeSelectorMatches($, sel, 2)),
-      
+        'p.summary',
+        '.page-preview p',
+      ].map(sel => analyzeSelectorMatches($, sel, 3)),
+
       venues: [
         '[class*="venue"]',
         '[class*="location"]',
       ].map(sel => analyzeSelectorMatches($, sel, 2)),
-      
+
       dates: [
-        'time',
-        '[class*="date"]',
-      ].map(sel => analyzeSelectorMatches($, sel, 2)),
-      
+        'time[datetime]',
+        '.from-to-date',
+      ].map(sel => analyzeSelectorMatches($, sel, 3)),
+
       prices: [
         '[class*="price"]',
-        ':contains("$")',
       ].map(sel => analyzeSelectorMatches($, sel, 2)),
-      
+
       links: [
-        'a[href*="/things-to-do"]',
+        '.page-preview a.main-link',
+        'a[href*="/things-to-do/"]',
       ].map(sel => analyzeSelectorMatches($, sel, 3)),
-      
+
       images: [
-        'img',
-      ].map(sel => analyzeSelectorMatches($, sel, 2)),
+        'img.page_image',
+        '.page-preview img',
+      ].map(sel => analyzeSelectorMatches($, sel, 3)),
     };
 
     // Step 4: Extract sample events
@@ -446,8 +432,8 @@ export async function debugWhatsOnMelbourne(
     let detailPageAnalysis;
     if (extractedEvents.length > 0 && extractedEvents[0].url) {
       console.log('🔍 Analyzing detail page...');
-      const detailUrl = extractedEvents[0].url.startsWith('http') 
-        ? extractedEvents[0].url 
+      const detailUrl = extractedEvents[0].url.startsWith('http')
+        ? extractedEvents[0].url
         : `https://whatson.melbourne.vic.gov.au${extractedEvents[0].url}`;
       detailPageAnalysis = await analyzeDetailPage(detailUrl);
     }
@@ -462,11 +448,11 @@ export async function debugWhatsOnMelbourne(
       robotsTxt: content,
       scrapingFeasibility: feasibility,
       eventSummary: {
-        totalEventCards: $('article, [class*="card"]').length,
-        totalEventLinks: $('a[href*="/things-to-do"]').length,
-        totalImages: $('img').length,
+        totalEventCards: $('.page-preview').length,
+        totalEventLinks: $('.page-preview a.main-link[href*="/things-to-do/"]').length,
+        totalImages: $('img.page_image').length,
         hasPriceInfo: $('[class*="price"]').length > 0,
-        hasDateInfo: $('time, [class*="date"]').length > 0,
+        hasDateInfo: $('time[datetime]').length > 0,
         hasVenueInfo: $('[class*="venue"], [class*="location"]').length > 0,
       },
       selectorAnalysis,
@@ -488,7 +474,7 @@ export async function debugWhatsOnMelbourne(
     console.log(`   Event Links: ${report.eventSummary.totalEventLinks}`);
     console.log(`   Extracted Events: ${extractedEvents.length}`);
     console.log(`   Has Structured Data: ${feasibility.hasStructuredData ? 'Yes' : 'No'}`);
-    
+
     return report;
 
   } catch (error) {

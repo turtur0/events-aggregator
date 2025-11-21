@@ -13,7 +13,7 @@
     "scrape": "tsx scripts/scrape-all.ts",
     "scrape:ticketmaster": "tsx scripts/scrape-ticketmaster.ts",
     "scrape:marriner": "tsx scripts/scrape-marriner.ts",
-    "debug:whatson": "tsx scripts/debug-website.ts",
+    "scrape:whatson": "tsx scripts/scrape-whatson.ts",
     "debug": "tsx scripts/test-whatson-debug.ts"
   },
   "dependencies": {

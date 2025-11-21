@@ -1,168 +1,154 @@
-import { CATEGORIES, getSubcategories } from '../categories';
-
-export interface CategoryMapResult {
-  category: string;
-  subcategory?: string;
-}
+// ============================================
+// category-mapper.ts
+// Centralized category mapping for all sources
+// ============================================
 
 /**
- * Map Ticketmaster classification to our categories
+ * Map What's On Melbourne categories to normalized categories
  */
-export function mapTicketmasterCategory(
-  segment: string | undefined,
-  genre: string | undefined,
-  subGenre: string | undefined,
+export function mapWhatsOnCategory(
+  categoryTag: string,
   title: string
-): CategoryMapResult {
-  const seg = (segment || '').toLowerCase();
-  const gen = (genre || '').toLowerCase();
-  const subGen = (subGenre || '').toLowerCase();
-  const combined = `${gen} ${subGen} ${title}`.toLowerCase();
+): { category: string; subcategory?: string } {
+  const titleLower = title.toLowerCase();
 
-  // Music
-  if (seg === 'music') {
-    return {
-      category: 'music',
-      subcategory: findBestMatch('music', combined),
-    };
+  // Theatre category
+  if (categoryTag === 'theatre') {
+    if (titleLower.includes('musical')) {
+      return { category: 'performing-arts', subcategory: 'Musical' };
+    }
+    if (titleLower.includes('comedy')) {
+      return { category: 'performing-arts', subcategory: 'Comedy' };
+    }
+    if (titleLower.includes('opera')) {
+      return { category: 'performing-arts', subcategory: 'Opera' };
+    }
+    if (titleLower.includes('ballet') || titleLower.includes('dance')) {
+      return { category: 'performing-arts', subcategory: 'Dance' };
+    }
+    return { category: 'performing-arts', subcategory: 'Theatre' };
   }
 
-  // Sports
-  if (seg === 'sports') {
-    return {
-      category: 'sports',
-      subcategory: findBestMatch('sports', combined),
-    };
+  // Music category
+  if (categoryTag === 'music') {
+    if (titleLower.includes('classical') || titleLower.includes('orchestra') || titleLower.includes('symphony')) {
+      return { category: 'music', subcategory: 'Classical' };
+    }
+    if (titleLower.includes('jazz')) {
+      return { category: 'music', subcategory: 'Jazz' };
+    }
+    if (titleLower.includes('rock')) {
+      return { category: 'music', subcategory: 'Rock' };
+    }
+    if (titleLower.includes('pop')) {
+      return { category: 'music', subcategory: 'Pop' };
+    }
+    if (titleLower.includes('folk')) {
+      return { category: 'music', subcategory: 'Folk' };
+    }
+    if (titleLower.includes('concert')) {
+      return { category: 'music', subcategory: 'Concert' };
+    }
+    return { category: 'music', subcategory: 'Live Music' };
   }
 
-  // Theatre
-  if (seg.includes('theatre') || seg === 'arts') {
-    return {
-      category: 'theatre',
-      subcategory: findBestMatch('theatre', combined),
-    };
+  // Festivals category
+  if (categoryTag === 'festivals') {
+    return { category: 'festivals', subcategory: 'Festival' };
   }
 
-  // Family
-  if (seg.includes('family') || combined.includes('family')) {
-    return {
-      category: 'family',
-      subcategory: findBestMatch('family', combined),
-    };
-  }
-
-  // Film
-  if (seg === 'film') {
-    return {
-      category: 'arts',
-      subcategory: 'Film & Cinema',
-    };
+  // Family category
+  if (categoryTag === 'family') {
+    return { category: 'family', subcategory: 'Family Event' };
   }
 
   // Default
-  return { category: 'other' };
+  return { category: 'other', subcategory: undefined };
 }
 
 /**
- * Map Marriner shows to category/subcategory
+ * Map Ticketmaster categories to normalized categories
  */
-export function mapMarrinerCategory(title: string, venue: string): CategoryMapResult {
-  const combined = `${title} ${venue}`.toLowerCase();
+export function mapTicketmasterCategory(
+  segment?: string,
+  genre?: string,
+  subGenre?: string,
+  title?: string
+): { category: string; subcategory?: string } {
+  const titleLower = title?.toLowerCase() || '';
 
-  // Opera
-  if (combined.includes('opera')) {
-    return { category: 'theatre', subcategory: 'Opera' };
+  if (segment === 'Music') {
+    if (genre === 'Rock') return { category: 'music', subcategory: 'Rock' };
+    if (genre === 'Pop') return { category: 'music', subcategory: 'Pop' };
+    if (genre === 'Jazz') return { category: 'music', subcategory: 'Jazz' };
+    if (genre === 'Classical') return { category: 'music', subcategory: 'Classical' };
+    if (genre === 'Hip-Hop/Rap') return { category: 'music', subcategory: 'Hip Hop' };
+    if (genre === 'Electronic') return { category: 'music', subcategory: 'Electronic' };
+    if (genre === 'Country') return { category: 'music', subcategory: 'Country' };
+    if (genre === 'Metal') return { category: 'music', subcategory: 'Metal' };
+    return { category: 'music', subcategory: genre || 'Concert' };
   }
 
-  // Musicals
-  if (combined.includes('musical') || 
-      /christmas carol|anastasia|wicked|hamilton|lion king|phantom/i.test(title)) {
-    return { category: 'theatre', subcategory: 'Musicals' };
+  if (segment === 'Sports') {
+    return { category: 'sports', subcategory: genre };
   }
 
-  // Ballet/Dance
-  if (combined.includes('ballet') || combined.includes('dance')) {
-    return { category: 'theatre', subcategory: 'Ballet & Dance' };
+  if (segment === 'Arts & Theatre') {
+    if (titleLower.includes('musical')) {
+      return { category: 'performing-arts', subcategory: 'Musical' };
+    }
+    if (titleLower.includes('opera')) {
+      return { category: 'performing-arts', subcategory: 'Opera' };
+    }
+    if (titleLower.includes('ballet') || titleLower.includes('dance')) {
+      return { category: 'performing-arts', subcategory: 'Dance' };
+    }
+    if (titleLower.includes('comedy')) {
+      return { category: 'performing-arts', subcategory: 'Comedy' };
+    }
+    return { category: 'performing-arts', subcategory: genre || 'Theatre' };
   }
 
-  // Comedy
-  if (combined.includes('comedy')) {
-    return { category: 'theatre', subcategory: 'Comedy Shows' };
+  if (segment === 'Film') {
+    return { category: 'film', subcategory: genre };
   }
 
-  // Music concerts (Forum Melbourne is primarily a music venue)
-  if (venue === 'Forum Melbourne' && 
-      !combined.includes('opera') && 
-      !combined.includes('theatre')) {
-    return { category: 'music', subcategory: undefined };
+  if (segment === 'Miscellaneous') {
+    if (genre === 'Family') return { category: 'family', subcategory: 'Family Event' };
+    return { category: 'other', subcategory: genre };
   }
 
-  // Default to theatre for Princess/Regent/Comedy theatres
-  return { category: 'theatre', subcategory: undefined };
+  return { category: 'other', subcategory: segment };
 }
 
 /**
- * Find best matching subcategory from text
+ * Map Marriner categories to normalized categories
  */
-function findBestMatch(
-  categoryValue: string,
-  text: string
-): string | undefined {
-  const subcategories = getSubcategories(categoryValue);
+export function mapMarrinerCategory(
+  title: string,
+  venue: string
+): { category: string; subcategory?: string } {
+  const titleLower = title.toLowerCase();
 
-  // Try exact matches first
-  for (const sub of subcategories) {
-    if (text.includes(sub.toLowerCase())) {
-      return sub;
-    }
+  if (titleLower.includes('musical') || titleLower.includes('mj the musical')) {
+    return { category: 'performing-arts', subcategory: 'Musical' };
   }
 
-  // Try keyword-based matches
-  const matches = {
-    music: [
-      { keywords: ['rock', 'alternative', 'indie'], sub: 'Rock & Alternative' },
-      { keywords: ['pop', 'electronic', 'dance', 'edm'], sub: 'Pop & Electronic' },
-      { keywords: ['hip hop', 'rap', 'r&b'], sub: 'Hip Hop & R&B' },
-      { keywords: ['jazz', 'blues'], sub: 'Jazz & Blues' },
-      { keywords: ['classical', 'orchestra', 'symphony'], sub: 'Classical & Orchestra' },
-      { keywords: ['country', 'folk'], sub: 'Country & Folk' },
-      { keywords: ['metal', 'punk'], sub: 'Metal & Punk' },
-    ],
-    sports: [
-      { keywords: ['afl'], sub: 'AFL' },
-      { keywords: ['cricket'], sub: 'Cricket' },
-      { keywords: ['soccer', 'football'], sub: 'Soccer' },
-      { keywords: ['basketball'], sub: 'Basketball' },
-      { keywords: ['tennis'], sub: 'Tennis' },
-      { keywords: ['rugby'], sub: 'Rugby' },
-      { keywords: ['motorsport', 'racing', 'f1'], sub: 'Motorsports' },
-    ],
-    theatre: [
-      { keywords: ['musical'], sub: 'Musicals' },
-      { keywords: ['drama'], sub: 'Drama' },
-      { keywords: ['comedy'], sub: 'Comedy Shows' },
-      { keywords: ['ballet', 'dance'], sub: 'Ballet & Dance' },
-      { keywords: ['opera'], sub: 'Opera' },
-      { keywords: ['cabaret'], sub: 'Cabaret' },
-      { keywords: ['shakespeare'], sub: 'Shakespeare' },
-      { keywords: ['experimental'], sub: 'Experimental' },
-    ],
-    family: [
-      { keywords: ['kids', 'children'], sub: 'Kids Shows' },
-      { keywords: ['family'], sub: 'Family Entertainment' },
-      { keywords: ['educational'], sub: 'Educational' },
-      { keywords: ['circus', 'magic'], sub: 'Circus & Magic' },
-    ],
-  };
-
-  const categoryMatches = matches[categoryValue as keyof typeof matches];
-  if (!categoryMatches) return undefined;
-
-  for (const { keywords, sub } of categoryMatches) {
-    if (keywords.some(kw => text.includes(kw))) {
-      return sub;
-    }
+  if (titleLower.includes('opera')) {
+    return { category: 'performing-arts', subcategory: 'Opera' };
   }
 
-  return undefined;
+  if (titleLower.includes('ballet') || titleLower.includes('nutcracker') || titleLower.includes('dance')) {
+    return { category: 'performing-arts', subcategory: 'Dance' };
+  }
+
+  if (titleLower.includes('comedy') || venue.includes('Comedy')) {
+    return { category: 'performing-arts', subcategory: 'Comedy' };
+  }
+
+  if (titleLower.includes('concert') || titleLower.includes('symphony') || titleLower.includes('orchestra')) {
+    return { category: 'music', subcategory: 'Classical' };
+  }
+
+  return { category: 'performing-arts', subcategory: 'Theatre' };
 }
