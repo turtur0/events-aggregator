@@ -8,29 +8,20 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { CATEGORIES } from '../lib/categories';
-import { Loader2, ChevronRight } from 'lucide-react';
+import { Loader2, ChevronRight, Check } from 'lucide-react';
 
 const MIN_CATEGORIES = 2;
 
 export default function Onboarding() {
     const { data: session, status, update } = useSession();
     const router = useRouter();
-    const [step, setStep] = useState<'categories' | 'subcategories' | 'preferences' | 'notifications'>(
-        'categories'
-    );
+    const [step, setStep] = useState<'categories' | 'preferences' | 'notifications'>('categories');
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState('');
 
-    // Step 1: Main categories
     const [selectedCategories, setSelectedCategories] = useState<Set<string>>(new Set());
-
-    // Step 2: Subcategories
     const [selectedSubcategories, setSelectedSubcategories] = useState<Set<string>>(new Set());
-
-    // Step 3: Preferences
     const [popularityPref, setPopularityPref] = useState(0.5);
-
-    // Step 4: Notifications
     const [notificationsEnabled, setNotificationsEnabled] = useState(false);
     const [emailFrequency, setEmailFrequency] = useState<'daily' | 'weekly'>('weekly');
 
@@ -39,20 +30,22 @@ export default function Onboarding() {
         return null;
     }
 
-    // Get subcategories for selected main categories
-    const availableSubcategories = CATEGORIES.filter((cat) =>
-        selectedCategories.has(cat.value)
-    ).flatMap((cat) => cat.subcategories || []);
-
     const toggleCategory = (categoryValue: string) => {
         const newSet = new Set(selectedCategories);
         if (newSet.has(categoryValue)) {
             newSet.delete(categoryValue);
+            // Remove subcategories of this category
+            const category = CATEGORIES.find(c => c.value === categoryValue);
+            if (category?.subcategories) {
+                const newSubs = new Set(selectedSubcategories);
+                category.subcategories.forEach(sub => newSubs.delete(sub));
+                setSelectedSubcategories(newSubs);
+            }
         } else {
             newSet.add(categoryValue);
         }
         setSelectedCategories(newSet);
-        setError(''); // Clear error when user makes changes
+        setError('');
     };
 
     const toggleSubcategory = (subcategoryValue: string) => {
@@ -71,10 +64,6 @@ export default function Onboarding() {
             return;
         }
         setError('');
-        setStep('subcategories');
-    };
-
-    const handleContinueFromSubcategories = () => {
         setStep('preferences');
     };
 
@@ -100,9 +89,7 @@ export default function Onboarding() {
 
             if (!res.ok) throw new Error('Failed to save preferences');
 
-            // Update the session with new onboarding status
             await update({ hasCompletedOnboarding: true });
-
             router.push('/');
             router.refresh();
         } catch (error: any) {
@@ -113,52 +100,83 @@ export default function Onboarding() {
     }
 
     return (
-        <div className="min-h-screen bg-linear-to-b from-background to-muted p-4">
-            <div className="max-w-2xl mx-auto py-12">
-                <div className="mb-8">
+        <div className="bg-linear-to-br from-background via-muted/20 to-background p-4 w-full h-full">
+            <div className="max-w-3xl mx-auto py-8">
+                <div className="mb-8 text-center">
                     <h1 className="text-3xl font-bold mb-2">Personalize Your Experience</h1>
                     <p className="text-muted-foreground">
-                        Let us know what types of events you like, and we'll recommend the best ones for you.
+                        Tell us what you like, and we'll find the best events for you
                     </p>
                 </div>
 
-                {/* Step 1: Select Main Categories */}
+                {/* Step 1: Categories & Subcategories */}
                 {step === 'categories' && (
                     <Card>
                         <CardHeader>
-                            <CardTitle>What event categories interest you?</CardTitle>
+                            <CardTitle>What interests you?</CardTitle>
                             <CardDescription>
-                                Select at least {MIN_CATEGORIES} categories (you can always change this later)
+                                Select at least {MIN_CATEGORIES} categories, then refine with specific interests
                             </CardDescription>
                         </CardHeader>
-                        <CardContent className="space-y-4">
+                        <CardContent className="space-y-6">
                             {error && (
-                                <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
+                                <div className="p-3 bg-destructive/10 border border-destructive/20 rounded-lg text-destructive text-sm">
                                     {error}
                                 </div>
                             )}
 
-                            <div className="grid grid-cols-2 gap-4">
+                            {/* Main Categories */}
+                            <div className="flex flex-wrap gap-2">
                                 {CATEGORIES.map((category) => (
-                                    <div key={category.value} className="flex items-center space-x-3">
-                                        <Checkbox
-                                            id={category.value}
-                                            checked={selectedCategories.has(category.value)}
-                                            onCheckedChange={() => toggleCategory(category.value)}
-                                        />
-                                        <Label
-                                            htmlFor={category.value}
-                                            className="cursor-pointer font-medium flex-1"
-                                        >
-                                            {category.label}
-                                        </Label>
-                                    </div>
+                                    <button
+                                        key={category.value}
+                                        onClick={() => toggleCategory(category.value)}
+                                        className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${selectedCategories.has(category.value)
+                                            ? 'bg-primary text-primary-foreground shadow-sm'
+                                            : 'bg-muted hover:bg-muted/80'
+                                            }`}
+                                    >
+                                        {selectedCategories.has(category.value) && (
+                                            <Check className="inline-block w-4 h-4 mr-1" />
+                                        )}
+                                        {category.label}
+                                    </button>
                                 ))}
                             </div>
 
+                            {/* Subcategories - Show for selected categories */}
+                            {selectedCategories.size > 0 && (
+                                <div className="space-y-6 pt-4 border-t">
+                                    <div>
+                                        <h3 className="text-sm font-semibold mb-3 text-muted-foreground">
+                                            Refine your interests (optional)
+                                        </h3>
+                                        {CATEGORIES.filter(cat => selectedCategories.has(cat.value)).map(category => (
+                                            <div key={category.value} className="mb-4">
+                                                <p className="text-sm font-medium mb-2">{category.label}</p>
+                                                <div className="flex flex-wrap gap-2">
+                                                    {category.subcategories?.map(sub => (
+                                                        <button
+                                                            key={sub}
+                                                            onClick={() => toggleSubcategory(sub)}
+                                                            className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all ${selectedSubcategories.has(sub)
+                                                                ? 'bg-primary/20 text-primary border border-primary'
+                                                                : 'bg-background hover:bg-muted border border-border'
+                                                                }`}
+                                                        >
+                                                            {sub}
+                                                        </button>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+
                             <Button
                                 onClick={handleContinueFromCategories}
-                                className="w-full mt-6"
+                                className="w-full"
                             >
                                 Continue
                                 <ChevronRight className="ml-2 h-4 w-4" />
@@ -167,59 +185,7 @@ export default function Onboarding() {
                     </Card>
                 )}
 
-                {/* Step 2: Select Subcategories */}
-                {step === 'subcategories' && (
-                    <Card>
-                        <CardHeader>
-                            <CardTitle>Refine your interests</CardTitle>
-                            <CardDescription>
-                                Select specific types within your chosen categories (optional)
-                            </CardDescription>
-                        </CardHeader>
-                        <CardContent className="space-y-6">
-                            {CATEGORIES.filter((cat) => selectedCategories.has(cat.value)).map(
-                                (category) => (
-                                    <div key={category.value}>
-                                        <h3 className="font-semibold mb-3">{category.label}</h3>
-                                        <div className="grid grid-cols-1 gap-2 ml-2">
-                                            {category.subcategories?.map((sub) => (
-                                                <div key={sub} className="flex items-center space-x-3">
-                                                    <Checkbox
-                                                        id={sub}
-                                                        checked={selectedSubcategories.has(sub)}
-                                                        onCheckedChange={() => toggleSubcategory(sub)}
-                                                    />
-                                                    <Label htmlFor={sub} className="cursor-pointer text-sm">
-                                                        {sub}
-                                                    </Label>
-                                                </div>
-                                            ))}
-                                        </div>
-                                    </div>
-                                )
-                            )}
-
-                            <div className="flex gap-2 mt-6">
-                                <Button
-                                    variant="outline"
-                                    onClick={() => setStep('categories')}
-                                    className="flex-1"
-                                >
-                                    Back
-                                </Button>
-                                <Button
-                                    onClick={handleContinueFromSubcategories}
-                                    className="flex-1"
-                                >
-                                    Continue
-                                    <ChevronRight className="ml-2 h-4 w-4" />
-                                </Button>
-                            </div>
-                        </CardContent>
-                    </Card>
-                )}
-
-                {/* Step 3: Popularity Preference */}
+                {/* Step 2: Preferences */}
                 {step === 'preferences' && (
                     <Card>
                         <CardHeader>
@@ -231,15 +197,10 @@ export default function Onboarding() {
                                 <div className="flex justify-between mb-4">
                                     <Label>Event Type Preference</Label>
                                     <span className="text-sm font-semibold">
-                                        {popularityPref === 0
-                                            ? 'Niche Only'
-                                            : popularityPref === 1
-                                                ? 'Mainstream Only'
-                                                : 'Balanced'}
+                                        {popularityPref === 0 ? 'Niche' : popularityPref === 1 ? 'Mainstream' : 'Balanced'}
                                     </span>
                                 </div>
 
-                                {/* Segmented Control instead of slider */}
                                 <div className="flex gap-2 bg-muted p-1 rounded-lg">
                                     {[
                                         { value: 0, label: 'Niche Gems' },
@@ -250,7 +211,7 @@ export default function Onboarding() {
                                             key={option.value}
                                             onClick={() => setPopularityPref(option.value)}
                                             className={`flex-1 py-2 px-3 rounded text-sm font-medium transition-all ${popularityPref === option.value
-                                                ? 'bg-primary text-primary-foreground'
+                                                ? 'bg-primary text-primary-foreground shadow-sm'
                                                 : 'hover:bg-background'
                                                 }`}
                                         >
@@ -261,19 +222,15 @@ export default function Onboarding() {
 
                                 <p className="text-xs text-muted-foreground mt-3">
                                     {popularityPref === 0
-                                        ? '🔍 Hidden indie events, smaller venues, emerging artists'
+                                        ? 'Hidden indie events, smaller venues, emerging artists'
                                         : popularityPref === 1
-                                            ? '⭐ Popular events, major venues, well-known acts'
-                                            : '🎯 Mix of both popular and unique events'}
+                                            ? 'Popular events, major venues, well-known acts'
+                                            : 'Mix of both popular and unique events'}
                                 </p>
                             </div>
 
                             <div className="flex gap-2">
-                                <Button
-                                    variant="outline"
-                                    onClick={() => setStep('subcategories')}
-                                    className="flex-1"
-                                >
+                                <Button variant="outline" onClick={() => setStep('categories')} className="flex-1">
                                     Back
                                 </Button>
                                 <Button onClick={() => setStep('notifications')} className="flex-1">
@@ -285,7 +242,7 @@ export default function Onboarding() {
                     </Card>
                 )}
 
-                {/* Step 4: Notifications */}
+                {/* Step 3: Notifications */}
                 {step === 'notifications' && (
                     <Card>
                         <CardHeader>
@@ -307,7 +264,7 @@ export default function Onboarding() {
                             </div>
 
                             {notificationsEnabled && (
-                                <div className="ml-6 space-y-3 p-3 bg-muted rounded-lg">
+                                <div className="ml-6 space-y-3 p-4 bg-muted rounded-lg">
                                     <Label className="font-medium">Email Frequency</Label>
                                     <div className="space-y-2">
                                         {(['daily', 'weekly'] as const).map((freq) => (
@@ -321,10 +278,10 @@ export default function Onboarding() {
                                                     onChange={(e) => setEmailFrequency(e.target.value as 'daily' | 'weekly')}
                                                     className="w-4 h-4"
                                                 />
-                                                <Label htmlFor={freq} className="capitalize cursor-pointer text-sm">
+                                                <Label htmlFor={freq} className="cursor-pointer text-sm">
                                                     {freq === 'daily'
-                                                        ? 'Daily digest (best events from today)'
-                                                        : 'Weekly digest (highlights from the week)'}
+                                                        ? '📧 Daily digest (best events from today)'
+                                                        : '📬 Weekly digest (highlights from the week)'}
                                                 </Label>
                                             </div>
                                         ))}
@@ -336,19 +293,17 @@ export default function Onboarding() {
                                 💡 You can always change these settings in your profile
                             </p>
 
+                            {error && (
+                                <div className="p-3 bg-destructive/10 border border-destructive/20 rounded-lg text-destructive text-sm">
+                                    {error}
+                                </div>
+                            )}
+
                             <div className="flex gap-2">
-                                <Button
-                                    variant="outline"
-                                    onClick={() => setStep('preferences')}
-                                    className="flex-1"
-                                >
+                                <Button variant="outline" onClick={() => setStep('preferences')} className="flex-1">
                                     Back
                                 </Button>
-                                <Button
-                                    onClick={handleComplete}
-                                    disabled={isLoading}
-                                    className="flex-1"
-                                >
+                                <Button onClick={handleComplete} disabled={isLoading} className="flex-1">
                                     {isLoading ? (
                                         <>
                                             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -356,7 +311,7 @@ export default function Onboarding() {
                                         </>
                                     ) : (
                                         <>
-                                            Let's Go!
+                                            Complete Setup
                                             <ChevronRight className="ml-2 h-4 w-4" />
                                         </>
                                     )}
@@ -368,17 +323,21 @@ export default function Onboarding() {
 
                 {/* Progress Indicator */}
                 <div className="flex gap-2 mt-8 justify-center">
-                    {(['categories', 'subcategories', 'preferences', 'notifications'] as const).map((s, idx) => (
-                        <div
-                            key={s}
-                            className={`h-2 rounded-full transition-all ${step === s
-                                ? 'bg-primary w-8'
-                                : ['categories', 'subcategories', 'preferences', 'notifications'].indexOf(step) > idx
-                                    ? 'bg-primary w-2'
-                                    : 'bg-muted w-2'
-                                }`}
-                        />
-                    ))}
+                    {(['categories', 'preferences', 'notifications'] as const).map((s, idx) => {
+                        const steps = ['categories', 'preferences', 'notifications'];
+                        const currentIdx = steps.indexOf(step);
+                        return (
+                            <div
+                                key={s}
+                                className={`h-2 rounded-full transition-all ${step === s
+                                    ? 'bg-primary w-8'
+                                    : idx < currentIdx
+                                        ? 'bg-primary w-2'
+                                        : 'bg-muted w-2'
+                                    }`}
+                            />
+                        );
+                    })}
                 </div>
             </div>
         </div>

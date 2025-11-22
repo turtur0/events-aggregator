@@ -7,23 +7,25 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { AlertCircle, Loader2, Check } from 'lucide-react';
+import { AlertCircle, Loader2 } from 'lucide-react';
 
 export default function SignUp() {
     const router = useRouter();
-    const [formData, setFormData] = useState({ name: '', email: '', password: '', confirmPassword: '' });
+    const [formData, setFormData] = useState({
+        name: '',
+        email: '',
+        password: '',
+        confirmPassword: ''
+    });
     const [error, setError] = useState('');
     const [isLoading, setIsLoading] = useState(false);
 
-    const validatePassword = (pwd: string) => {
-        return pwd.length >= 8;
-    };
+    const validatePassword = (pwd: string) => pwd.length >= 8;
 
     async function handleSubmit(e: React.FormEvent) {
         e.preventDefault();
         setError('');
 
-        // Validation
         if (!formData.name || !formData.email || !formData.password) {
             setError('All fields are required');
             return;
@@ -57,7 +59,6 @@ export default function SignUp() {
                 throw new Error(data.error || 'Signup failed');
             }
 
-            // Auto-login after signup
             await signIn('credentials', {
                 email: formData.email,
                 password: formData.password,
@@ -73,16 +74,18 @@ export default function SignUp() {
     }
 
     return (
-        <div className="min-h-screen flex items-center justify-center bg-muted p-4 w-full">
+        <div className="flex items-center justify-center bg-linear-to-br from-background via-muted/30 to-background p-4 w-full">
             <Card className="w-full max-w-md">
-                <CardHeader>
-                    <CardTitle>Create Account</CardTitle>
-                    <CardDescription>Join Melbourne Events to get personalized recommendations</CardDescription>
+                <CardHeader className="space-y-1">
+                    <CardTitle className="text-2xl font-bold">Create Account</CardTitle>
+                    <CardDescription>
+                        Join Melbourne Events to get personalized recommendations
+                    </CardDescription>
                 </CardHeader>
                 <CardContent>
                     <form onSubmit={handleSubmit} className="space-y-4">
                         {error && (
-                            <div className="flex gap-2 p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
+                            <div className="flex gap-2 p-3 bg-destructive/10 border border-destructive/20 rounded-lg text-destructive text-sm">
                                 <AlertCircle className="h-5 w-5 shrink-0" />
                                 <span>{error}</span>
                             </div>
@@ -164,7 +167,7 @@ export default function SignUp() {
 
                         <p className="text-center text-sm text-muted-foreground">
                             Already have an account?{' '}
-                            <Link href="/auth/signin" className="text-primary hover:underline">
+                            <Link href="/auth/signin" className="text-primary hover:underline font-medium">
                                 Sign in
                             </Link>
                         </p>
