@@ -7,8 +7,8 @@ import dotenv from 'dotenv';
 import path from 'path';
 dotenv.config({ path: path.resolve(process.cwd(), '.env.local') });
 
-import { connectDB, disconnectDB } from '@/app/lib/db';
-import Event from '@/app/lib/models/Event';
+import { connectDB, disconnectDB } from '@/lib/db';
+import Event from '@/lib/models/Event';
 
 async function debugAccessibility() {
   await connectDB();

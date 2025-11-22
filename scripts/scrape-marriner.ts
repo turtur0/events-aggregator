@@ -6,8 +6,9 @@ import path from 'path';
 
 dotenv.config({ path: path.resolve(process.cwd(), '.env.local') });
 
-import { connectDB, disconnectDB } from '@/app/lib/db';
-import { scrapeMarrinerGroup, ScrapeOptions } from '@/app/lib/scrapers/marriner';
+import { connectDB, disconnectDB } from '@/lib/db';
+import { ScrapeOptions } from '@/lib/scrapers/marriner';
+import { scrapeMarrinerGroup } from '@/lib/scrapers';
 import { processEventsWithDeduplication } from './scrape-with-dedup';
 
 const SCRAPE_OPTIONS: ScrapeOptions = {

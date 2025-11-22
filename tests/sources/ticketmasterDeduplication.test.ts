@@ -1,4 +1,4 @@
-import { TicketmasterEvent } from '@/lib/scrapers';
+import { TicketmasterEvent } from '@/lib/scrapers/types';
 import { mockDuplicateEvents } from '../mocks/ticketmaster.mocks';
 
 /**

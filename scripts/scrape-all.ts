@@ -7,10 +7,10 @@ import path from 'path';
 
 dotenv.config({ path: path.resolve(process.cwd(), '.env.local') });
 
-import { connectDB, disconnectDB } from '@/app/lib/db';
-import { scrapeAll } from '@/app/lib/scrapers';
+import { connectDB, disconnectDB } from '@/lib/db';
+import Event from '@/lib/models/Event';
+import { scrapeAll } from '@/lib/scrapers';
 import { processEventsWithDeduplication } from './scrape-with-dedup';
-import Event from '@/app/lib/models/Event';
 
 async function main() {
   const startTime = Date.now();

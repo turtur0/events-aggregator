@@ -7,8 +7,8 @@ import path from 'path';
 
 dotenv.config({ path: path.resolve(process.cwd(), '.env.local') });
 
-import { connectDB, disconnectDB } from '@/app/lib/db';
-import { fetchAllTicketmasterEvents, normaliseTicketmasterEvent } from '@/app/lib/scrapers';
+import { connectDB, disconnectDB } from '@/lib/db';
+import { fetchAllTicketmasterEvents, normaliseTicketmasterEvent } from '@/lib/scrapers';
 import { processEventsWithDeduplication } from './scrape-with-dedup';
 
 export async function scrapeTicketmasterWithDedup() {

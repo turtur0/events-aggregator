@@ -10,7 +10,7 @@ import { scrapeWhatsOnMelbourne, WhatsOnScrapeOptions } from './whatson';
 export { fetchAllTicketmasterEvents, normaliseTicketmasterEvent } from './ticketmaster';
 export { scrapeMarrinerGroup } from './marriner';
 export { scrapeWhatsOnMelbourne } from './whatson';
-export * from './types';
+export type { WhatsOnScrapeOptions } from './whatson';
 
 interface ScrapeAllOptions {
   sources?: ('ticketmaster' | 'marriner' | 'whatson')[];

@@ -6,8 +6,8 @@ import path from 'path';
 
 dotenv.config({ path: path.resolve(process.cwd(), '.env.local') });
 
-import { connectDB, disconnectDB } from '@/app/lib/db';
-import { scrapeWhatsOnMelbourne, WhatsOnScrapeOptions } from '@/app/lib/scrapers/whatson';
+import { connectDB, disconnectDB } from '@/lib/db';
+import { scrapeWhatsOnMelbourne, WhatsOnScrapeOptions } from '@/lib/scrapers';
 import { processEventsWithDeduplication } from './scrape-with-dedup';
 
 const SCRAPE_OPTIONS: WhatsOnScrapeOptions = {

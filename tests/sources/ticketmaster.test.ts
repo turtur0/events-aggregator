@@ -1,4 +1,4 @@
-import { TicketmasterEvent } from '@/lib/scrapers';
+import { TicketmasterEvent } from '@/lib/scrapers/types';
 describe('Ticketmaster Scraper', () => {
   describe('Environment Configuration', () => {
     const originalEnv = process.env;

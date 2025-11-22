@@ -3,11 +3,10 @@ import mongoose, { Schema, Model } from 'mongoose';
 export interface IUser {
     email: string;
     name: string;
-    username?: string; // Optional username
-    passwordHash?: string; // Optional for OAuth users
-    provider?: 'credentials' | 'google'; // Track how user signed up
+    username?: string;
+    passwordHash?: string;
+    provider?: 'credentials' | 'google';
 
-    // Preferences
     preferences: {
         selectedCategories: string[];
         selectedSubcategories: string[];
@@ -37,9 +36,10 @@ const UserSchema = new Schema<IUser>(
         email: {
             type: String,
             required: true,
-            unique: true,
+            unique: true,  // This creates an index automatically
             lowercase: true,
             trim: true,
+            // Remove index: true if you had it here
         },
         name: {
             type: String,
@@ -49,13 +49,13 @@ const UserSchema = new Schema<IUser>(
         username: {
             type: String,
             unique: true,
-            sparse: true, // Allows null values while maintaining uniqueness
+            sparse: true,  // This creates an index automatically
             trim: true,
             lowercase: true,
+            // Remove index: true if you had it here
         },
         passwordHash: {
             type: String,
-            // Not required for OAuth users
         },
         provider: {
             type: String,
@@ -95,10 +95,6 @@ const UserSchema = new Schema<IUser>(
     },
     { timestamps: true }
 );
-
-// Indexes
-UserSchema.index({ email: 1 });
-UserSchema.index({ username: 1 }, { sparse: true });
 
 const User: Model<IUser> = mongoose.models.User || mongoose.model<IUser>('User', UserSchema);
 
