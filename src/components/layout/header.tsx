@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Search, ChevronDown, Music, Theater, Trophy, Laugh, PartyPopper, Sparkles } from "lucide-react";
+import { Search, ChevronDown, Music, Theater, Trophy, Palette, Users, Sparkles } from "lucide-react";
 import { ThemeToggle } from "../theme/theme-toggle";
 import { Button } from "../ui/button";
 import {
@@ -18,9 +18,9 @@ const CATEGORY_LINKS = [
   { label: "Music", slug: "music", icon: Music, description: "Concerts, gigs & live music" },
   { label: "Theatre", slug: "theatre", icon: Theater, description: "Plays, musicals & performances" },
   { label: "Sports", slug: "sports", icon: Trophy, description: "Games, matches & competitions" },
-  { label: "Comedy", slug: "comedy", icon: Laugh, description: "Stand-up & comedy shows" },
-  { label: "Festivals", slug: "festivals", icon: PartyPopper, description: "Multi-day events & celebrations" },
-  { label: "Other", slug: "other", icon: Sparkles, description: "Exhibitions, talks & more" },
+  { label: "Arts & Culture", slug: "arts", icon: Palette, description: "Exhibitions, film & festivals" },
+  { label: "Family", slug: "family", icon: Users, description: "Kids shows & family fun" },
+  { label: "Other", slug: "other", icon: Sparkles, description: "Workshops, networking & more" },
 ];
 
 export function Header() {

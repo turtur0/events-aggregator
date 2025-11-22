@@ -1,0 +1,169 @@
+import { EventCard } from "@/components/events/event-card";
+import { EventCardSkeleton } from "@/components/events/event-card-skeleton";
+import { EmptyState } from "@/components/other/empty-state";
+import { Pagination } from "@/components/other/pagination";
+import { SearchBar } from "@/components/search/search-bar";
+import { EventFilters } from "@/components/events/event-filters";
+import { Suspense } from "react";
+import { SerializedEvent } from "@/app/lib/models/Event";
+
+async function EventsGrid({
+  page,
+  searchQuery,
+  category,
+  subcategory,
+  dateFilter,
+  freeOnly,
+  accessibleOnly,
+}: {
+  page: number;
+  searchQuery: string;
+  category: string;
+  subcategory: string;
+  dateFilter: string;
+  freeOnly: boolean;
+  accessibleOnly: boolean;
+}) {
+  // Build API URL with all filters
+  const params = new URLSearchParams({
+    page: page.toString(),
+  });
+
+  if (searchQuery.trim()) params.set('q', searchQuery.trim());
+  if (category) params.set('category', category);
+  if (subcategory) params.set('subcategory', subcategory);
+  if (dateFilter) params.set('date', dateFilter);
+  if (freeOnly) params.set('free', 'true');
+  if (accessibleOnly) params.set('accessible', 'true');
+
+  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
+  const response = await fetch(`${baseUrl}/api/events?${params.toString()}`, {
+    cache: 'no-store',
+  });
+
+  if (!response.ok) {
+    throw new Error('Failed to fetch events');
+  }
+
+  const data = await response.json();
+  const eventsData: SerializedEvent[] = data.events;
+  const { totalEvents, totalPages } = data.pagination;
+
+  // Show empty state for no results
+  if (eventsData.length === 0) {
+    const hasFilters = searchQuery || category || subcategory || dateFilter || freeOnly || accessibleOnly;
+
+    if (hasFilters) {
+      return (
+        <EmptyState
+          title="No events found"
+          description="No events match your filters. Try adjusting your search criteria."
+        />
+      );
+    }
+    return (
+      <EmptyState
+        title="No events yet"
+        description="We're working on populating the database with amazing Melbourne events. Check back soon!"
+      />
+    );
+  }
+
+  return (
+    <>
+      {/* Results count */}
+      <div className="mb-4 text-sm text-muted-foreground">
+        <span>
+          Found <strong>{totalEvents}</strong> event{totalEvents !== 1 ? 's' : ''}
+        </span>
+      </div>
+
+      {/* Events Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+        {eventsData.map((event) => (
+          <EventCard key={event._id} event={event} />
+        ))}
+      </div>
+
+      {/* Pagination */}
+      {totalPages > 1 && (
+        <Pagination
+          currentPage={page}
+          totalPages={totalPages}
+        />
+      )}
+    </>
+  );
+}
+
+function EventsGridSkeleton() {
+  return (
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      {Array.from({ length: 6 }).map((_, i) => (
+        <EventCardSkeleton key={i} />
+      ))}
+    </div>
+  );
+}
+
+export default async function EventsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{
+    page?: string;
+    q?: string;
+    category?: string;
+    subcategory?: string;
+    date?: string;
+    free?: string;
+    accessible?: string;
+  }>;
+}) {
+  const params = await searchParams;
+  const currentPage = Number(params.page) || 1;
+  const searchQuery = params.q || '';
+  const category = params.category || '';
+  const subcategory = params.subcategory || '';
+  const dateFilter = params.date || '';
+  const freeOnly = params.free === 'true';
+  const accessibleOnly = params.accessible === 'true';
+
+  const suspenseKey = `${currentPage}-${searchQuery}-${category}-${subcategory}-${dateFilter}-${freeOnly}-${accessibleOnly}`;
+
+  return (
+    <main className="container py-8">
+      {/* Page Header */}
+      <div className="mb-8">
+        <h1 className="text-3xl font-bold mb-2">
+          {searchQuery ? `Search: "${searchQuery}"` : 'All Events'}
+        </h1>
+        <p className="text-muted-foreground">
+          Discover concerts, shows, festivals, and events across Melbourne
+        </p>
+      </div>
+
+      {/* Search Bar */}
+      <div className="mb-6">
+        <SearchBar />
+      </div>
+
+      {/* Filters */}
+      <div className="mb-8">
+        <EventFilters />
+      </div>
+
+      {/* Events Section */}
+      <Suspense fallback={<EventsGridSkeleton />} key={suspenseKey}>
+        <EventsGrid
+          page={currentPage}
+          searchQuery={searchQuery}
+          category={category}
+          subcategory={subcategory}
+          dateFilter={dateFilter}
+          freeOnly={freeOnly}
+          accessibleOnly={accessibleOnly}
+        />
+      </Suspense>
+    </main>
+  );
+}
