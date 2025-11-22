@@ -174,8 +174,11 @@ export default async function HomePage() {
 
             {/* Search Bar */}
             <div className="max-w-xl mx-auto mb-6">
-              <SearchBar />
+              <Suspense fallback={<div className="h-12 bg-muted animate-pulse rounded" />}>
+                <SearchBar />
+              </Suspense>
             </div>
+
 
             <div className="flex flex-wrap justify-center gap-4">
               <Button asChild size="lg">
