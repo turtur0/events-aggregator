@@ -167,7 +167,7 @@ export default async function Home({
             subcategory={subcategory}
             dateFilter={dateFilter}
             freeOnly={freeOnly}
-            accessibleOnly={accessibleOnly} // ← ADDED THIS
+            accessibleOnly={accessibleOnly}
           />
         </Suspense>
       </div>
