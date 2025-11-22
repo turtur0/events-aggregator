@@ -1,11 +1,16 @@
 import { type NextAuthOptions } from 'next-auth';
 import CredentialsProvider from 'next-auth/providers/credentials';
+import GoogleProvider from 'next-auth/providers/google';
 import bcrypt from 'bcryptjs';
 import { connectDB } from './db';
 import User from './models/User';
 
 export const authOptions: NextAuthOptions = {
     providers: [
+        GoogleProvider({
+            clientId: process.env.GOOGLE_CLIENT_ID!,
+            clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
+        }),
         CredentialsProvider({
             name: 'Credentials',
             credentials: {
@@ -26,6 +31,15 @@ export const authOptions: NextAuthOptions = {
                         throw new Error('User not found');
                     }
 
+                    // Check if user signed up with Google
+                    if (user.provider === 'google') {
+                        throw new Error('Please sign in with Google');
+                    }
+
+                    if (!user.passwordHash) {
+                        throw new Error('Invalid credentials');
+                    }
+
                     const isPasswordValid = await bcrypt.compare(
                         credentials.password,
                         user.passwordHash
@@ -39,7 +53,8 @@ export const authOptions: NextAuthOptions = {
                         id: user._id.toString(),
                         email: user.email,
                         name: user.name,
-                        hasCompletedOnboarding: user.preferences?.selectedCategories?.length > 0,
+                        username: user.username,
+                        hasCompletedOnboarding: user.preferences.selectedCategories.length > 0,
                     };
                 } catch (error: any) {
                     throw new Error(error.message);
@@ -49,16 +64,65 @@ export const authOptions: NextAuthOptions = {
     ],
 
     callbacks: {
+        async signIn({ user, account }) {
+            try {
+                if (account?.provider === 'google') {
+                    await connectDB();
+
+                    const existingUser = await User.findOne({ email: user.email });
+
+                    if (!existingUser) {
+                        // Create new user from Google account
+                        const newUser = await User.create({
+                            email: user.email,
+                            name: user.name,
+                            provider: 'google',
+                            preferences: {
+                                selectedCategories: [],
+                                selectedSubcategories: [],
+                                categoryWeights: {},
+                                priceRange: { min: 0, max: 500 },
+                                popularityPreference: 0.5,
+                                locations: ['Melbourne'],
+                                notifications: {
+                                    inApp: true,
+                                    email: false,
+                                    emailFrequency: 'weekly',
+                                },
+                            },
+                        });
+                        user.id = newUser._id.toString();
+                    } else {
+                        user.id = existingUser._id.toString();
+                    }
+                }
+                return true;
+            } catch (error) {
+                console.error('Sign in error:', error);
+                return false;
+            }
+        },
+
         async jwt({ token, user, trigger, session }) {
-            // Initial sign in
             if (user) {
                 token.id = user.id;
+                token.username = user.username;
                 token.hasCompletedOnboarding = user.hasCompletedOnboarding;
             }
 
-            // When session is updated (e.g., after onboarding)
+            // Refresh user data from DB when session updates
+            if (trigger === 'update' || !token.hasCompletedOnboarding) {
+                await connectDB();
+                const dbUser = await User.findOne({ email: token.email });
+                if (dbUser) {
+                    token.username = dbUser.username;
+                    token.hasCompletedOnboarding = dbUser.preferences.selectedCategories.length > 0;
+                }
+            }
+
             if (trigger === 'update' && session) {
                 token.hasCompletedOnboarding = session.hasCompletedOnboarding;
+                token.username = session.username;
             }
 
             return token;
@@ -67,6 +131,7 @@ export const authOptions: NextAuthOptions = {
         async session({ session, token }) {
             if (session.user) {
                 session.user.id = token.id as string;
+                session.user.username = token.username as string;
                 session.user.hasCompletedOnboarding = token.hasCompletedOnboarding as boolean;
             }
             return session;
@@ -79,7 +144,7 @@ export const authOptions: NextAuthOptions = {
 
     session: {
         strategy: 'jwt',
-        maxAge: 30 * 24 * 60 * 60, // 30 days
+        maxAge: 30 * 24 * 60 * 60,
     },
 
     secret: process.env.NEXTAUTH_SECRET,

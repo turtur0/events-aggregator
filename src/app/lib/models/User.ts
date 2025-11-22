@@ -3,23 +3,21 @@ import mongoose, { Schema, Model } from 'mongoose';
 export interface IUser {
     email: string;
     name: string;
-    passwordHash: string;
+    username?: string; // Optional username
+    passwordHash?: string; // Optional for OAuth users
+    provider?: 'credentials' | 'google'; // Track how user signed up
 
     // Preferences
     preferences: {
-        // User selects main categories and subcategories during onboarding
-        selectedCategories: string[]; // e.g., ['music', 'theatre']
-        selectedSubcategories: string[]; // e.g., ['Rock & Alternative', 'Musicals']
-
-        // These are learned from user behavior, not set during onboarding
-        categoryWeights: Record<string, number>; // e.g., { music: 0.8, theatre: 0.5 }
-
+        selectedCategories: string[];
+        selectedSubcategories: string[];
+        categoryWeights: Record<string, number>;
         priceRange: {
             min: number;
             max: number;
         };
-        popularityPreference: number; // 0 = niche, 1 = mainstream
-        locations: string[]; // suburbs like 'Melbourne CBD', 'St Kilda'
+        popularityPreference: number;
+        locations: string[];
         notifications: {
             inApp: boolean;
             email: boolean;
@@ -48,9 +46,21 @@ const UserSchema = new Schema<IUser>(
             required: true,
             trim: true,
         },
+        username: {
+            type: String,
+            unique: true,
+            sparse: true, // Allows null values while maintaining uniqueness
+            trim: true,
+            lowercase: true,
+        },
         passwordHash: {
             type: String,
-            required: true,
+            // Not required for OAuth users
+        },
+        provider: {
+            type: String,
+            enum: ['credentials', 'google'],
+            default: 'credentials',
         },
 
         preferences: {
@@ -86,8 +96,9 @@ const UserSchema = new Schema<IUser>(
     { timestamps: true }
 );
 
-// Index for email lookup
+// Indexes
 UserSchema.index({ email: 1 });
+UserSchema.index({ username: 1 }, { sparse: true });
 
 const User: Model<IUser> = mongoose.models.User || mongoose.model<IUser>('User', UserSchema);
 
