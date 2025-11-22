@@ -1,5 +1,4 @@
-import { TicketmasterEvent } from '@/app/lib/scrapers';
-
+import { TicketmasterEvent } from '@/lib/scrapers';
 describe('Ticketmaster Scraper', () => {
   describe('Environment Configuration', () => {
     const originalEnv = process.env;
@@ -16,7 +15,7 @@ describe('Ticketmaster Scraper', () => {
     it('should throw error if API key is missing', async () => {
       delete process.env.TICKETMASTER_API_KEY;
 
-      const { fetchTicketmasterEvents } = await import('../../src/app/lib/scrapers/ticketmaster');
+      const { fetchTicketmasterEvents } = await import('../../src/lib/scrapers/ticketmaster');
 
       await expect(fetchTicketmasterEvents()).rejects.toThrow(
         'TICKETMASTER_API_KEY not found in environment variables'

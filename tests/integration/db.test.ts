@@ -1,7 +1,7 @@
 // tests/integration/db.test.ts
 import { MongoMemoryServer } from 'mongodb-memory-server';
 import mongoose from 'mongoose';
-import Event from '../../src/app/lib/models/Event';
+import Event from '@/lib/models/Event';
 
 let mongoServer: MongoMemoryServer;
 

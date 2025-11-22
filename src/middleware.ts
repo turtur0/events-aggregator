@@ -41,6 +41,7 @@ export async function middleware(request: NextRequest) {
     const protectedPaths = [
         '/profile',
         '/favourites',
+        '/settings',
     ];
 
     const isProtectedPath = protectedPaths.some(path =>

@@ -1,4 +1,4 @@
-import { TicketmasterEvent } from "@/app/lib/scrapers/types";
+import { TicketmasterEvent } from "@/lib/scrapers";
 
 export const mockTicketmasterEvent: TicketmasterEvent = {
   id: 'TM001',
