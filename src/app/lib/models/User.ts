@@ -7,7 +7,13 @@ export interface IUser {
 
     // Preferences
     preferences: {
-        categories: Record<string, number>; // e.g., { music: 0.8, theatre: 0.5 }
+        // User selects main categories and subcategories during onboarding
+        selectedCategories: string[]; // e.g., ['music', 'theatre']
+        selectedSubcategories: string[]; // e.g., ['Rock & Alternative', 'Musicals']
+
+        // These are learned from user behavior, not set during onboarding
+        categoryWeights: Record<string, number>; // e.g., { music: 0.8, theatre: 0.5 }
+
         priceRange: {
             min: number;
             max: number;
@@ -48,7 +54,15 @@ const UserSchema = new Schema<IUser>(
         },
 
         preferences: {
-            categories: {
+            selectedCategories: {
+                type: [String],
+                default: [],
+            },
+            selectedSubcategories: {
+                type: [String],
+                default: [],
+            },
+            categoryWeights: {
                 type: Map,
                 of: Number,
                 default: new Map(),
@@ -58,7 +72,7 @@ const UserSchema = new Schema<IUser>(
                 max: { type: Number, default: 500 },
             },
             popularityPreference: { type: Number, default: 0.5 },
-            locations: { type: [String], default: [] },
+            locations: { type: [String], default: ['Melbourne'] },
             notifications: {
                 inApp: { type: Boolean, default: true },
                 email: { type: Boolean, default: false },

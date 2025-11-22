@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Search, ChevronDown, Music, Theater, Trophy, Palette, Users, Sparkles, Menu } from "lucide-react";
+import { useSession, signOut } from "next-auth/react";
+import { Search, ChevronDown, Music, Theater, Trophy, Palette, Users, Sparkles, Menu, LogOut, Settings, User } from "lucide-react";
 import { ThemeToggle } from "../theme/theme-toggle";
 import { Button } from "../ui/button";
 import {
@@ -25,6 +26,11 @@ const CATEGORY_LINKS = [
 
 export function Header() {
   const pathname = usePathname();
+  const { data: session, status } = useSession();
+
+  async function handleSignOut() {
+    await signOut({ redirect: true, callbackUrl: '/' });
+  }
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-backdrop-filter:bg-background/60">
@@ -32,7 +38,6 @@ export function Header() {
         {/* Logo */}
         <Link href="/" className="flex items-center gap-2 font-bold text-lg sm:text-xl">
           <span className="xs:inline">Melbourne Events</span>
-
         </Link>
 
         {/* Navigation */}
@@ -110,11 +115,86 @@ export function Header() {
               <DropdownMenuItem asChild>
                 <Link href="/about">About</Link>
               </DropdownMenuItem>
+              {session?.user && (
+                <>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuLabel>Account</DropdownMenuLabel>
+                  <DropdownMenuItem asChild>
+                    <Link href="/profile" className="flex items-center gap-2">
+                      <User className="h-4 w-4" />
+                      Profile
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link href="/profile/settings" className="flex items-center gap-2">
+                      <Settings className="h-4 w-4" />
+                      Settings
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={handleSignOut} className="text-red-600">
+                    <LogOut className="h-4 w-4 mr-2" />
+                    Sign Out
+                  </DropdownMenuItem>
+                </>
+              )}
             </DropdownMenuContent>
           </DropdownMenu>
 
           {/* Theme Toggle */}
           <ThemeToggle />
+
+          {/* Auth Buttons / User Menu - Desktop */}
+          {status === 'loading' ? (
+            <div className="hidden sm:block h-9 w-20 bg-muted rounded animate-pulse" />
+          ) : session?.user ? (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="sm" className="hidden sm:flex gap-2">
+                  <User className="h-4 w-4" />
+                  <span className="hidden md:inline">{session.user.name}</span>
+                  <ChevronDown className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56">
+                <DropdownMenuLabel className="flex flex-col space-y-1">
+                  <span className="font-medium">{session.user.name}</span>
+                  <span className="text-xs font-normal text-muted-foreground">{session.user.email}</span>
+                </DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem asChild>
+                  <Link href="/profile" className="flex items-center gap-2 cursor-pointer">
+                    <User className="h-4 w-4" />
+                    My Profile
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link href="/profile/settings" className="flex items-center gap-2 cursor-pointer">
+                    <Settings className="h-4 w-4" />
+                    Settings
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  onClick={handleSignOut}
+                  className="text-red-600 focus:text-red-600 focus:bg-red-50 dark:focus:bg-red-950 cursor-pointer"
+                >
+                  <LogOut className="h-4 w-4 mr-2" />
+                  Sign Out
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          ) : (
+            <div className="hidden sm:flex gap-2">
+              <Link href="/auth/signin">
+                <Button variant="outline" size="sm">
+                  Sign In
+                </Button>
+              </Link>
+              <Link href="/auth/signup">
+                <Button size="sm">Sign Up</Button>
+              </Link>
+            </div>
+          )}
         </nav>
       </div>
     </header>
