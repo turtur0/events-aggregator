@@ -14,6 +14,7 @@ import { Separator } from "@/components/ui/separator";
 import { FavouriteButton } from "@/components/events/favourite-button";
 import { ViewTracker } from "@/components/events/view-tracker";
 import { BookingLink } from "@/components/events/booking-link";
+import { SimilarEvents } from "@/components/recommendations/similiar-events";
 import { format, isSameMonth } from "date-fns";
 import { getCategoryLabel } from "@/lib/categories";
 import mongoose from "mongoose";
@@ -52,13 +53,21 @@ export default async function EventPage({ params }: EventPageProps) {
     // Check if user has favourited this event
     const session = await getServerSession(authOptions);
     let isFavourited = false;
+    let userFavourites = new Set<string>();
 
     if (session?.user?.id) {
+        const userId = new mongoose.Types.ObjectId(session.user.id);
+
+        // Check if current event is favourited
         const favourite = await UserFavourite.findOne({
-            userId: new mongoose.Types.ObjectId(session.user.id),
+            userId,
             eventId: new mongoose.Types.ObjectId(id),
         });
         isFavourited = !!favourite;
+
+        // Get all user favourites for similar events section
+        const allFavourites = await UserFavourite.find({ userId }).select('eventId');
+        userFavourites = new Set(allFavourites.map(f => f.eventId.toString()));
     }
 
     // Helper to convert Map to object
@@ -435,6 +444,14 @@ export default async function EventPage({ params }: EventPageProps) {
                             </CardContent>
                         </Card>
                     </div>
+                </div>
+
+                {/* Similar Events Section - Full Width Below Main Content */}
+                <div className="mt-12">
+                    <SimilarEvents
+                        eventId={event._id}
+                        userFavourites={userFavourites}
+                    />
                 </div>
             </main>
         </>

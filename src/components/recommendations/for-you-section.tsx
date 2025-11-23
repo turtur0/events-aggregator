@@ -61,7 +61,7 @@ export function ForYouSection({ userFavourites }: ForYouSectionProps) {
     }
 
     return (
-        <Card className="bg-gradient-to-br from-primary/5 to-transparent border-primary/20">
+        <Card className="bg-linear-to-br from-primary/5 to-transparent border-primary/20">
             <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                     <Heart className="h-5 w-5 text-primary" />
