@@ -20,16 +20,15 @@ export function TrendingSection({ userFavourites }: TrendingSectionProps) {
     useEffect(() => {
         async function fetchTrending() {
             try {
-                const res = await fetch('/api/recommendations?limit=12');
+                const res = await fetch('/api/recommendations/trending?limit=12');
                 const data = await res.json();
 
-                if (!res.ok || !data.recommendations) {
+                if (!res.ok || !data.events) {
                     setEvents([]);
                     return;
                 }
 
-                // Always show trending events, regardless of personalization
-                setEvents(data.recommendations || []);
+                setEvents(data.events || []);
             } catch (error) {
                 console.error('Error fetching trending:', error);
                 setEvents([]);
@@ -151,18 +150,17 @@ export function TrendingSection({ userFavourites }: TrendingSectionProps) {
                         </div>
                     ))}
                 </div>
-                
+
                 {/* Progress indicators */}
                 <div className="flex justify-center gap-2 mt-6">
                     {events.map((_, index) => (
                         <button
                             key={index}
                             onClick={() => setCurrentIndex(index)}
-                            className={`h-1.5 rounded-full transition-all duration-300 ${
-                                index === currentIndex
+                            className={`h-1.5 rounded-full transition-all duration-300 ${index === currentIndex
                                     ? 'w-8 bg-orange-500'
                                     : 'w-1.5 bg-muted-foreground/30 hover:bg-muted-foreground/50'
-                            }`}
+                                }`}
                             aria-label={`Go to event ${index + 1}`}
                         />
                     ))}

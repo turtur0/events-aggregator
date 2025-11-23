@@ -1,20 +1,23 @@
+// app/api/recommendations/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import User from '@/lib/models/User';
-import {
-    getPersonalizedRecommendations,
-    getTrendingEvents,
-} from '@/lib/ml/recommendationService';
+import { getTrendingEvents } from '@/lib/ml/recommendationService';
+import { getPersonalizedRecommendations } from '@/lib/ml/userProfileService';
 import { connectDB } from '@/lib/db';
 import mongoose from 'mongoose';
+
+// CRITICAL: Force this route to be dynamic (never cached)
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
 
 export async function GET(req: NextRequest) {
     try {
         await connectDB();
 
         const { searchParams } = new URL(req.url);
-        const limit = parseInt(searchParams.get('limit') || '20');
+        const limit = parseInt(searchParams.get('limit') || '12');
         const category = searchParams.get('category') || undefined;
         const excludeFavorited = searchParams.get('excludeFavorited') !== 'false';
 
@@ -22,39 +25,50 @@ export async function GET(req: NextRequest) {
         const session = await getServerSession(authOptions);
 
         let events: any[] = [];
+        let isPersonalized = false;
 
         if (session?.user?.email) {
             // PERSONALIZED RECOMMENDATIONS (Authenticated)
             const user = await User.findOne({ email: session.user.email });
-            if (!user) {
-                return NextResponse.json({ error: 'User not found' }, { status: 404 });
+            
+            if (user) {
+                console.log(`[Recommendations] Generating personalized for user: ${user._id}`);
+                isPersonalized = true;
+                
+                // Use the ADVANCED recommendation system from userProfileService
+                const recommendations = await getPersonalizedRecommendations(
+                    user._id as mongoose.Types.ObjectId,
+                    user,
+                    { limit, category, excludeFavorited }
+                );
+
+                events = recommendations.map(({ event, score, explanation }) => ({
+                    _id: event._id.toString(),
+                    title: event.title,
+                    description: event.description,
+                    category: event.category,
+                    subcategories: event.subcategories,
+                    startDate: event.startDate.toISOString(),
+                    endDate: event.endDate?.toISOString(),
+                    venue: event.venue,
+                    priceMin: event.priceMin,
+                    priceMax: event.priceMax,
+                    isFree: event.isFree,
+                    bookingUrl: event.bookingUrl,
+                    imageUrl: event.imageUrl,
+                    primarySource: event.primarySource,
+                    stats: event.stats || { viewCount: 0, favouriteCount: 0, clickthroughCount: 0 },
+                    score,
+                    reason: explanation.reason,
+                }));
+
+                console.log(`[Recommendations] Returned ${events.length} personalized events`);
             }
-
-            const recommendations = await getPersonalizedRecommendations(
-                user._id as mongoose.Types.ObjectId,
-                user,
-                { limit, category, excludeFavorited }
-            );
-
-            events = recommendations.map(({ event, score, explanation }) => ({
-                _id: event._id.toString(),
-                title: event.title,
-                description: event.description,
-                category: event.category,
-                subcategories: event.subcategories,
-                startDate: event.startDate.toISOString(),
-                endDate: event.endDate?.toISOString(),
-                venue: event.venue,
-                priceMin: event.priceMin,
-                priceMax: event.priceMax,
-                isFree: event.isFree,
-                bookingUrl: event.bookingUrl,
-                imageUrl: event.imageUrl,
-                score,
-                reason: explanation.reason,
-            }));
-        } else {
-            // PUBLIC TRENDING RECOMMENDATIONS (Unauthenticated)
+        }
+        
+        // Fallback to trending if not authenticated or user not found
+        if (!isPersonalized) {
+            console.log('[Recommendations] Using trending (not personalized)');
             const trendingEvents = await getTrendingEvents({
                 limit,
                 category,
@@ -74,16 +88,23 @@ export async function GET(req: NextRequest) {
                 isFree: event.isFree,
                 bookingUrl: event.bookingUrl,
                 imageUrl: event.imageUrl,
-                viewCount: event.stats?.viewCount || 0,
-                favoriteCount: event.stats?.favouriteCount || 0,
+                primarySource: event.primarySource,
+                stats: event.stats || { viewCount: 0, favouriteCount: 0, clickthroughCount: 0 },
             }));
         }
+
+        // Add cache control headers to prevent client-side caching
+        const headers = new Headers();
+        headers.set('Cache-Control', 'no-store, no-cache, must-revalidate');
+        headers.set('Pragma', 'no-cache');
+        headers.set('Expires', '0');
 
         return NextResponse.json({
             recommendations: events,
             count: events.length,
-            isPersonalized: !!session?.user?.email,
-        });
+            isPersonalized,
+            timestamp: new Date().toISOString(), // For debugging cache issues
+        }, { headers });
     } catch (error) {
         console.error('Error getting recommendations:', error);
         return NextResponse.json(

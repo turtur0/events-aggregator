@@ -1,3 +1,4 @@
+// components/recommendations/for-you-section.tsx
 'use client';
 
 import { useEffect, useState, useRef } from 'react';
@@ -15,13 +16,32 @@ export function ForYouSection({ userFavourites }: ForYouSectionProps) {
     const [isLoading, setIsLoading] = useState(true);
     const [currentIndex, setCurrentIndex] = useState(0);
     const [isHovered, setIsHovered] = useState(false);
+    const [lastFetch, setLastFetch] = useState<string>('');
     const scrollContainerRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
         async function fetchRecommendations() {
             try {
-                const res = await fetch('/api/recommendations?limit=12');
+                // Add cache-busting timestamp and headers
+                const timestamp = Date.now();
+                const res = await fetch(`/api/recommendations?limit=12&t=${timestamp}`, {
+                    method: 'GET',
+                    headers: {
+                        'Cache-Control': 'no-cache, no-store, must-revalidate',
+                        'Pragma': 'no-cache',
+                        'Expires': '0',
+                    },
+                    cache: 'no-store', // Prevent fetch cache
+                });
+
                 const data = await res.json();
+
+                console.log('[ForYou] API Response:', {
+                    isPersonalized: data.isPersonalized,
+                    count: data.count,
+                    timestamp: data.timestamp,
+                    firstEvent: data.recommendations?.[0]?.title
+                });
 
                 if (!res.ok || !data.recommendations) {
                     setEvents([]);
@@ -29,8 +49,9 @@ export function ForYouSection({ userFavourites }: ForYouSectionProps) {
                 }
 
                 setEvents(data.recommendations || []);
+                setLastFetch(data.timestamp || new Date().toISOString());
             } catch (error) {
-                console.error('Error fetching recommendations:', error);
+                console.error('[ForYou] Error fetching recommendations:', error);
                 setEvents([]);
             } finally {
                 setIsLoading(false);
@@ -38,7 +59,7 @@ export function ForYouSection({ userFavourites }: ForYouSectionProps) {
         }
 
         fetchRecommendations();
-    }, []);
+    }, []); // Only fetch once on mount
 
     // Auto-scroll effect
     useEffect(() => {
@@ -77,7 +98,7 @@ export function ForYouSection({ userFavourites }: ForYouSectionProps) {
 
     if (isLoading) {
         return (
-            <Card className="border-primary/20 bg-linear-to-br from-primary/5 to-transparent">
+            <Card className="border-primary/20 bg-gradient-to-br from-primary/5 to-transparent">
                 <CardHeader>
                     <CardTitle className="flex items-center gap-2 text-2xl">
                         <Heart className="h-6 w-6 text-primary" />
@@ -98,7 +119,7 @@ export function ForYouSection({ userFavourites }: ForYouSectionProps) {
     }
 
     return (
-        <Card className="relative overflow-hidden border-primary/20 bg-linear-to-br from-primary/5 to-transparent">
+        <Card className="relative overflow-hidden border-primary/20 bg-gradient-to-br from-primary/5 to-transparent">
             <CardHeader>
                 <div className="flex items-center justify-between">
                     <div>
@@ -109,6 +130,12 @@ export function ForYouSection({ userFavourites }: ForYouSectionProps) {
                         <p className="text-sm text-muted-foreground">
                             Personalized recommendations based on your favorites
                         </p>
+                        {/* Debug info - remove in production */}
+                        {process.env.NODE_ENV === 'development' && (
+                            <p className="text-xs text-muted-foreground/50 mt-1">
+                                Last fetched: {new Date(lastFetch).toLocaleTimeString()}
+                            </p>
+                        )}
                     </div>
                     <div className="flex gap-2">
                         <Button
@@ -159,8 +186,8 @@ export function ForYouSection({ userFavourites }: ForYouSectionProps) {
                             key={index}
                             onClick={() => setCurrentIndex(index)}
                             className={`h-1.5 rounded-full transition-all duration-300 ${index === currentIndex
-                                    ? 'w-8 bg-primary'
-                                    : 'w-1.5 bg-muted-foreground/30 hover:bg-muted-foreground/50'
+                                ? 'w-8 bg-primary'
+                                : 'w-1.5 bg-muted-foreground/30 hover:bg-muted-foreground/50'
                                 }`}
                             aria-label={`Go to event ${index + 1}`}
                         />
