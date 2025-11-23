@@ -1,14 +1,13 @@
 import Link from "next/link";
 import { Suspense } from "react";
-import { ArrowRight, Calendar, MapPin, Music, Theater, Trophy, Palette, Users, Sparkles, Clock, Zap } from "lucide-react";
+import { ArrowRight, Music, Theater, Trophy, Palette, Users, Sparkles, Zap, Calendar } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { EventCard } from "@/components/events/event-card";
-import { EventCardSkeleton } from "@/components/events/event-card-skeleton";
 import { SearchBar } from "@/components/search/search-bar";
 import { ForYouSection } from "@/components/recommendations/for-you-section";
 import { TrendingSection } from "@/components/recommendations/trending-section";
+import { UpcomingEvents } from "@/components/events/upcoming-events";
 import { connectDB } from "@/lib/db";
 import Event from "@/lib/models/Event";
 import { getServerSession } from "next-auth";
@@ -31,139 +30,20 @@ async function getStats() {
   return { totalEvents, sourceCount: sources.length };
 }
 
-function mapToObject(map: any): Record<string, string> {
-  if (!map) return {};
-  if (typeof map.get === 'function') {
-    const obj: Record<string, string> = {};
-    for (const [key, value] of map) {
-      obj[key] = value;
-    }
-    return obj;
-  }
-  return map;
-}
-
-async function FeaturedEvents({ userFavourites }: { userFavourites: Set<string> }) {
-  await connectDB();
-
-  const events = await Event.find({
-    startDate: { $gte: new Date() },
-    imageUrl: { $exists: true, $ne: null },
-  })
-    .sort({ startDate: 1 })
-    .limit(6)
-    .lean();
-
-  const serialized = events.map((e) => ({
-    _id: e._id.toString(),
-    title: e.title,
-    description: e.description,
-    category: e.category,
-    subcategories: e.subcategories || [],
-    startDate: e.startDate.toISOString(),
-    endDate: e.endDate?.toISOString(),
-    venue: e.venue,
-    priceMin: e.priceMin,
-    priceMax: e.priceMax,
-    isFree: e.isFree,
-    bookingUrl: e.bookingUrl,
-    bookingUrls: mapToObject(e.bookingUrls),
-    imageUrl: e.imageUrl,
-    sources: e.sources || [],
-    primarySource: e.primarySource,
-    sourceIds: mapToObject(e.sourceIds),
-    accessibility: e.accessibility || [],
-    scrapedAt: e.scrapedAt.toISOString(),
-    lastUpdated: e.lastUpdated.toISOString(),
-    stats: e.stats || { viewCount: 0, favouriteCount: 0, clickthroughCount: 0 },
-  }));
-
+function CarouselSkeleton() {
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-      {serialized.map((event) => (
-        <EventCard
-          key={event._id}
-          event={event}
-          source="homepage"
-          initialFavourited={userFavourites.has(event._id)}
-        />
-      ))}
-    </div>
-  );
-}
-
-function FeaturedEventsSkeleton() {
-  return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-      {Array.from({ length: 6 }).map((_, i) => (
-        <EventCardSkeleton key={i} />
-      ))}
-    </div>
-  );
-}
-
-async function ThisWeekEvents() {
-  await connectDB();
-
-  const now = new Date();
-  const endOfWeek = new Date(now);
-  endOfWeek.setDate(now.getDate() + 7);
-
-  const events = await Event.find({
-    startDate: { $gte: now, $lte: endOfWeek },
-  })
-    .sort({ startDate: 1 })
-    .limit(4)
-    .lean();
-
-  if (events.length === 0) {
-    return (
-      <p className="text-muted-foreground text-center py-8">
-        No events scheduled for this week. Check back soon!
-      </p>
-    );
-  }
-
-  return (
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-      {events.map((e) => (
-        <Link
-          key={e._id.toString()}
-          href={`/events/${e._id.toString()}`}
-          className="flex gap-4 p-4 rounded-lg border bg-card hover:bg-muted/50 transition-colors"
-        >
-          <div className="shrink-0 w-16 h-16 rounded-lg bg-primary/10 flex flex-col items-center justify-center">
-            <span className="text-xs text-muted-foreground">
-              {new Date(e.startDate).toLocaleDateString('en-AU', { weekday: 'short' })}
-            </span>
-            <span className="text-xl font-bold">
-              {new Date(e.startDate).getDate()}
-            </span>
-          </div>
-          <div className="min-w-0 flex-1">
-            <h4 className="font-semibold truncate">{e.title}</h4>
-            <p className="text-sm text-muted-foreground truncate flex items-center gap-1">
-              <MapPin className="h-3 w-3" />
-              {e.venue.name}
-            </p>
-            <p className="text-sm text-muted-foreground flex items-center gap-1">
-              <Clock className="h-3 w-3" />
-              {new Date(e.startDate).toLocaleTimeString('en-AU', { hour: 'numeric', minute: '2-digit' })}
-            </p>
-          </div>
-        </Link>
-      ))}
-    </div>
-  );
-}
-
-function ThisWeekSkeleton() {
-  return (
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-      {Array.from({ length: 4 }).map((_, i) => (
-        <div key={i} className="h-24 bg-muted rounded-lg animate-pulse" />
-      ))}
-    </div>
+    <Card>
+      <div className="p-6">
+        <div className="h-8 w-48 bg-muted rounded animate-pulse mb-6" />
+        <div className="flex gap-6 overflow-hidden">
+          {Array.from({ length: 3 }).map((_, i) => (
+            <div key={i} className="flex-none w-full sm:w-[calc(50%-12px)] lg:w-[calc(33.333%-16px)]">
+              <div className="h-80 bg-muted rounded-lg animate-pulse" />
+            </div>
+          ))}
+        </div>
+      </div>
+    </Card>
   );
 }
 
@@ -178,39 +58,41 @@ export default async function HomePage() {
     userFavourites = new Set(favouriteIds);
   }
 
+  const isLoggedIn = !!session?.user;
+
   return (
     <main className="w-full flex flex-col items-center">
       {/* Hero Section */}
       <section className="relative overflow-hidden bg-linear-to-b from-primary/5 via-background to-background">
-        <div className="container py-16 md:py-24">
+        <div className="container py-12 sm:py-16 md:py-24">
           <div className="max-w-3xl mx-auto text-center">
             <Badge variant="secondary" className="mb-4">
               <Zap className="h-3 w-3 mr-1" />
               Updated daily from {sourceCount} sources
             </Badge>
-            <h1 className="text-4xl md:text-6xl font-bold tracking-tight mb-6">
+            <h1 className="text-3xl sm:text-4xl md:text-6xl font-bold tracking-tight mb-4 sm:mb-6">
               Discover What's On in{" "}
               <span className="text-primary">Melbourne</span>
             </h1>
-            <p className="text-xl text-muted-foreground mb-8">
+            <p className="text-lg sm:text-xl text-muted-foreground mb-6 sm:mb-8 px-4">
               Your one-stop guide to concerts, theatre, sports, festivals and more.
               Find your next experience from {totalEvents.toLocaleString()}+ events.
             </p>
 
-            <div className="max-w-xl mx-auto mb-6">
+            <div className="max-w-xl mx-auto mb-6 px-4">
               <Suspense fallback={<div className="h-12 bg-muted animate-pulse rounded" />}>
                 <SearchBar />
               </Suspense>
             </div>
 
-            <div className="flex flex-wrap justify-center gap-4">
-              <Button asChild size="lg">
+            <div className="flex flex-col sm:flex-row flex-wrap justify-center gap-4 px-4">
+              <Button asChild size="lg" className="w-full sm:w-auto">
                 <Link href="/events">
                   Browse All Events
                   <ArrowRight className="ml-2 h-4 w-4" />
                 </Link>
               </Button>
-              <Button variant="outline" size="lg" asChild>
+              <Button variant="outline" size="lg" asChild className="w-full sm:w-auto">
                 <Link href="/category/music">
                   <Music className="mr-2 h-4 w-4" />
                   Live Music
@@ -222,109 +104,73 @@ export default async function HomePage() {
       </section>
 
       {/* Categories Section */}
-      <section className="container py-12">
-        <div className="flex items-center justify-between mb-8">
+      <section className="container py-8 sm:py-12">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6 sm:mb-8 gap-2">
           <div>
             <h2 className="text-2xl font-bold">Browse by Category</h2>
             <p className="text-muted-foreground">Find events that match your interests</p>
           </div>
         </div>
 
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4">
           {CATEGORIES.map((cat) => {
             const Icon = cat.icon;
             return (
               <Link
                 key={cat.slug}
                 href={`/category/${cat.slug}`}
-                className={`flex flex-col items-center justify-center p-6 rounded-xl border transition-all hover:scale-105 ${cat.color}`}
+                className={`flex flex-col items-center justify-center p-4 sm:p-6 rounded-xl border transition-all hover:scale-105 ${cat.color}`}
               >
-                <Icon className="h-8 w-8 mb-2" />
-                <span className="font-medium text-center text-sm">{cat.label}</span>
+                <Icon className="h-6 w-6 sm:h-8 sm:w-8 mb-2" />
+                <span className="font-medium text-center text-xs sm:text-sm">{cat.label}</span>
               </Link>
             );
           })}
         </div>
       </section>
 
-      {/* For You / Trending Section */}
-      <section className="container py-12">
-        {session?.user ? (
-          <Suspense fallback={<div className="h-96 bg-muted animate-pulse rounded-lg" />}>
+      {/* For You Section (Logged in users only) */}
+      {isLoggedIn && (
+        <section className="container py-8 sm:py-12">
+          <Suspense fallback={<CarouselSkeleton />}>
             <ForYouSection userFavourites={userFavourites} />
           </Suspense>
-        ) : (
-          <Suspense fallback={<div className="h-96 bg-muted animate-pulse rounded-lg" />}>
-            <TrendingSection userFavourites={userFavourites} />
-          </Suspense>
-        )}
+        </section>
+      )}
+
+      {/* Trending Section (Always shown) */}
+      <section className="container py-8 sm:py-12">
+        <Suspense fallback={<CarouselSkeleton />}>
+          <TrendingSection userFavourites={userFavourites} />
+        </Suspense>
       </section>
 
-      {/* This Week Section */}
-      <section className="container py-12">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between">
-            <div>
-              <CardTitle className="flex items-center gap-2">
-                <Calendar className="h-5 w-5" />
-                This Week
-              </CardTitle>
-              <p className="text-sm text-muted-foreground">Don't miss out on these upcoming events</p>
-            </div>
-            <Button variant="ghost" asChild>
-              <Link href="/events?date=this-week">
-                View all
-                <ArrowRight className="ml-2 h-4 w-4" />
-              </Link>
-            </Button>
-          </CardHeader>
-          <CardContent>
-            <Suspense fallback={<ThisWeekSkeleton />}>
-              <ThisWeekEvents />
-            </Suspense>
-          </CardContent>
-        </Card>
-      </section>
-
-      {/* Upcoming Events Section */}
-      <section className="container py-12">
-        <div className="flex items-center justify-between mb-8">
-          <div>
-            <h2 className="text-2xl font-bold">Upcoming Events</h2>
-            <p className="text-muted-foreground">The next events happening in Melbourne</p>
-          </div>
-          <Button variant="outline" asChild>
-            <Link href="/events">
-              View all
-              <ArrowRight className="ml-2 h-4 w-4" />
-            </Link>
-          </Button>
-        </div>
-
-        <Suspense fallback={<FeaturedEventsSkeleton />}>
-          <FeaturedEvents userFavourites={userFavourites} />
+      {/* Combined Upcoming Events Section */}
+      <section className="container py-8 sm:py-12">
+        <Suspense fallback={<CarouselSkeleton />}>
+          <UpcomingEvents userFavourites={userFavourites} />
         </Suspense>
       </section>
 
       {/* Stats Section */}
-      <section className="container py-12">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <section className="container py-8 sm:py-12 pb-16">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6">
           <Card className="text-center bg-linear-to-br from-primary/10 to-transparent border-primary/20">
             <CardContent className="pt-6">
-              <p className="text-4xl font-bold text-primary">{totalEvents.toLocaleString()}+</p>
-              <p className="text-muted-foreground">Events Listed</p>
+              <p className="text-3xl sm:text-4xl font-bold text-primary">{totalEvents.toLocaleString()}+</p>
+              <p className="text-sm text-muted-foreground">Events Listed</p>
             </CardContent>
           </Card>
           <Card className="text-center bg-linear-to-br from-blue-500/10 to-transparent border-blue-500/20">
             <CardContent className="pt-6">
-              <p className="text-4xl font-bold text-blue-500">{sourceCount}</p>
-              <p className="text-muted-foreground">Data Sources</p>
+              <p className="text-3xl sm:text-4xl font-bold text-blue-500">{sourceCount}</p>
+              <p className="text-sm text-muted-foreground">Data Sources</p>
             </CardContent>
           </Card>
           <Card className="text-center bg-linear-to-br from-green-500/10 to-transparent border-green-500/20">
             <CardContent className="pt-6">
-              <p className="text-4xl font-bold text-green-500">Daily</p>
-              <p className="text-muted-foreground">Auto Updates</p>
+              <p className="text-3xl sm:text-4xl font-bold text-green-500">Daily</p>
+              <p className="text-sm text-muted-foreground">Auto Updates</p>
             </CardContent>
           </Card>
         </div>
