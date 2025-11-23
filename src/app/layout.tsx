@@ -31,7 +31,7 @@ export default function RootLayout({
           >
             <div className="relative flex min-h-screen flex-col">
               <Header />
-              <main className="flex-1 w-full flex justify-center p-15">{children}</main>
+              <main className="flex-1 w-full flex justify-center">{children}</main>
               <Footer />
             </div>
           </ThemeProvider>

@@ -171,7 +171,7 @@ export default async function HomePage() {
   }
 
   return (
-    <main>
+    <main className="w-full flex flex-col items-center">
       {/* Hero Section */}
       <section className="relative overflow-hidden bg-linear-to-b from-primary/5 via-background to-background">
         <div className="container py-16 md:py-24">
