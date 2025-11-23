@@ -1,22 +1,40 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import Link from 'next/link';
-import { EventCard } from '../events/event-card';
-import { Loader2 } from 'lucide-react';
+import { EventCard } from '@/components/events/event-card';
+import { Loader2, TrendingUp } from 'lucide-react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
-export function TrendingSection() {
-    const [events, setEvents] = useState<any[]>([]);
+interface TrendingSectionProps {
+    userFavourites: Set<string>;
+}
+
+export function TrendingSection({ userFavourites }: TrendingSectionProps) {
+    const [events, setEvents] = useState<any[] | null>(null);
     const [isLoading, setIsLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
         async function fetchTrending() {
             try {
-                const res = await fetch('/api/recommendations?limit=12');
+                const res = await fetch('/api/recommendations?limit=6');
                 const data = await res.json();
-                setEvents(data.recommendations);
+
+                if (!res.ok || !data.recommendations) {
+                    setEvents([]);
+                    return;
+                }
+
+                // Only show if not personalized (unauthenticated)
+                if (!data.isPersonalized) {
+                    setEvents(data.recommendations || []);
+                } else {
+                    setEvents([]); // User is logged in, don't show trending
+                }
             } catch (error) {
                 console.error('Error fetching trending:', error);
+                setError('Failed to load trending events');
+                setEvents([]);
             } finally {
                 setIsLoading(false);
             }
@@ -27,27 +45,47 @@ export function TrendingSection() {
 
     if (isLoading) {
         return (
-            <div className="flex justify-center py-8">
-                <Loader2 className="h-8 w-8 animate-spin text-primary" />
-            </div>
+            <Card>
+                <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                        <TrendingUp className="h-5 w-5" />
+                        Trending Now
+                    </CardTitle>
+                </CardHeader>
+                <CardContent>
+                    <div className="flex justify-center py-12">
+                        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                    </div>
+                </CardContent>
+            </Card>
         );
     }
 
-    if (events.length === 0) {
+    if (!events || events.length === 0) {
         return null;
     }
 
     return (
-        <div className="space-y-4">
-            <div>
-                <h2 className="text-2xl font-bold">Trending Now</h2>
-                <p className="text-muted-foreground">Popular events this week</p>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {events.map(event => (
-                    <EventCard key={event._id} event={event} />
-                ))}
-            </div>
-        </div>
+        <Card>
+            <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                    <TrendingUp className="h-5 w-5" />
+                    Trending Now
+                </CardTitle>
+                <p className="text-sm text-muted-foreground">Popular events this week</p>
+            </CardHeader>
+            <CardContent>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {events.map(event => (
+                        <EventCard
+                            key={event._id}
+                            event={event}
+                            source="homepage"
+                            initialFavourited={userFavourites.has(event._id)}
+                        />
+                    ))}
+                </div>
+            </CardContent>
+        </Card>
     );
 }

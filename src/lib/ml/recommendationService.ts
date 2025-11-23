@@ -3,6 +3,7 @@ import UserInteraction from '@/lib/models/UserInteraction';
 import { extractEventFeatures, cosineSimilarity } from './vectorService';
 import mongoose from 'mongoose';
 import type { IEvent } from '@/lib/models/Event';
+import { CATEGORIES } from '../categories';
 
 // ============================================
 // PUBLIC RECOMMENDATIONS (No Auth Required)
@@ -24,7 +25,7 @@ export async function getTrendingEvents(options: {
 
     const events = await Event.find(query)
         .sort({
-            'stats.favoriteCount': -1, // Favorites matter most
+            'stats.favoriteCount': -1,
             'stats.viewCount': -1,
             startDate: 1,
         })
@@ -150,22 +151,42 @@ export async function getPersonalizedRecommendations(
 function buildSimpleUserVector(user: any): number[] {
     const vector: number[] = [];
 
-    // Category weights (from preferences)
+    // 1. Category weights (6 dimensions) - WEIGHTED
     const categoryWeights = user.preferences?.categoryWeights || {};
     const categories = ['music', 'theatre', 'sports', 'arts', 'family', 'other'];
 
     for (const cat of categories) {
-        vector.push((categoryWeights[cat] || 0.5) * 10); // Scale up
+        // Apply same weighting as events (FEATURE_WEIGHTS.category = 10.0)
+        vector.push((categoryWeights[cat] || 0.5) * 10.0);
     }
 
-    // Popularity preference
+    // 2. Subcategory vector - must match ALL_SUBCATEGORIES length
+    const ALL_SUBCATEGORIES = CATEGORIES.flatMap(cat =>
+        (cat.subcategories || []).map(sub => `${cat.value}:${sub}`)
+    );
+
+    // For user preferences, we can't encode specific subcategories easily,
+    // so we'll use a neutral approach: slight preference for user's favorite categories
+    for (const fullSubcat of ALL_SUBCATEGORIES) {
+        const [category] = fullSubcat.split(':');
+        const categoryWeight = categoryWeights[category] || 0.5;
+
+        // Apply same weighting as events (FEATURE_WEIGHTS.subcategory = 5.0)
+        // Scale down since user doesn't have specific subcategory prefs
+        vector.push(categoryWeight * 2.0);
+    }
+
+    // 3. Price preference (1 dimension) - WEIGHTED
+    const pricePref = user.preferences?.pricePreference || 0.5;
+    vector.push(pricePref * 1.0); // FEATURE_WEIGHTS.price = 1.0
+
+    // 4. Venue tier preference (1 dimension) - WEIGHTED
+    const venuePref = user.preferences?.venuePreference || 0.5;
+    vector.push(venuePref * 1.0); // FEATURE_WEIGHTS.venue = 1.0
+
+    // 5. Popularity preference (1 dimension) - WEIGHTED
     const popPref = user.preferences?.popularityPreference || 0.5;
-    vector.push(popPref * 3);
-
-    // Pad to match event vector size (simplified - just add zeros)
-    while (vector.length < 50) {
-        vector.push(0);
-    }
+    vector.push(popPref * 3.0); // FEATURE_WEIGHTS.popularity = 3.0
 
     return vector;
 }

@@ -4,24 +4,32 @@ import { useEffect, useState } from 'react';
 import { EventCard } from '@/components/events/event-card';
 import { Loader2, Heart } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import Link from 'next/link';
 
 interface ForYouSectionProps {
     userFavourites: Set<string>;
 }
 
 export function ForYouSection({ userFavourites }: ForYouSectionProps) {
-    const [events, setEvents] = useState<any[]>([]);
+    const [events, setEvents] = useState<any[] | null>(null);
     const [isLoading, setIsLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
         async function fetchRecommendations() {
             try {
                 const res = await fetch('/api/recommendations?limit=6');
                 const data = await res.json();
-                setEvents(data.recommendations);
+
+                if (!res.ok || !data.recommendations) {
+                    setEvents([]);
+                    return;
+                }
+
+                setEvents(data.recommendations || []);
             } catch (error) {
                 console.error('Error fetching recommendations:', error);
+                setError('Failed to load recommendations');
+                setEvents([]);
             } finally {
                 setIsLoading(false);
             }
@@ -48,18 +56,20 @@ export function ForYouSection({ userFavourites }: ForYouSectionProps) {
         );
     }
 
-    if (events.length === 0) {
+    if (!events || events.length === 0) {
         return null;
     }
 
     return (
-        <Card className="bg-linear-to-br from-primary/5 to-transparent border-primary/20">
+        <Card className="bg-gradient-to-br from-primary/5 to-transparent border-primary/20">
             <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                     <Heart className="h-5 w-5 text-primary" />
                     For You
                 </CardTitle>
-                <p className="text-sm text-muted-foreground">Personalised recommendations based on your preferences</p>
+                <p className="text-sm text-muted-foreground">
+                    Personalised recommendations based on your preferences
+                </p>
             </CardHeader>
             <CardContent>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">

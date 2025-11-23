@@ -7,11 +7,14 @@ import { Badge } from "@/components/ui/badge";
 import { EventCard } from "@/components/events/event-card";
 import { EventCardSkeleton } from "@/components/events/event-card-skeleton";
 import { SearchBar } from "@/components/search/search-bar";
+import { ForYouSection } from "@/components/recommendations/for-you-section";
+import { TrendingSection } from "@/components/recommendations/trending-section";
 import { connectDB } from "@/lib/db";
 import Event from "@/lib/models/Event";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { getUserFavourites } from "@/actions/interactions";
+
 const CATEGORIES = [
   { label: "Music", slug: "music", icon: Music, color: "bg-purple-500/10 text-purple-500 hover:bg-purple-500/20" },
   { label: "Theatre", slug: "theatre", icon: Theater, color: "bg-red-500/10 text-red-500 hover:bg-red-500/20" },
@@ -21,7 +24,6 @@ const CATEGORIES = [
   { label: "Other", slug: "other", icon: Sparkles, color: "bg-blue-500/10 text-blue-500 hover:bg-blue-500/20" },
 ];
 
-// Fetch stats for the hero section
 async function getStats() {
   await connectDB();
   const totalEvents = await Event.countDocuments({ startDate: { $gte: new Date() } });
@@ -29,7 +31,6 @@ async function getStats() {
   return { totalEvents, sourceCount: sources.length };
 }
 
-// Helper to convert MongoDB Map to plain object
 function mapToObject(map: any): Record<string, string> {
   if (!map) return {};
   if (typeof map.get === 'function') {
@@ -42,7 +43,6 @@ function mapToObject(map: any): Record<string, string> {
   return map;
 }
 
-// Fetch featured events (upcoming soon, with good images)
 async function FeaturedEvents({ userFavourites }: { userFavourites: Set<string> }) {
   await connectDB();
 
@@ -102,7 +102,6 @@ function FeaturedEventsSkeleton() {
   );
 }
 
-// Fetch "This Week" events
 async function ThisWeekEvents() {
   await connectDB();
 
@@ -158,10 +157,19 @@ async function ThisWeekEvents() {
   );
 }
 
+function ThisWeekSkeleton() {
+  return (
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      {Array.from({ length: 4 }).map((_, i) => (
+        <div key={i} className="h-24 bg-muted rounded-lg animate-pulse" />
+      ))}
+    </div>
+  );
+}
+
 export default async function HomePage() {
   const { totalEvents, sourceCount } = await getStats();
 
-  // Get user's favourites if logged in
   const session = await getServerSession(authOptions);
   let userFavourites = new Set<string>();
 
@@ -189,13 +197,11 @@ export default async function HomePage() {
               Find your next experience from {totalEvents.toLocaleString()}+ events.
             </p>
 
-            {/* Search Bar */}
             <div className="max-w-xl mx-auto mb-6">
               <Suspense fallback={<div className="h-12 bg-muted animate-pulse rounded" />}>
                 <SearchBar />
               </Suspense>
             </div>
-
 
             <div className="flex flex-wrap justify-center gap-4">
               <Button asChild size="lg">
@@ -234,11 +240,24 @@ export default async function HomePage() {
                 className={`flex flex-col items-center justify-center p-6 rounded-xl border transition-all hover:scale-105 ${cat.color}`}
               >
                 <Icon className="h-8 w-8 mb-2" />
-                <span className="font-medium text-center">{cat.label}</span>
+                <span className="font-medium text-center text-sm">{cat.label}</span>
               </Link>
             );
           })}
         </div>
+      </section>
+
+      {/* For You / Trending Section */}
+      <section className="container py-12">
+        {session?.user ? (
+          <Suspense fallback={<div className="h-96 bg-muted animate-pulse rounded-lg" />}>
+            <ForYouSection userFavourites={userFavourites} />
+          </Suspense>
+        ) : (
+          <Suspense fallback={<div className="h-96 bg-muted animate-pulse rounded-lg" />}>
+            <TrendingSection userFavourites={userFavourites} />
+          </Suspense>
+        )}
       </section>
 
       {/* This Week Section */}
@@ -260,14 +279,14 @@ export default async function HomePage() {
             </Button>
           </CardHeader>
           <CardContent>
-            <Suspense fallback={<div className="h-48 animate-pulse bg-muted rounded" />}>
+            <Suspense fallback={<ThisWeekSkeleton />}>
               <ThisWeekEvents />
             </Suspense>
           </CardContent>
         </Card>
       </section>
 
-      {/* Featured Events Section */}
+      {/* Upcoming Events Section */}
       <section className="container py-12">
         <div className="flex items-center justify-between mb-8">
           <div>
@@ -290,21 +309,21 @@ export default async function HomePage() {
       {/* Stats Section */}
       <section className="container py-12">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <Card className="text-center">
+          <Card className="text-center bg-linear-to-br from-primary/10 to-transparent border-primary/20">
             <CardContent className="pt-6">
               <p className="text-4xl font-bold text-primary">{totalEvents.toLocaleString()}+</p>
               <p className="text-muted-foreground">Events Listed</p>
             </CardContent>
           </Card>
-          <Card className="text-center">
+          <Card className="text-center bg-linear-to-br from-blue-500/10 to-transparent border-blue-500/20">
             <CardContent className="pt-6">
-              <p className="text-4xl font-bold text-primary">{sourceCount}</p>
+              <p className="text-4xl font-bold text-blue-500">{sourceCount}</p>
               <p className="text-muted-foreground">Data Sources</p>
             </CardContent>
           </Card>
-          <Card className="text-center">
+          <Card className="text-center bg-linear-to-br from-green-500/10 to-transparent border-green-500/20">
             <CardContent className="pt-6">
-              <p className="text-4xl font-bold text-primary">Daily</p>
+              <p className="text-4xl font-bold text-green-500">Daily</p>
               <p className="text-muted-foreground">Auto Updates</p>
             </CardContent>
           </Card>
