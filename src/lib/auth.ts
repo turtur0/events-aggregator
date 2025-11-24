@@ -31,7 +31,6 @@ export const authOptions: NextAuthOptions = {
                         throw new Error('User not found');
                     }
 
-                    // Check if user signed up with Google
                     if (user.provider === 'google') {
                         throw new Error('Please sign in with Google');
                     }
@@ -72,7 +71,6 @@ export const authOptions: NextAuthOptions = {
                     const existingUser = await User.findOne({ email: user.email });
 
                     if (!existingUser) {
-                        // Create new user from Google account
                         const newUser = await User.create({
                             email: user.email,
                             name: user.name,
@@ -92,8 +90,12 @@ export const authOptions: NextAuthOptions = {
                             },
                         });
                         user.id = newUser._id.toString();
+                        user.username = newUser.username;
                     } else {
                         user.id = existingUser._id.toString();
+                        user.username = existingUser.username;
+                        // Update name in case it changed in Google
+                        user.name = existingUser.name;
                     }
                 }
                 return true;
@@ -104,18 +106,39 @@ export const authOptions: NextAuthOptions = {
         },
 
         async jwt({ token, user, trigger, session }) {
+            // Initial sign in
             if (user) {
                 token.id = user.id;
+                token.name = user.name;
                 token.username = user.username;
                 token.hasCompletedOnboarding = user.hasCompletedOnboarding;
             }
 
-            // Always refresh onboarding status from DB
+            // ✅ Handle manual session updates (from settings page)
+            if (trigger === 'update') {
+                try {
+                    await connectDB();
+                    const dbUser = await User.findById(token.id);
+
+                    if (dbUser) {
+                        // Update token with fresh data from database
+                        token.name = dbUser.name;
+                        token.username = dbUser.username;
+                        token.hasCompletedOnboarding =
+                            dbUser.preferences?.selectedCategories?.length > 0;
+                    }
+                } catch (error) {
+                    console.error('Error updating token:', error);
+                }
+            }
+
+            // ✅ Refresh onboarding status if not completed
             if (token.email && !token.hasCompletedOnboarding) {
                 try {
                     await connectDB();
                     const dbUser = await User.findOne({ email: token.email });
                     if (dbUser) {
+                        token.name = dbUser.name;
                         token.username = dbUser.username;
                         token.hasCompletedOnboarding =
                             dbUser.preferences?.selectedCategories?.length > 0;
@@ -125,18 +148,15 @@ export const authOptions: NextAuthOptions = {
                 }
             }
 
-            if (trigger === 'update' && session) {
-                token.hasCompletedOnboarding = session.hasCompletedOnboarding;
-                token.username = session.username;
-            }
-
             return token;
         },
 
         async session({ session, token }) {
             if (session.user) {
                 session.user.id = token.id as string;
-                session.user.username = token.username as string;
+                session.user.name = token.name as string;
+                session.user.email = token.email as string;
+                session.user.username = token.username as string | undefined;
                 session.user.hasCompletedOnboarding = token.hasCompletedOnboarding as boolean;
             }
             return session;
@@ -154,3 +174,39 @@ export const authOptions: NextAuthOptions = {
 
     secret: process.env.NEXTAUTH_SECRET,
 };
+
+// ============================================
+// types/next-auth.d.ts - Type definitions
+// ============================================
+
+import 'next-auth';
+
+declare module 'next-auth' {
+    interface User {
+        id: string;
+        email: string;
+        name: string;
+        username?: string;
+        hasCompletedOnboarding: boolean;
+    }
+
+    interface Session {
+        user: {
+            id: string;
+            email: string;
+            name: string;
+            username?: string;
+            hasCompletedOnboarding: boolean;
+        };
+    }
+}
+
+declare module 'next-auth/jwt' {
+    interface JWT {
+        id: string;
+        name: string;
+        email: string;
+        username?: string;
+        hasCompletedOnboarding: boolean;
+    }
+}

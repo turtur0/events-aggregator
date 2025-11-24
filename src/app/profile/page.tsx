@@ -1,13 +1,13 @@
+
 'use client';
 
-import { signOut } from 'next-auth/react';
+import { signOut, useSession } from 'next-auth/react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { LogOut, Settings, ArrowLeft, Loader2, User } from 'lucide-react';
 import { useState, useEffect } from 'react';
-import { useEnsureOnboarding } from '@/lib/hooks/useAuthRedirect';
 
 interface UserPreferences {
   selectedCategories: string[];
@@ -21,9 +21,16 @@ interface UserPreferences {
 }
 
 export default function Profile() {
-  const { session, status } = useEnsureOnboarding();
+  const { data: session, status } = useSession(); // ✅ Use useSession hook
   const [preferences, setPreferences] = useState<UserPreferences | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+
+  // ✅ Redirect if not authenticated
+  useEffect(() => {
+    if (status === 'unauthenticated') {
+      window.location.href = '/auth/signin?callbackUrl=/profile';
+    }
+  }, [status]);
 
   useEffect(() => {
     async function fetchPreferences() {
@@ -38,7 +45,7 @@ export default function Profile() {
       }
     }
 
-    if (status !== 'loading') {
+    if (status === 'authenticated') {
       fetchPreferences();
     }
   }, [status]);
@@ -58,7 +65,7 @@ export default function Profile() {
   return (
     <div className="w-full">
       {/* Header */}
-      <section className="bg-linear-to-b from-primary/5 to-background">
+      <section className="bg-gradient-to-b from-primary/5 to-background">
         <div className="container max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16">
           <Button variant="ghost" asChild className="mb-6">
             <Link href="/">
@@ -98,7 +105,7 @@ export default function Profile() {
                   )}
                 </CardDescription>
               </div>
-              <Link href="/profile/settings">
+              <Link href="/settings">
                 <Button variant="outline" size="default">
                   <Settings className="h-4 w-4 mr-2" />
                   Edit Profile
