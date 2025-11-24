@@ -104,9 +104,9 @@ export default function Profile() {
   const PopularityIcon = popularityConfig?.icon;
 
   return (
-    <div className="w-full min-h-screen bg-gradient-to-b from-background to-muted/20">
+    <div className="w-full min-h-screen bg-linear-to-b from-background to-muted/20">
       {/* Header Section */}
-      <section className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+      <section className="border-b bg-background/95 backdrop-blur supports-backdrop-filter:bg-background/60">
         <div className="container max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
           <BackButton fallbackUrl="/" className="mb-6" />
 
