@@ -101,7 +101,7 @@ export function ForYouSection({ userFavourites }: ForYouSectionProps) {
 
     if (isLoading) {
         return (
-            <Card className="border-primary/20 bg-gradient-to-br from-primary/5 to-transparent">
+            <Card className="border-primary/20 bg-linear-to-br from-primary/5 to-transparent">
                 <CardHeader>
                     <CardTitle className="flex items-center gap-2 text-2xl">
                         <Heart className="h-6 w-6 text-primary" />
@@ -120,7 +120,7 @@ export function ForYouSection({ userFavourites }: ForYouSectionProps) {
     // Show empty state with call-to-action
     if (!events || events.length === 0) {
         return (
-            <Card className="border-primary/20 bg-gradient-to-br from-primary/5 to-transparent">
+            <Card className="border-primary/20 bg-linear-to-br from-primary/5 to-transparent">
                 <CardHeader>
                     <CardTitle className="flex items-center gap-2 text-2xl mb-2">
                         <Heart className="h-6 w-6 text-primary" />
@@ -150,7 +150,7 @@ export function ForYouSection({ userFavourites }: ForYouSectionProps) {
     }
 
     return (
-        <Card className="relative overflow-hidden border-primary/20 bg-gradient-to-br from-primary/5 to-transparent">
+        <Card className="relative overflow-hidden border-primary/20 bg-linear-to-br from-primary/5 to-transparent">
             <CardHeader>
                 <div className="flex items-center justify-between">
                     <div>

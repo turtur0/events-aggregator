@@ -65,7 +65,7 @@ export default function SignIn() {
     }
 
     return (
-        <div className="w-full min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-primary/5 to-background">
+        <div className="w-full min-h-screen flex items-center justify-center bg-linear-to-br from-background via-primary/5 to-background">
             <div className="container max-w-md mx-auto px-4 sm:px-6 py-16">
                 <Card className="border-2 shadow-xl">
                     <CardHeader className="space-y-2 pb-8">

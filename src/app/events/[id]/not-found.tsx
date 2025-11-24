@@ -4,7 +4,7 @@ import { Calendar, Home, Search } from "lucide-react";
 
 export default function NotFound() {
   return (
-    <div className="w-full min-h-[80vh] flex items-center justify-center bg-gradient-to-b from-muted/20 to-background">
+    <div className="w-full min-h-[80vh] flex items-center justify-center bg-linear-to-b from-muted/20 to-background">
       <div className="container max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
         <div className="flex flex-col items-center justify-center text-center">
           <div className="rounded-full bg-muted p-8 mb-8">

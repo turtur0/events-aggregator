@@ -144,7 +144,7 @@ export default function Onboarding() {
         : ['categories', 'preferences', 'notifications'];
 
     return (
-        <div className="w-full min-h-screen bg-gradient-to-br from-background via-muted/20 to-background">
+        <div className="w-full min-h-screen bg-linear-to-br from-background via-muted/20 to-background">
             <div className="container max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
                 <div className="mb-12 text-center">
                     <h1 className="text-4xl font-bold mb-3">Personalize Your Experience</h1>

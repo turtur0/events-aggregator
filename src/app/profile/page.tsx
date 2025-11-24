@@ -58,7 +58,7 @@ export default function Profile() {
   return (
     <div className="w-full">
       {/* Header */}
-      <section className="bg-gradient-to-b from-primary/5 to-background">
+      <section className="bg-linear-to-b from-primary/5 to-background">
         <div className="container max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16">
           <Button variant="ghost" asChild className="mb-6">
             <Link href="/">

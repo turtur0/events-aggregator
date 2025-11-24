@@ -136,7 +136,7 @@ export function TrendingSection({ userFavourites }: TrendingSectionProps) {
 
     if (isLoading) {
         return (
-            <Card className={`${getBorderColor()} bg-gradient-to-br ${getGradientColor()} to-transparent`}>
+            <Card className={`${getBorderColor()} bg-linear-to-br ${getGradientColor()} to-transparent`}>
                 <CardHeader>
                     <CardTitle className="flex items-center gap-2 text-2xl">
                         <Icon className={`h-6 w-6 ${getIconColor()}`} />
@@ -155,7 +155,7 @@ export function TrendingSection({ userFavourites }: TrendingSectionProps) {
     // Show empty state if no events
     if (!events || events.length === 0) {
         return (
-            <Card className={`${getBorderColor()} bg-gradient-to-br ${getGradientColor()} to-transparent`}>
+            <Card className={`${getBorderColor()} bg-linear-to-br ${getGradientColor()} to-transparent`}>
                 <CardHeader>
                     <div className="flex items-center justify-between mb-4">
                         <div>
@@ -186,7 +186,7 @@ export function TrendingSection({ userFavourites }: TrendingSectionProps) {
     }
 
     return (
-        <Card className={`relative overflow-hidden ${getBorderColor()} bg-gradient-to-br ${getGradientColor()} to-transparent`}>
+        <Card className={`relative overflow-hidden ${getBorderColor()} bg-linear-to-br ${getGradientColor()} to-transparent`}>
             <CardHeader>
                 <div className="flex items-center justify-between mb-4">
                     <div>

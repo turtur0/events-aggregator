@@ -1,5 +1,4 @@
-
-// app/api/events/[id]/popularity/route.ts (NEW)
+// app/api/events/[id]/popularity/route.ts
 
 import { NextRequest, NextResponse } from 'next/server';
 import { compareToCategory } from '@/lib/ml/popularityService';
@@ -7,12 +6,14 @@ import { connectDB } from '@/lib/db';
 
 export async function GET(
     req: NextRequest,
-    { params }: { params: { id: string } }
+    context: { params: Promise<{ id: string }> }  // ✅ Changed to Promise
 ) {
     try {
         await connectDB();
 
-        const comparison = await compareToCategory(params.id);
+        const { id } = await context.params;  // ✅ Await params
+
+        const comparison = await compareToCategory(id);
 
         return NextResponse.json({
             percentile: comparison.percentile,
