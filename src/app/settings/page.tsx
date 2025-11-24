@@ -29,7 +29,7 @@ import {
     Trash2,
     Lock,
 } from 'lucide-react';
-import { useEnsureOnboarding } from '@/lib/hooks/useAuthRedirect';
+import { BackButton } from '@/components/navigation/back-button';
 import { CATEGORIES } from '@/lib/categories';
 
 export default function SettingsPage() {
@@ -323,16 +323,9 @@ export default function SettingsPage() {
     return (
         <div className="w-full">
             {/* Header */}
-            <section className="bg-gradient-to-b from-primary/5 to-background">
+            <section className="bg-linear-to-b from-primary/5 to-background">
                 <div className="container max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16">
-                    <Button
-                        variant="ghost"
-                        onClick={() => handleNavigation('/profile')}
-                        className="mb-6"
-                    >
-                        <ArrowLeft className="h-4 w-4 mr-2" />
-                        Back to Profile
-                    </Button>
+                    <BackButton fallbackUrl="/" className="mb-8" />
 
                     <div className="flex items-center gap-4">
                         <div className="rounded-full bg-primary/10 p-4">
