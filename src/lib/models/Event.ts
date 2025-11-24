@@ -1,8 +1,4 @@
-// ============================================
-// Event.ts - Enhanced Event Schema
-// Supports multiple sources, subcategories, and richer data
-// ============================================
-
+// Event.ts - Fixed Schema
 import mongoose, { Schema, Model } from 'mongoose';
 
 export interface IEvent {
@@ -10,7 +6,7 @@ export interface IEvent {
   title: string;
   description: string;
   category: string;
-  subcategories: string[];  // Multiple subcategories from different sources
+  subcategories: string[];
 
   startDate: Date;
   endDate?: Date;
@@ -23,41 +19,35 @@ export interface IEvent {
 
   priceMin?: number;
   priceMax?: number;
-  priceDetails?: string;  // e.g., "Adult $88, Child $78"
+  priceDetails?: string;
   isFree: boolean;
 
   bookingUrl: string;
-  bookingUrls?: Record<string, string>;  // URLs by source
+  bookingUrls?: Record<string, string>;
   imageUrl?: string;
   videoUrl?: string;
 
-  // Multi-source tracking
-  sources: string[];  // All sources that have this event
+  sources: string[];
   primarySource: 'ticketmaster' | 'marriner' | 'whatson';
-  sourceIds: Record<string, string>;  // sourceId by source name
+  sourceIds: Record<string, string>;
 
-  // Additional info from What's On
   accessibility?: string[];
   ageRestriction?: string;
   duration?: string;
 
-  // Metadata
   scrapedAt: Date;
   lastUpdated: Date;
-  mergedFrom?: string[];  // Track which events were merged
+  mergedFrom?: string[];
 
-  // Stats and Action Tracking
   stats: {
-    categoryPopularityPercentile: number;
     viewCount: number;
     favouriteCount: number;
     clickthroughCount: number;
-  };
 
-  // Category-relative popularity
-  categoryPopularityPercentile?: number;  // 0-1 (0 = least popular, 1 = most popular in category)
-  rawPopularityScore?: number;            // Raw score before percentile conversion
-  lastPopularityUpdate?: Date;            // When popularity was last calculated
+    categoryPopularityPercentile?: number;
+    rawPopularityScore?: number;
+    lastPopularityUpdate?: Date;
+  };
 }
 
 const EventSchema = new Schema<IEvent>({
@@ -105,11 +95,10 @@ const EventSchema = new Schema<IEvent>({
     viewCount: { type: Number, default: 0 },
     favouriteCount: { type: Number, default: 0 },
     clickthroughCount: { type: Number, default: 0 },
-  },
-
     categoryPopularityPercentile: { type: Number, min: 0, max: 1 },
     rawPopularityScore: { type: Number },
     lastPopularityUpdate: { type: Date },
+  },
 }, { timestamps: true });
 
 // Indexes
@@ -117,8 +106,7 @@ EventSchema.index({ title: 'text', description: 'text', 'venue.name': 'text' });
 EventSchema.index({ startDate: 1, category: 1 });
 EventSchema.index({ sources: 1 });
 EventSchema.index({ primarySource: 1, 'sourceIds.$**': 1 });
-
-// Unique: same title + venue + overlapping dates = same event
+EventSchema.index({ 'stats.categoryPopularityPercentile': 1 });
 EventSchema.index(
   { title: 1, 'venue.name': 1, startDate: 1 },
   { unique: true }
@@ -127,7 +115,6 @@ EventSchema.index(
 const Event: Model<IEvent> = mongoose.models.Event || mongoose.model<IEvent>('Event', EventSchema);
 export default Event;
 
-// Serialized type for API responses
 export interface SerializedEvent extends Omit<IEvent, 'startDate' | 'endDate' | 'scrapedAt' | 'lastUpdated'> {
   _id: string;
   startDate: string;

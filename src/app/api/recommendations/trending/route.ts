@@ -1,8 +1,9 @@
-
-// app/api/recommendations/trending/route.ts (UPDATED VERSION)
-
 import { NextRequest, NextResponse } from 'next/server';
-import { getTrendingEvents, getRisingStars } from '@/lib/ml/recommendationService';
+import {
+    getTrendingEvents,
+    getRisingStars,
+    getUndiscoveredGems,
+} from '@/lib/ml/recommendationService';
 import { connectDB } from '@/lib/db';
 
 export async function GET(req: NextRequest) {
@@ -12,16 +13,25 @@ export async function GET(req: NextRequest) {
         const { searchParams } = new URL(req.url);
         const limit = parseInt(searchParams.get('limit') || '12');
         const category = searchParams.get('category') || undefined;
-        const type = searchParams.get('type') || 'trending'; // 'trending' or 'rising'
+        const type = searchParams.get('type') || 'trending';
 
         let events;
 
-        if (type === 'rising') {
-            // Rising stars: high velocity, not yet mainstream
-            events = await getRisingStars({ limit, category });
-        } else {
-            // Standard trending: popular + velocity + recency
-            events = await getTrendingEvents({ limit, category });
+        switch (type) {
+            case 'trending':
+                events = await getTrendingEvents({ limit, category });
+                break;
+            case 'rising':
+                events = await getRisingStars({ limit, category });
+                break;
+            case 'undiscovered':
+                events = await getUndiscoveredGems({ limit, category });
+                break;
+            default:
+                return NextResponse.json(
+                    { error: `Invalid type: ${type}. Use 'trending', 'rising', or 'undiscovered'` },
+                    { status: 400 }
+                );
         }
 
         const formatted = events.map(event => ({
@@ -53,9 +63,9 @@ export async function GET(req: NextRequest) {
             type,
         });
     } catch (error) {
-        console.error('Error getting trending events:', error);
+        console.error('Error getting events:', error);
         return NextResponse.json(
-            { error: 'Failed to get trending events' },
+            { error: 'Failed to get events' },
             { status: 500 }
         );
     }

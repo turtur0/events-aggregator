@@ -14,14 +14,17 @@ export async function GET(
 
         if (!mongoose.Types.ObjectId.isValid(eventId)) {
             return NextResponse.json(
-                { error: 'Invalid event ID' }, 
+                { error: 'Invalid event ID' },
                 { status: 400 }
             );
         }
 
+        const { searchParams } = new URL(req.url);
+        const limit = parseInt(searchParams.get('limit') || '6');
+
         const similarEvents = await getSimilarEvents(
             new mongoose.Types.ObjectId(eventId),
-            { limit: 6 }
+            { limit }
         );
 
         if (!similarEvents || similarEvents.length === 0) {
@@ -56,14 +59,8 @@ export async function GET(
         });
     } catch (error) {
         console.error('Error getting similar events:', error);
-        
-        if (error instanceof Error) {
-            console.error('Error message:', error.message);
-            console.error('Error stack:', error.stack);
-        }
-        
         return NextResponse.json(
-            { 
+            {
                 error: 'Failed to get similar events',
                 details: error instanceof Error ? error.message : 'Unknown error'
             },

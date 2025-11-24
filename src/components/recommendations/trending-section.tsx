@@ -3,25 +3,54 @@
 
 import { useEffect, useState, useRef } from 'react';
 import { EventCard } from '@/components/events/event-card';
-import { Loader2, TrendingUp, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Loader2, TrendingUp, Sparkles, Rocket, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 interface TrendingSectionProps {
     userFavourites: Set<string>;
 }
 
+type TrendingType = 'trending' | 'rising' | 'undiscovered';
+
+const TRENDING_CONFIG = {
+    trending: {
+        title: 'Trending Now',
+        description: "Popular events everyone's talking about",
+        icon: TrendingUp,
+        color: 'orange',
+    },
+    rising: {
+        title: 'Rising Stars',
+        description: 'Fast-growing events gaining momentum',
+        icon: Rocket,
+        color: 'purple',
+    },
+    undiscovered: {
+        title: 'Hidden Gems',
+        description: 'Quality events waiting to be discovered',
+        icon: Sparkles,
+        color: 'blue',
+    },
+};
+
 export function TrendingSection({ userFavourites }: TrendingSectionProps) {
+    const [type, setType] = useState<TrendingType>('trending');
     const [events, setEvents] = useState<any[] | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [currentIndex, setCurrentIndex] = useState(0);
     const [isHovered, setIsHovered] = useState(false);
     const scrollContainerRef = useRef<HTMLDivElement>(null);
 
+    const config = TRENDING_CONFIG[type];
+    const Icon = config.icon;
+
     useEffect(() => {
-        async function fetchTrending() {
+        async function fetchEvents() {
+            setIsLoading(true);
             try {
-                const res = await fetch('/api/recommendations/trending?limit=12');
+                const res = await fetch(`/api/recommendations/trending?type=${type}&limit=12`);
                 const data = await res.json();
 
                 if (!res.ok || !data.events) {
@@ -30,16 +59,17 @@ export function TrendingSection({ userFavourites }: TrendingSectionProps) {
                 }
 
                 setEvents(data.events || []);
+                setCurrentIndex(0); // Reset to first event when switching types
             } catch (error) {
-                console.error('Error fetching trending:', error);
+                console.error('Error fetching events:', error);
                 setEvents([]);
             } finally {
                 setIsLoading(false);
             }
         }
 
-        fetchTrending();
-    }, []);
+        fetchEvents();
+    }, [type]);
 
     // Auto-scroll effect
     useEffect(() => {
@@ -76,13 +106,41 @@ export function TrendingSection({ userFavourites }: TrendingSectionProps) {
         setCurrentIndex((prev) => (prev + 1) % events.length);
     };
 
+    // Get border and gradient colors based on type
+    const getBorderColor = () => {
+        switch (config.color) {
+            case 'orange': return 'border-orange-500/20';
+            case 'purple': return 'border-purple-500/20';
+            case 'blue': return 'border-blue-500/20';
+            default: return 'border-orange-500/20';
+        }
+    };
+
+    const getGradientColor = () => {
+        switch (config.color) {
+            case 'orange': return 'from-orange-500/5';
+            case 'purple': return 'from-purple-500/5';
+            case 'blue': return 'from-blue-500/5';
+            default: return 'from-orange-500/5';
+        }
+    };
+
+    const getIconColor = () => {
+        switch (config.color) {
+            case 'orange': return 'text-orange-500';
+            case 'purple': return 'text-purple-500';
+            case 'blue': return 'text-blue-500';
+            default: return 'text-orange-500';
+        }
+    };
+
     if (isLoading) {
         return (
-            <Card className="border-orange-500/20 bg-gradient-to-br from-orange-500/5 to-transparent">
+            <Card className={`${getBorderColor()} bg-gradient-to-br ${getGradientColor()} to-transparent`}>
                 <CardHeader>
                     <CardTitle className="flex items-center gap-2 text-2xl">
-                        <TrendingUp className="h-6 w-6 text-orange-500" />
-                        Trending Now
+                        <Icon className={`h-6 w-6 ${getIconColor()}`} />
+                        {config.title}
                     </CardTitle>
                 </CardHeader>
                 <CardContent>
@@ -97,19 +155,30 @@ export function TrendingSection({ userFavourites }: TrendingSectionProps) {
     // Show empty state if no events
     if (!events || events.length === 0) {
         return (
-            <Card className="border-orange-500/20 bg-gradient-to-br from-orange-500/5 to-transparent">
+            <Card className={`${getBorderColor()} bg-gradient-to-br ${getGradientColor()} to-transparent`}>
                 <CardHeader>
-                    <CardTitle className="flex items-center gap-2 text-2xl mb-2">
-                        <TrendingUp className="h-6 w-6 text-orange-500" />
-                        Trending Now
-                    </CardTitle>
-                    <p className="text-sm text-muted-foreground">
-                        Popular events everyone's talking about
-                    </p>
+                    <div className="flex items-center justify-between mb-4">
+                        <div>
+                            <CardTitle className="flex items-center gap-2 text-2xl mb-2">
+                                <Icon className={`h-6 w-6 ${getIconColor()}`} />
+                                {config.title}
+                            </CardTitle>
+                            <p className="text-sm text-muted-foreground">
+                                {config.description}
+                            </p>
+                        </div>
+                    </div>
+                    <Tabs value={type} onValueChange={(v) => setType(v as TrendingType)}>
+                        <TabsList>
+                            <TabsTrigger value="trending">Trending</TabsTrigger>
+                            <TabsTrigger value="rising">Rising</TabsTrigger>
+                            <TabsTrigger value="undiscovered">Hidden Gems</TabsTrigger>
+                        </TabsList>
+                    </Tabs>
                 </CardHeader>
                 <CardContent>
                     <p className="text-muted-foreground text-center py-8">
-                        No trending events at the moment. Check back soon to see what's hot!
+                        No {type} events at the moment. Try another category!
                     </p>
                 </CardContent>
             </Card>
@@ -117,16 +186,16 @@ export function TrendingSection({ userFavourites }: TrendingSectionProps) {
     }
 
     return (
-        <Card className="relative overflow-hidden border-orange-500/20 bg-gradient-to-br from-orange-500/5 to-transparent">
+        <Card className={`relative overflow-hidden ${getBorderColor()} bg-gradient-to-br ${getGradientColor()} to-transparent`}>
             <CardHeader>
-                <div className="flex items-center justify-between">
+                <div className="flex items-center justify-between mb-4">
                     <div>
                         <CardTitle className="flex items-center gap-2 text-2xl mb-2">
-                            <TrendingUp className="h-6 w-6 text-orange-500" />
-                            Trending Now
+                            <Icon className={`h-6 w-6 ${getIconColor()}`} />
+                            {config.title}
                         </CardTitle>
                         <p className="text-sm text-muted-foreground">
-                            Popular events everyone's talking about
+                            {config.description}
                         </p>
                     </div>
                     <div className="flex gap-2">
@@ -150,6 +219,14 @@ export function TrendingSection({ userFavourites }: TrendingSectionProps) {
                         </Button>
                     </div>
                 </div>
+
+                <Tabs value={type} onValueChange={(v) => setType(v as TrendingType)}>
+                    <TabsList>
+                        <TabsTrigger value="trending">Trending</TabsTrigger>
+                        <TabsTrigger value="rising">Rising</TabsTrigger>
+                        <TabsTrigger value="undiscovered">Hidden Gems</TabsTrigger>
+                    </TabsList>
+                </Tabs>
             </CardHeader>
             <CardContent>
                 <div
@@ -179,7 +256,7 @@ export function TrendingSection({ userFavourites }: TrendingSectionProps) {
                             key={index}
                             onClick={() => setCurrentIndex(index)}
                             className={`h-1.5 rounded-full transition-all duration-300 ${index === currentIndex
-                                    ? 'w-8 bg-orange-500'
+                                    ? `w-8 ${config.color === 'orange' ? 'bg-orange-500' : config.color === 'purple' ? 'bg-purple-500' : 'bg-blue-500'}`
                                     : 'w-1.5 bg-muted-foreground/30 hover:bg-muted-foreground/50'
                                 }`}
                             aria-label={`Go to event ${index + 1}`}
