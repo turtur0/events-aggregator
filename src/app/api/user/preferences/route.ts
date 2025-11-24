@@ -29,7 +29,7 @@ export async function GET() {
   }
 }
 
-// POST - Set preferences during onboarding (replaces all preferences)
+// POST - Set preferences during onboarding or from settings
 export async function POST(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
@@ -44,26 +44,78 @@ export async function POST(request: NextRequest) {
       selectedCategories,
       selectedSubcategories,
       popularityPreference,
+      priceRange,
       notifications,
     } = await request.json();
 
-    // Initialise category weights based on selected categories
+    // Initialize category weights based on selected categories
     const categoryWeights: Record<string, number> = {};
-    selectedCategories.forEach((cat: string) => {
-      categoryWeights[cat] = 0.5;
-    });
+    if (selectedCategories && Array.isArray(selectedCategories)) {
+      selectedCategories.forEach((cat: string) => {
+        categoryWeights[cat] = 0.5;
+      });
+    }
+
+    // Build update object using dot notation for nested fields
+    const updateFields: any = {};
+
+    if (selectedCategories !== undefined) {
+      updateFields['preferences.selectedCategories'] = selectedCategories;
+    }
+    if (selectedSubcategories !== undefined) {
+      updateFields['preferences.selectedSubcategories'] = selectedSubcategories;
+    }
+    if (Object.keys(categoryWeights).length > 0) {
+      updateFields['preferences.categoryWeights'] = categoryWeights;
+    }
+    if (popularityPreference !== undefined) {
+      updateFields['preferences.popularityPreference'] = popularityPreference;
+    }
+
+    // Add price range
+    if (priceRange) {
+      if (priceRange.min !== undefined) {
+        updateFields['preferences.priceRange.min'] = priceRange.min;
+      }
+      if (priceRange.max !== undefined) {
+        updateFields['preferences.priceRange.max'] = priceRange.max;
+      }
+    }
+
+    // Add notifications using dot notation
+    if (notifications) {
+      if (notifications.inApp !== undefined) {
+        updateFields['preferences.notifications.inApp'] = notifications.inApp;
+      }
+      if (notifications.email !== undefined) {
+        updateFields['preferences.notifications.email'] = notifications.email;
+      }
+      if (notifications.emailFrequency !== undefined) {
+        updateFields['preferences.notifications.emailFrequency'] = notifications.emailFrequency;
+      }
+      if (notifications.keywords !== undefined) {
+        updateFields['preferences.notifications.keywords'] = Array.isArray(notifications.keywords)
+          ? notifications.keywords
+          : [];
+      }
+      if (notifications.smartFiltering) {
+        if (notifications.smartFiltering.enabled !== undefined) {
+          updateFields['preferences.notifications.smartFiltering.enabled'] = notifications.smartFiltering.enabled;
+        }
+        if (notifications.smartFiltering.minRecommendationScore !== undefined) {
+          updateFields['preferences.notifications.smartFiltering.minRecommendationScore'] = notifications.smartFiltering.minRecommendationScore;
+        }
+      }
+      if (notifications.popularityFilter !== undefined) {
+        updateFields['preferences.notifications.popularityFilter'] = notifications.popularityFilter;
+      }
+    }
 
     const user = await User.findOneAndUpdate(
       { email: session.user.email },
-      {
-        'preferences.selectedCategories': selectedCategories,
-        'preferences.selectedSubcategories': selectedSubcategories,
-        'preferences.categoryWeights': categoryWeights,
-        'preferences.popularityPreference': popularityPreference,
-        'preferences.notifications': notifications,
-      },
-      { new: true }
-    );
+      { $set: updateFields },
+      { new: true, runValidators: true }
+    ).select('preferences');
 
     if (!user) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
@@ -72,6 +124,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       message: 'Preferences updated',
       hasCompletedOnboarding: true,
+      preferences: user.preferences,
       user: {
         id: user._id,
         email: user.email,
@@ -88,7 +141,7 @@ export async function POST(request: NextRequest) {
   }
 }
 
-// PATCH - Partially update preferences (for settings page)
+// PATCH - Partially update preferences
 export async function PATCH(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
@@ -97,10 +150,11 @@ export async function PATCH(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorised' }, { status: 401 });
     }
 
-    const body = await request.json();
     await connectDB();
 
-    // Build update object dynamically based on what's provided
+    const body = await request.json();
+
+    // Build update object dynamically based on provided fields
     const updateFields: Record<string, any> = {};
 
     if (body.selectedCategories !== undefined) {
@@ -112,8 +166,13 @@ export async function PATCH(request: NextRequest) {
     if (body.categoryWeights !== undefined) {
       updateFields['preferences.categoryWeights'] = body.categoryWeights;
     }
-    if (body.priceRange !== undefined) {
-      updateFields['preferences.priceRange'] = body.priceRange;
+    if (body.priceRange) {
+      if (body.priceRange.min !== undefined) {
+        updateFields['preferences.priceRange.min'] = body.priceRange.min;
+      }
+      if (body.priceRange.max !== undefined) {
+        updateFields['preferences.priceRange.max'] = body.priceRange.max;
+      }
     }
     if (body.popularityPreference !== undefined) {
       updateFields['preferences.popularityPreference'] = body.popularityPreference;
@@ -121,11 +180,37 @@ export async function PATCH(request: NextRequest) {
     if (body.locations !== undefined) {
       updateFields['preferences.locations'] = body.locations;
     }
-    if (body.notifications !== undefined) {
-      updateFields['preferences.notifications'] = body.notifications;
+
+    // Handle notifications with dot notation
+    if (body.notifications) {
+      const notifs = body.notifications;
+      if (notifs.inApp !== undefined) {
+        updateFields['preferences.notifications.inApp'] = notifs.inApp;
+      }
+      if (notifs.email !== undefined) {
+        updateFields['preferences.notifications.email'] = notifs.email;
+      }
+      if (notifs.emailFrequency !== undefined) {
+        updateFields['preferences.notifications.emailFrequency'] = notifs.emailFrequency;
+      }
+      if (notifs.keywords !== undefined) {
+        updateFields['preferences.notifications.keywords'] = Array.isArray(notifs.keywords)
+          ? notifs.keywords
+          : [];
+      }
+      if (notifs.smartFiltering) {
+        if (notifs.smartFiltering.enabled !== undefined) {
+          updateFields['preferences.notifications.smartFiltering.enabled'] = notifs.smartFiltering.enabled;
+        }
+        if (notifs.smartFiltering.minRecommendationScore !== undefined) {
+          updateFields['preferences.notifications.smartFiltering.minRecommendationScore'] = notifs.smartFiltering.minRecommendationScore;
+        }
+      }
+      if (notifs.popularityFilter !== undefined) {
+        updateFields['preferences.notifications.popularityFilter'] = notifs.popularityFilter;
+      }
     }
 
-    // Check if there are any fields to update
     if (Object.keys(updateFields).length === 0) {
       return NextResponse.json(
         { error: 'No valid fields provided' },
@@ -136,7 +221,7 @@ export async function PATCH(request: NextRequest) {
     const user = await User.findOneAndUpdate(
       { email: session.user.email },
       { $set: updateFields },
-      { new: true }
+      { new: true, runValidators: true }
     ).select('preferences');
 
     if (!user) {

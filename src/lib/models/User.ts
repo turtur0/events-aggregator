@@ -21,11 +21,12 @@ export interface IUser {
             inApp: boolean;
             email: boolean;
             emailFrequency: 'instant' | 'daily' | 'weekly';
+            keywords: string[];
             smartFiltering: {
                 enabled: boolean;
                 minRecommendationScore: number;
             };
-            keywords: string[]; // e.g., ['taylor swift', 'hamilton']
+            popularityFilter?: 'all' | 'mainstream' | 'niche' | 'personalized'; // ← ADD THIS
         };
     };
 
@@ -42,10 +43,9 @@ const UserSchema = new Schema<IUser>(
         email: {
             type: String,
             required: true,
-            unique: true,  // This creates an index automatically
+            unique: true,
             lowercase: true,
             trim: true,
-            // Remove index: true if you had it here
         },
         name: {
             type: String,
@@ -55,10 +55,9 @@ const UserSchema = new Schema<IUser>(
         username: {
             type: String,
             unique: true,
-            sparse: true,  // This creates an index automatically
+            sparse: true,
             trim: true,
             lowercase: true,
-            // Remove index: true if you had it here
         },
         passwordHash: {
             type: String,
@@ -97,11 +96,16 @@ const UserSchema = new Schema<IUser>(
                     enum: ['instant', 'daily', 'weekly'],
                     default: 'weekly'
                 },
+                keywords: { type: [String], default: [] },
                 smartFiltering: {
                     enabled: { type: Boolean, default: true },
                     minRecommendationScore: { type: Number, default: 0.6 },
                 },
-                keywords: { type: [String], default: [] },
+                popularityFilter: {  // ← ADD THIS ENTIRE BLOCK
+                    type: String,
+                    enum: ['all', 'mainstream', 'niche', 'personalized'],
+                    default: 'personalized'
+                },
             },
         },
 

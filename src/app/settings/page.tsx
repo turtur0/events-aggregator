@@ -31,30 +31,78 @@ import {
     Filter,
     DollarSign,
     Zap,
+    Search,
+    Target,
+    TrendingUp,
+    Mail,
 } from 'lucide-react';
 import { BackButton } from '@/components/navigation/back-button';
 import { CATEGORIES } from '@/lib/categories';
+
+// Types for better code clarity
+interface UserPreferences {
+    selectedCategories: string[];
+    selectedSubcategories: string[];
+    popularityPreference: number;
+    priceRange: { min: number; max: number };
+    notifications: NotificationSettings;
+}
+
+interface NotificationSettings {
+    inApp: boolean;
+    email: boolean;
+    emailFrequency: 'daily' | 'weekly';
+    keywords: string[];
+    smartFiltering: {
+        enabled: boolean;
+        minRecommendationScore: number;
+    };
+    popularityFilter: 'all' | 'mainstream' | 'niche' | 'personalized';
+}
+
+interface OriginalValues {
+    name: string;
+    username: string;
+    selectedCategories: Set<string>;
+    selectedSubcategories: Set<string>;
+    popularityPref: number;
+    inAppNotifications: boolean;
+    emailNotifications: boolean;
+    emailFrequency: 'daily' | 'weekly';
+    notificationKeywords: string;
+    useSmartFiltering: boolean;
+    minRecommendationScore: number;
+    popularityFilter: 'all' | 'mainstream' | 'niche' | 'personalized';
+    priceMin: number;
+    priceMax: number;
+}
+
+const POPULARITY_OPTIONS = [
+    { value: 0, label: 'Niche', icon: Search, description: 'Hidden gems and unique events' },
+    { value: 0.5, label: 'Balanced', icon: Target, description: 'Mix of popular and niche' },
+    { value: 1, label: 'Mainstream', icon: TrendingUp, description: 'Popular and trending events' },
+] as const;
 
 export default function SettingsPage() {
     const router = useRouter();
     const { data: session, status, update } = useSession();
 
-    // Account info
+    // Account Information
     const [name, setName] = useState('');
     const [username, setUsername] = useState('');
     const [email, setEmail] = useState('');
 
-    // Password change
+    // Password Management
     const [currentPassword, setCurrentPassword] = useState('');
     const [newPassword, setNewPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
 
-    // Preferences
+    // Event Preferences
     const [selectedCategories, setSelectedCategories] = useState<Set<string>>(new Set());
     const [selectedSubcategories, setSelectedSubcategories] = useState<Set<string>>(new Set());
     const [popularityPref, setPopularityPref] = useState(0.5);
 
-    // Enhanced Notification Settings
+    // Notification Preferences
     const [inAppNotifications, setInAppNotifications] = useState(true);
     const [emailNotifications, setEmailNotifications] = useState(false);
     const [emailFrequency, setEmailFrequency] = useState<'daily' | 'weekly'>('weekly');
@@ -65,10 +113,8 @@ export default function SettingsPage() {
     const [priceMin, setPriceMin] = useState(0);
     const [priceMax, setPriceMax] = useState(500);
 
-    // Original values for comparison
-    const [originalValues, setOriginalValues] = useState<any>(null);
-
-    // State
+    // State Management
+    const [originalValues, setOriginalValues] = useState<OriginalValues | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [isSaving, setIsSaving] = useState(false);
     const [isDeleting, setIsDeleting] = useState(false);
@@ -76,81 +122,104 @@ export default function SettingsPage() {
     const [success, setSuccess] = useState(false);
     const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
 
-    // Dialogs
+    // Dialog States
     const [showUnsavedDialog, setShowUnsavedDialog] = useState(false);
     const [showDeleteDialog, setShowDeleteDialog] = useState(false);
     const [deleteConfirmText, setDeleteConfirmText] = useState('');
     const [pendingNavigation, setPendingNavigation] = useState<string | null>(null);
 
-    // Load initial data
+    // Load user settings on mount
     useEffect(() => {
-        async function loadSettings() {
-            if (status === 'loading') return;
-
-            try {
-                const [prefsRes, userRes] = await Promise.all([
-                    fetch('/api/user/preferences'),
-                    fetch('/api/user/account'),
-                ]);
-
-                const prefsData = await prefsRes.json();
-                const userData = await userRes.json();
-
-                // Set account info
-                setName(userData.name || '');
-                setUsername(userData.username || '');
-                setEmail(userData.email || '');
-
-                // Set preferences
-                const prefs = prefsData.preferences;
-                setSelectedCategories(new Set(prefs.selectedCategories));
-                setSelectedSubcategories(new Set(prefs.selectedSubcategories));
-                setPopularityPref(prefs.popularityPreference);
-
-                // Set notification preferences
-                const notifs = prefs.notifications || {};
-                setInAppNotifications(notifs.inApp ?? true);
-                setEmailNotifications(notifs.email ?? false);
-                setEmailFrequency(notifs.emailFrequency || 'weekly');
-                setNotificationKeywords((notifs.keywords || []).join(', '));
-                setUseSmartFiltering(notifs.smartFiltering?.enabled ?? true);
-                setMinRecommendationScore(notifs.smartFiltering?.minRecommendationScore ?? 0.6);
-                setPopularityFilter(notifs.popularityFilter || 'personalized');
-                setPriceMin(prefs.priceRange?.min ?? 0);
-                setPriceMax(prefs.priceRange?.max ?? 500);
-
-                // Store original values
-                setOriginalValues({
-                    name: userData.name || '',
-                    username: userData.username || '',
-                    selectedCategories: new Set(prefs.selectedCategories),
-                    selectedSubcategories: new Set(prefs.selectedSubcategories),
-                    popularityPref: prefs.popularityPreference,
-                    inAppNotifications: notifs.inApp ?? true,
-                    emailNotifications: notifs.email ?? false,
-                    emailFrequency: notifs.emailFrequency || 'weekly',
-                    notificationKeywords: (notifs.keywords || []).join(', '),
-                    useSmartFiltering: notifs.smartFiltering?.enabled ?? true,
-                    minRecommendationScore: notifs.smartFiltering?.minRecommendationScore ?? 0.6,
-                    popularityFilter: notifs.popularityFilter || 'personalized',
-                    priceMin: prefs.priceRange?.min ?? 0,
-                    priceMax: prefs.priceRange?.max ?? 500,
-                });
-            } catch (error) {
-                setError('Failed to load settings');
-            } finally {
-                setIsLoading(false);
-            }
-        }
-
         loadSettings();
     }, [session, status]);
 
-    // Check for unsaved changes
+    // Track unsaved changes
     useEffect(() => {
         if (!originalValues) return;
+        setHasUnsavedChanges(checkForChanges());
+    }, [
+        name, username, selectedCategories, selectedSubcategories, popularityPref,
+        inAppNotifications, emailNotifications, emailFrequency, notificationKeywords,
+        useSmartFiltering, minRecommendationScore, popularityFilter, priceMin, priceMax,
+        currentPassword, newPassword, originalValues
+    ]);
 
-        const hasChanges =
+    // Warn before leaving with unsaved changes
+    useEffect(() => {
+        const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+            if (hasUnsavedChanges) {
+                e.preventDefault();
+                e.returnValue = '';
+            }
+        };
+
+        window.addEventListener('beforeunload', handleBeforeUnload);
+        return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+    }, [hasUnsavedChanges]);
+
+    async function loadSettings() {
+        if (status === 'loading') return;
+
+        try {
+            const [prefsRes, userRes] = await Promise.all([
+                fetch('/api/user/preferences'),
+                fetch('/api/user/account'),
+            ]);
+
+            const prefsData = await prefsRes.json();
+            const userData = await userRes.json();
+
+            // Set account information
+            setName(userData.name || '');
+            setUsername(userData.username || '');
+            setEmail(userData.email || '');
+
+            // Set event preferences
+            const prefs = prefsData.preferences;
+            setSelectedCategories(new Set(prefs.selectedCategories));
+            setSelectedSubcategories(new Set(prefs.selectedSubcategories));
+            setPopularityPref(prefs.popularityPreference);
+
+            // Set notification preferences
+            const notifs = prefs.notifications || {};
+            setInAppNotifications(notifs.inApp ?? true);
+            setEmailNotifications(notifs.email ?? false);
+            setEmailFrequency(notifs.emailFrequency || 'weekly');
+            setNotificationKeywords((notifs.keywords || []).join(', '));
+            setUseSmartFiltering(notifs.smartFiltering?.enabled ?? true);
+            setMinRecommendationScore(notifs.smartFiltering?.minRecommendationScore ?? 0.6);
+            setPopularityFilter(notifs.popularityFilter || 'personalized');
+            setPriceMin(prefs.priceRange?.min ?? 0);
+            setPriceMax(prefs.priceRange?.max ?? 500);
+
+            // Store original values for change detection
+            setOriginalValues({
+                name: userData.name || '',
+                username: userData.username || '',
+                selectedCategories: new Set(prefs.selectedCategories),
+                selectedSubcategories: new Set(prefs.selectedSubcategories),
+                popularityPref: prefs.popularityPreference,
+                inAppNotifications: notifs.inApp ?? true,
+                emailNotifications: notifs.email ?? false,
+                emailFrequency: notifs.emailFrequency || 'weekly',
+                notificationKeywords: (notifs.keywords || []).join(', '),
+                useSmartFiltering: notifs.smartFiltering?.enabled ?? true,
+                minRecommendationScore: notifs.smartFiltering?.minRecommendationScore ?? 0.6,
+                popularityFilter: notifs.popularityFilter || 'personalized',
+                priceMin: prefs.priceRange?.min ?? 0,
+                priceMax: prefs.priceRange?.max ?? 500,
+            });
+        } catch (error) {
+            setError('Failed to load settings');
+        } finally {
+            setIsLoading(false);
+        }
+    }
+
+    function checkForChanges(): boolean {
+        if (!originalValues) return false;
+
+        return (
             name !== originalValues.name ||
             username !== originalValues.username ||
             !areSetsEqual(selectedCategories, originalValues.selectedCategories) ||
@@ -166,50 +235,20 @@ export default function SettingsPage() {
             priceMin !== originalValues.priceMin ||
             priceMax !== originalValues.priceMax ||
             currentPassword !== '' ||
-            newPassword !== '';
+            newPassword !== ''
+        );
+    }
 
-        setHasUnsavedChanges(hasChanges);
-    }, [
-        name,
-        username,
-        selectedCategories,
-        selectedSubcategories,
-        popularityPref,
-        inAppNotifications,
-        emailNotifications,
-        emailFrequency,
-        notificationKeywords,
-        useSmartFiltering,
-        minRecommendationScore,
-        popularityFilter,
-        priceMin,
-        priceMax,
-        currentPassword,
-        newPassword,
-        originalValues,
-    ]);
-
-    // Warn before leaving page
-    useEffect(() => {
-        const handleBeforeUnload = (e: BeforeUnloadEvent) => {
-            if (hasUnsavedChanges) {
-                e.preventDefault();
-                e.returnValue = '';
-            }
-        };
-
-        window.addEventListener('beforeunload', handleBeforeUnload);
-        return () => window.removeEventListener('beforeunload', handleBeforeUnload);
-    }, [hasUnsavedChanges]);
-
-    function areSetsEqual(a: Set<string>, b: Set<string>) {
+    function areSetsEqual(a: Set<string>, b: Set<string>): boolean {
         return a.size === b.size && [...a].every((val) => b.has(val));
     }
 
     function toggleCategory(categoryValue: string) {
         const newSet = new Set(selectedCategories);
+
         if (newSet.has(categoryValue)) {
             newSet.delete(categoryValue);
+            // Remove associated subcategories
             const category = CATEGORIES.find((c) => c.value === categoryValue);
             if (category?.subcategories) {
                 const newSubs = new Set(selectedSubcategories);
@@ -219,12 +258,15 @@ export default function SettingsPage() {
         } else {
             newSet.add(categoryValue);
         }
+
         setSelectedCategories(newSet);
     }
 
     function toggleSubcategory(subcategoryValue: string) {
         const newSet = new Set(selectedSubcategories);
-        newSet.has(subcategoryValue) ? newSet.delete(subcategoryValue) : newSet.add(subcategoryValue);
+        newSet.has(subcategoryValue)
+            ? newSet.delete(subcategoryValue)
+            : newSet.add(subcategoryValue);
         setSelectedSubcategories(newSet);
     }
 
@@ -247,7 +289,7 @@ export default function SettingsPage() {
                 }
             }
 
-            // Update account info
+            // Update account information
             const accountRes = await fetch('/api/user/account', {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
@@ -264,13 +306,13 @@ export default function SettingsPage() {
                 throw new Error(data.error || 'Failed to update account');
             }
 
-            // Parse keywords
+            // Parse notification keywords
             const keywords = notificationKeywords
                 .split(',')
                 .map(k => k.trim())
                 .filter(k => k.length > 0);
 
-            // Update preferences with enhanced notification settings
+            // Update preferences
             const prefsRes = await fetch('/api/user/preferences', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -278,10 +320,7 @@ export default function SettingsPage() {
                     selectedCategories: Array.from(selectedCategories),
                     selectedSubcategories: Array.from(selectedSubcategories),
                     popularityPreference: popularityPref,
-                    priceRange: {
-                        min: priceMin,
-                        max: priceMax,
-                    },
+                    priceRange: { min: priceMin, max: priceMax },
                     notifications: {
                         inApp: inAppNotifications,
                         email: emailNotifications,
@@ -325,7 +364,7 @@ export default function SettingsPage() {
 
             setSuccess(true);
 
-            // Redirect to profile after a short delay
+            // Redirect to profile after short delay
             setTimeout(() => {
                 router.push('/profile');
             }, 1500);
@@ -376,155 +415,165 @@ export default function SettingsPage() {
     if (status === 'loading' || isLoading) {
         return (
             <div className="min-h-screen flex items-center justify-center">
-                <Loader2 className="h-8 w-8 animate-spin" />
+                <Loader2 className="h-8 w-8 animate-spin text-primary" />
             </div>
         );
     }
 
     return (
-        <div className="w-full">
-            {/* Header */}
-            <section className="bg-linear-to-b from-primary/5 to-background">
-                <div className="container max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16">
-                    <BackButton fallbackUrl="/" className="mb-8" />
+        <div className="w-full min-h-screen bg-gradient-to-b from-background to-muted/20">
+            {/* Header Section */}
+            <section className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+                <div className="container max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
+                    <BackButton fallbackUrl="/" className="mb-6" />
 
                     <div className="flex items-center gap-4">
-                        <div className="rounded-full bg-primary/10 p-4">
-                            <User className="h-10 w-10 text-primary" />
+                        <div className="rounded-2xl bg-primary/10 p-3 ring-1 ring-primary/20">
+                            <User className="h-8 w-8 text-primary" />
                         </div>
                         <div>
-                            <h1 className="text-3xl sm:text-4xl font-bold mb-1">Account Settings</h1>
-                            <p className="text-muted-foreground">
-                                Update your preferences and account information
+                            <h1 className="text-3xl sm:text-4xl font-bold tracking-tight">Account Settings</h1>
+                            <p className="text-muted-foreground mt-1">
+                                Manage your account and preferences
                             </p>
                         </div>
                     </div>
                 </div>
             </section>
 
-            {/* Content */}
-            <section className="container max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16">
+            {/* Content Section */}
+            <section className="container max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
                 <div className="space-y-6">
                     {/* Status Messages */}
                     {error && (
-                        <div className="flex gap-3 p-4 bg-destructive/10 border-2 border-destructive/20 rounded-lg text-destructive">
+                        <div className="flex items-start gap-3 p-4 bg-destructive/10 border border-destructive/20 rounded-lg text-destructive">
                             <AlertCircle className="h-5 w-5 shrink-0 mt-0.5" />
-                            <span>{error}</span>
+                            <span className="text-sm">{error}</span>
                         </div>
                     )}
 
                     {success && (
-                        <div className="flex gap-3 p-4 bg-green-500/10 border-2 border-green-500/20 rounded-lg text-green-600 dark:text-green-400">
+                        <div className="flex items-start gap-3 p-4 bg-green-500/10 border border-green-500/20 rounded-lg text-green-600 dark:text-green-400">
                             <Check className="h-5 w-5 shrink-0 mt-0.5" />
-                            <span>Settings saved successfully!</span>
+                            <span className="text-sm">Settings saved successfully! Redirecting...</span>
                         </div>
                     )}
 
-                    {/* Account Info */}
-                    <Card className="border-2">
+                    {/* Account Information Card */}
+                    <Card className="border-2 shadow-sm">
                         <CardHeader>
                             <CardTitle className="text-xl flex items-center gap-2">
                                 <User className="h-5 w-5" />
                                 Account Information
                             </CardTitle>
-                            <CardDescription>Update your name and username</CardDescription>
+                            <CardDescription>Update your personal details</CardDescription>
                         </CardHeader>
                         <CardContent className="space-y-4">
-                            <div>
-                                <Label htmlFor="name">Name</Label>
+                            <div className="space-y-2">
+                                <Label htmlFor="name">Display Name</Label>
                                 <Input
                                     id="name"
                                     value={name}
                                     onChange={(e) => setName(e.target.value)}
-                                    className="mt-2"
+                                    placeholder="Your name"
                                 />
                             </div>
-                            <div>
-                                <Label htmlFor="username">Username (optional)</Label>
+
+                            <div className="space-y-2">
+                                <Label htmlFor="username">Username</Label>
                                 <Input
                                     id="username"
                                     value={username}
                                     onChange={(e) => setUsername(e.target.value)}
-                                    placeholder="johndoe"
-                                    className="mt-2"
+                                    placeholder="Optional username"
                                 />
+                                <p className="text-xs text-muted-foreground">Optional field for personalization</p>
                             </div>
-                            <div>
-                                <Label>Email</Label>
-                                <p className="text-sm text-muted-foreground mt-2">
-                                    {email} (cannot be changed)
-                                </p>
+
+                            <div className="space-y-2">
+                                <Label>Email Address</Label>
+                                <div className="flex items-center gap-2 px-3 py-2 bg-muted rounded-md">
+                                    <Mail className="h-4 w-4 text-muted-foreground" />
+                                    <span className="text-sm">{email}</span>
+                                    <span className="ml-auto text-xs text-muted-foreground">Cannot be changed</span>
+                                </div>
                             </div>
                         </CardContent>
                     </Card>
 
-                    {/* Password Change */}
-                    <Card className="border-2">
+                    {/* Password Change Card */}
+                    <Card className="border-2 shadow-sm">
                         <CardHeader>
                             <CardTitle className="text-xl flex items-center gap-2">
                                 <Lock className="h-5 w-5" />
                                 Change Password
                             </CardTitle>
-                            <CardDescription>Update your password</CardDescription>
+                            <CardDescription>Update your account password</CardDescription>
                         </CardHeader>
                         <CardContent className="space-y-4">
-                            <div>
+                            <div className="space-y-2">
                                 <Label htmlFor="currentPassword">Current Password</Label>
                                 <Input
                                     id="currentPassword"
                                     type="password"
                                     value={currentPassword}
                                     onChange={(e) => setCurrentPassword(e.target.value)}
-                                    className="mt-2"
+                                    placeholder="Enter current password"
                                 />
                             </div>
-                            <div>
+
+                            <div className="space-y-2">
                                 <Label htmlFor="newPassword">New Password</Label>
                                 <Input
                                     id="newPassword"
                                     type="password"
                                     value={newPassword}
                                     onChange={(e) => setNewPassword(e.target.value)}
-                                    placeholder="At least 8 characters"
-                                    className="mt-2"
+                                    placeholder="Minimum 8 characters"
                                 />
                             </div>
-                            <div>
+
+                            <div className="space-y-2">
                                 <Label htmlFor="confirmPassword">Confirm New Password</Label>
                                 <Input
                                     id="confirmPassword"
                                     type="password"
                                     value={confirmPassword}
                                     onChange={(e) => setConfirmPassword(e.target.value)}
-                                    className="mt-2"
+                                    placeholder="Re-enter new password"
                                 />
                             </div>
                         </CardContent>
                     </Card>
 
-                    {/* Preferences */}
-                    <Card className="border-2">
+                    {/* Event Preferences Card */}
+                    <Card className="border-2 shadow-sm">
                         <CardHeader>
                             <CardTitle className="text-xl flex items-center gap-2">
                                 <Sparkles className="h-5 w-5" />
                                 Event Preferences
                             </CardTitle>
+                            <CardDescription>Customize your event recommendations</CardDescription>
                         </CardHeader>
                         <CardContent className="space-y-6">
-                            <div>
-                                <Label className="text-base mb-3 block">Categories</Label>
+                            {/* Categories */}
+                            <div className="space-y-3">
+                                <Label className="text-base font-medium">Categories</Label>
                                 <div className="flex flex-wrap gap-2">
                                     {CATEGORIES.map((category) => (
                                         <button
                                             key={category.value}
                                             onClick={() => toggleCategory(category.value)}
-                                            className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${selectedCategories.has(category.value)
-                                                ? 'bg-primary text-primary-foreground'
-                                                : 'bg-muted hover:bg-muted/80'
-                                                }`}
+                                            className={`
+                        px-4 py-2 rounded-lg text-sm font-medium transition-all
+                        ${selectedCategories.has(category.value)
+                                                    ? 'bg-primary text-primary-foreground shadow-sm ring-2 ring-primary/20'
+                                                    : 'bg-muted hover:bg-muted/80'
+                                                }
+                      `}
                                         >
                                             {selectedCategories.has(category.value) && (
-                                                <Check className="inline w-4 h-4 mr-1" />
+                                                <Check className="inline w-4 h-4 mr-1.5 -ml-0.5" />
                                             )}
                                             {category.label}
                                         </button>
@@ -532,22 +581,26 @@ export default function SettingsPage() {
                                 </div>
                             </div>
 
+                            {/* Subcategories */}
                             {selectedCategories.size > 0 && (
-                                <div>
-                                    <Label className="text-base mb-3 block">Subcategories</Label>
+                                <div className="space-y-4">
+                                    <Label className="text-base font-medium">Subcategories</Label>
                                     {CATEGORIES.filter((cat) => selectedCategories.has(cat.value)).map(
                                         (category) => (
-                                            <div key={category.value} className="mb-4">
-                                                <p className="text-sm font-medium mb-2">{category.label}</p>
+                                            <div key={category.value} className="space-y-2">
+                                                <p className="text-sm font-medium text-muted-foreground">{category.label}</p>
                                                 <div className="flex flex-wrap gap-2">
                                                     {category.subcategories?.map((sub) => (
                                                         <button
                                                             key={sub}
                                                             onClick={() => toggleSubcategory(sub)}
-                                                            className={`px-3 py-1.5 rounded-full text-xs transition-all ${selectedSubcategories.has(sub)
-                                                                ? 'bg-primary/20 text-primary border border-primary'
-                                                                : 'bg-background border border-border'
-                                                                }`}
+                                                            className={`
+                                px-3 py-1.5 rounded-md text-xs font-medium transition-all
+                                ${selectedSubcategories.has(sub)
+                                                                    ? 'bg-primary/20 text-primary ring-1 ring-primary/30'
+                                                                    : 'bg-background hover:bg-muted border border-border'
+                                                                }
+                              `}
                                                         >
                                                             {sub}
                                                         </button>
@@ -561,54 +614,76 @@ export default function SettingsPage() {
 
                             <Separator />
 
-                            <div>
-                                <Label className="text-base mb-3 block">Popularity</Label>
-                                <div className="flex gap-2 bg-muted p-1 rounded-lg">
-                                    {[
-                                        { value: 0, label: 'Niche', icon: '🔍' },
-                                        { value: 0.5, label: 'Balanced', icon: '🎯' },
-                                        { value: 1, label: 'Mainstream', icon: '⭐' },
-                                    ].map((option) => (
-                                        <button
-                                            key={option.value}
-                                            onClick={() => setPopularityPref(option.value)}
-                                            className={`flex-1 py-3 rounded text-sm font-medium transition-all ${popularityPref === option.value
-                                                ? 'bg-primary text-primary-foreground'
-                                                : 'hover:bg-background'
-                                                }`}
-                                        >
-                                            {option.icon} {option.label}
-                                        </button>
-                                    ))}
+                            {/* Popularity Preference */}
+                            <div className="space-y-4">
+                                <div>
+                                    <Label className="text-base font-medium">Popularity Preference</Label>
+                                    <p className="text-sm text-muted-foreground mt-1">
+                                        Choose the type of events you prefer to discover
+                                    </p>
+                                </div>
+
+                                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                                    {POPULARITY_OPTIONS.map((option) => {
+                                        const Icon = option.icon;
+                                        return (
+                                            <button
+                                                key={option.value}
+                                                onClick={() => setPopularityPref(option.value)}
+                                                className={`
+                          p-4 rounded-lg border-2 transition-all text-left
+                          ${popularityPref === option.value
+                                                        ? 'border-primary bg-primary/5 shadow-sm'
+                                                        : 'border-border hover:border-primary/50 hover:bg-muted/50'
+                                                    }
+                        `}
+                                            >
+                                                <div className="flex items-start gap-3">
+                                                    <Icon className={`h-5 w-5 mt-0.5 ${popularityPref === option.value ? 'text-primary' : 'text-muted-foreground'
+                                                        }`} />
+                                                    <div className="flex-1 min-w-0">
+                                                        <div className="font-medium text-sm">{option.label}</div>
+                                                        <div className="text-xs text-muted-foreground mt-0.5">
+                                                            {option.description}
+                                                        </div>
+                                                    </div>
+                                                    {popularityPref === option.value && (
+                                                        <Check className="h-5 w-5 text-primary shrink-0" />
+                                                    )}
+                                                </div>
+                                            </button>
+                                        );
+                                    })}
                                 </div>
                             </div>
                         </CardContent>
                     </Card>
 
-                    {/* Notifications */}
-                    <Card className="border-2">
+                    {/* Notifications Card */}
+                    <Card className="border-2 shadow-sm">
                         <CardHeader>
                             <CardTitle className="text-xl flex items-center gap-2">
                                 <Bell className="h-5 w-5" />
                                 Notification Preferences
                             </CardTitle>
                             <CardDescription>
-                                Control when and how you receive notifications about new events
+                                Control how you receive updates about new events
                             </CardDescription>
                         </CardHeader>
                         <CardContent className="space-y-6">
                             {/* In-App Notifications */}
-                            <div className="flex items-center justify-between">
-                                <div className="space-y-0.5">
-                                    <Label htmlFor="inApp">In-App Notifications</Label>
+                            <div className="flex items-start justify-between gap-4">
+                                <div className="space-y-1 flex-1">
+                                    <Label htmlFor="inApp" className="text-base cursor-pointer">In-App Notifications</Label>
                                     <p className="text-sm text-muted-foreground">
-                                        Show notification bell with new event alerts
+                                        Show notification alerts within the app
                                     </p>
                                 </div>
                                 <Checkbox
                                     id="inApp"
                                     checked={inAppNotifications}
                                     onCheckedChange={(checked) => setInAppNotifications(checked === true)}
+                                    className="mt-1"
                                 />
                             </div>
 
@@ -616,9 +691,9 @@ export default function SettingsPage() {
 
                             {/* Email Notifications */}
                             <div className="space-y-4">
-                                <div className="flex items-center justify-between">
-                                    <div className="space-y-0.5">
-                                        <Label htmlFor="email">Email Notifications</Label>
+                                <div className="flex items-start justify-between gap-4">
+                                    <div className="space-y-1 flex-1">
+                                        <Label htmlFor="email" className="text-base cursor-pointer">Email Notifications</Label>
                                         <p className="text-sm text-muted-foreground">
                                             Receive email digests about new events
                                         </p>
@@ -627,26 +702,29 @@ export default function SettingsPage() {
                                         id="email"
                                         checked={emailNotifications}
                                         onCheckedChange={(checked) => setEmailNotifications(checked === true)}
+                                        className="mt-1"
                                     />
                                 </div>
 
                                 {emailNotifications && (
-                                    <div className="ml-6 p-4 bg-muted rounded-lg space-y-3">
-                                        <Label>Email Frequency</Label>
-                                        {(['daily', 'weekly'] as const).map((freq) => (
-                                            <div key={freq} className="flex items-center gap-2">
-                                                <input
-                                                    type="radio"
-                                                    id={`freq-${freq}`}
-                                                    checked={emailFrequency === freq}
-                                                    onChange={() => setEmailFrequency(freq)}
-                                                    className="w-4 h-4"
-                                                />
-                                                <Label htmlFor={`freq-${freq}`} className="cursor-pointer text-sm">
-                                                    {freq === 'daily' ? '📧 Daily digest' : '📬 Weekly digest'}
-                                                </Label>
-                                            </div>
-                                        ))}
+                                    <div className="ml-6 p-4 bg-muted/50 border border-border rounded-lg space-y-3">
+                                        <Label className="text-sm font-medium">Email Frequency</Label>
+                                        <div className="space-y-2">
+                                            {(['daily', 'weekly'] as const).map((freq) => (
+                                                <div key={freq} className="flex items-center gap-2">
+                                                    <input
+                                                        type="radio"
+                                                        id={`freq-${freq}`}
+                                                        checked={emailFrequency === freq}
+                                                        onChange={() => setEmailFrequency(freq)}
+                                                        className="w-4 h-4 text-primary"
+                                                    />
+                                                    <Label htmlFor={`freq-${freq}`} className="cursor-pointer text-sm capitalize">
+                                                        {freq} digest
+                                                    </Label>
+                                                </div>
+                                            ))}
+                                        </div>
                                     </div>
                                 )}
                             </div>
