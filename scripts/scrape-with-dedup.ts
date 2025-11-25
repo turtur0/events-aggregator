@@ -62,8 +62,9 @@ export async function processEventsWithDeduplication(
       const sameSource = bySourceId.get(sourceKey);
 
       if (sameSource) {
-        await updateExistingEvent(sameSource, event, sourceName);
+        const notificationCount = await updateExistingEvent(sameSource, event, sourceName);
         stats.updated++;
+        stats.notifications += notificationCount;
         console.log(`Updated: ${event.title}`);
         continue;
       }
@@ -121,8 +122,16 @@ export async function processEventsWithDeduplication(
           } : batchMatch;
 
           if (targetDedup) {
-            await mergeIntoExisting(targetId, targetDedup, event, sourceName);
+            // Pass the full dbMatch event for notification checking
+            const notificationCount = await mergeIntoExisting(
+              targetId,
+              targetDedup,
+              event,
+              sourceName,
+              dbMatch // Pass the full existing event
+            );
             stats.merged++;
+            stats.notifications += notificationCount;
             console.log(`Merged: "${event.title}" into ${targetSource} (${match.reason})`);
           }
         }
@@ -168,7 +177,7 @@ async function updateExistingEvent(
   existing: any,
   newEvent: NormalisedEvent,
   source: string
-) {
+): Promise<number> {
   const subcategories = [...(newEvent.subcategories || [])];
   if (newEvent.subcategory && !subcategories.includes(newEvent.subcategory)) {
     subcategories.push(newEvent.subcategory);
@@ -181,14 +190,24 @@ async function updateExistingEvent(
     significantUpdate?: string;
   } = {};
 
-  // Check for price drop
+  // Check for price changes (including when price goes from undefined to defined)
   const oldPrice = existing.priceMin || 0;
   const newPrice = newEvent.priceMin || 0;
-  if (oldPrice > 0 && newPrice > 0 && newPrice < oldPrice) {
-    const drop = oldPrice - newPrice;
-    if (drop >= 5) { // Only notify for drops of $5 or more
+
+  // Price was added (0 -> value)
+  if (oldPrice === 0 && newPrice > 0) {
+    changes.significantUpdate = `Price now available: $${newPrice.toFixed(2)}`;
+  }
+  // Price changed significantly
+  else if (oldPrice > 0 && newPrice > 0 && Math.abs(oldPrice - newPrice) >= 5) {
+    const change = newPrice - oldPrice;
+    if (change < 0) {
+      // Price dropped
       changes.priceDropped = true;
-      changes.priceDrop = drop;
+      changes.priceDrop = Math.abs(change);
+    } else {
+      // Price increased
+      changes.significantUpdate = `Price increased by $${change.toFixed(2)}`;
     }
   }
 
@@ -239,26 +258,77 @@ async function updateExistingEvent(
   );
 
   // Send notifications for significant changes to favorited events
+  let notificationCount = 0;
   if (changes.priceDropped || changes.significantUpdate) {
     try {
       const updatedEvent = await Event.findById(existing._id).lean();
       if (updatedEvent) {
-        await processFavoritedEventUpdate(updatedEvent, changes);
+        notificationCount = await processFavoritedEventUpdate(updatedEvent, changes);
+        if (notificationCount > 0) {
+          console.log(`  → Sent ${notificationCount} favorite update notifications`);
+        }
       }
     } catch (error) {
       console.error(`  ✗ Favorite notification error:`, error);
     }
   }
+
+  return notificationCount;
 }
 
 async function mergeIntoExisting(
   existingId: any,
   existing: any,
   newEvent: NormalisedEvent,
-  source: string
-) {
+  source: string,
+  fullExistingEvent?: any
+): Promise<number> {
   const merged = mergeEvents(existing, newEvent);
 
+  // Detect significant changes BEFORE merging (same logic as updateExistingEvent)
+  const changes: {
+    priceDropped?: boolean;
+    priceDrop?: number;
+    significantUpdate?: string;
+  } = {};
+
+  const oldPrice = existing.priceMin || 0;
+  const newPrice = newEvent.priceMin || 0;
+
+  // Price was added (0 -> value)
+  if (oldPrice === 0 && newPrice > 0) {
+    changes.significantUpdate = `Price now available: $${newPrice.toFixed(2)}`;
+  }
+  // Price changed significantly
+  else if (oldPrice > 0 && newPrice > 0 && Math.abs(oldPrice - newPrice) >= 5) {
+    const change = newPrice - oldPrice;
+    if (change < 0) {
+      changes.priceDropped = true;
+      changes.priceDrop = Math.abs(change);
+    } else {
+      changes.significantUpdate = `Price increased by $${change.toFixed(2)}`;
+    }
+  }
+
+  // Check for significant description changes
+  if (newEvent.description && existing.description) {
+    const oldDesc = existing.description.toLowerCase();
+    const newDesc = newEvent.description.toLowerCase();
+
+    const significantKeywords = [
+      'cancelled', 'postponed', 'rescheduled', 'sold out',
+      'extra show', 'additional show', 'new date', 'date change'
+    ];
+
+    for (const keyword of significantKeywords) {
+      if (!oldDesc.includes(keyword) && newDesc.includes(keyword)) {
+        changes.significantUpdate = `Event status updated: ${keyword}`;
+        break;
+      }
+    }
+  }
+
+  // Perform the merge update
   const updateDoc: any = {
     $set: {
       description: merged.description,
@@ -288,6 +358,24 @@ async function mergeIntoExisting(
   updateDoc.$set[`sourceIds.${newEvent.source}`] = newEvent.sourceId;
 
   await Event.updateOne({ _id: existingId }, updateDoc);
+
+  // Send notifications for significant changes to favorited events
+  let notificationCount = 0;
+  if (changes.priceDropped || changes.significantUpdate) {
+    try {
+      const updatedEvent = await Event.findById(existingId).lean();
+      if (updatedEvent) {
+        notificationCount = await processFavoritedEventUpdate(updatedEvent, changes);
+        if (notificationCount > 0) {
+          console.log(`  → Sent ${notificationCount} favorite update notifications`);
+        }
+      }
+    } catch (error) {
+      console.error(`  ✗ Favorite notification error:`, error);
+    }
+  }
+
+  return notificationCount;
 }
 
 async function insertNewEvent(event: NormalisedEvent) {

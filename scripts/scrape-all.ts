@@ -29,8 +29,8 @@ async function main() {
       verbose: true,
       sources: ['ticketmaster', 'marriner', 'whatson'],
       marrinerOptions: {
-        maxShows: 100,
-        maxDetailFetches: 100,
+        maxShows: 50,
+        maxDetailFetches: 50,
         usePuppeteer: true,
       },
       whatsonOptions: {

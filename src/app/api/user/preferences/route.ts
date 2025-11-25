@@ -49,9 +49,19 @@ export async function POST(request: NextRequest) {
     } = await request.json();
 
     // Initialize category weights based on selected categories
+    // IMPORTANT: Use 0.8 for selected categories, 0.2 for unselected
+    // This creates stronger preference signals for recommendations
+    const allCategories = ['music', 'theatre', 'sports', 'arts', 'family', 'other'];
     const categoryWeights: Record<string, number> = {};
+
     if (selectedCategories && Array.isArray(selectedCategories)) {
-      selectedCategories.forEach((cat: string) => {
+      allCategories.forEach((cat: string) => {
+        // Strong preference for selected categories
+        categoryWeights[cat] = selectedCategories.includes(cat) ? 0.8 : 0.2;
+      });
+    } else {
+      // Default: neutral preferences
+      allCategories.forEach((cat: string) => {
         categoryWeights[cat] = 0.5;
       });
     }
@@ -65,12 +75,19 @@ export async function POST(request: NextRequest) {
     if (selectedSubcategories !== undefined) {
       updateFields['preferences.selectedSubcategories'] = selectedSubcategories;
     }
-    if (Object.keys(categoryWeights).length > 0) {
-      updateFields['preferences.categoryWeights'] = categoryWeights;
-    }
+
+    updateFields['preferences.categoryWeights'] = categoryWeights;
+
+    // Set defaults for missing preferences
     if (popularityPreference !== undefined) {
       updateFields['preferences.popularityPreference'] = popularityPreference;
+    } else {
+      updateFields['preferences.popularityPreference'] = 0.5;
     }
+
+    // Default price preferences if not provided
+    updateFields['preferences.pricePreference'] = 0.5;
+    updateFields['preferences.venuePreference'] = 0.5;
 
     // Add price range
     if (priceRange) {
@@ -159,7 +176,16 @@ export async function PATCH(request: NextRequest) {
 
     if (body.selectedCategories !== undefined) {
       updateFields['preferences.selectedCategories'] = body.selectedCategories;
+
+      // Update category weights when selected categories change
+      const allCategories = ['music', 'theatre', 'sports', 'arts', 'family', 'other'];
+      const categoryWeights: Record<string, number> = {};
+      allCategories.forEach((cat: string) => {
+        categoryWeights[cat] = body.selectedCategories.includes(cat) ? 0.8 : 0.2;
+      });
+      updateFields['preferences.categoryWeights'] = categoryWeights;
     }
+
     if (body.selectedSubcategories !== undefined) {
       updateFields['preferences.selectedSubcategories'] = body.selectedSubcategories;
     }
@@ -176,6 +202,12 @@ export async function PATCH(request: NextRequest) {
     }
     if (body.popularityPreference !== undefined) {
       updateFields['preferences.popularityPreference'] = body.popularityPreference;
+    }
+    if (body.pricePreference !== undefined) {
+      updateFields['preferences.pricePreference'] = body.pricePreference;
+    }
+    if (body.venuePreference !== undefined) {
+      updateFields['preferences.venuePreference'] = body.venuePreference;
     }
     if (body.locations !== undefined) {
       updateFields['preferences.locations'] = body.locations;

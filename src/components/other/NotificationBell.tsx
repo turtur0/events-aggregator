@@ -202,22 +202,20 @@ export function NotificationBell() {
                     )}
                 </div>
 
-                {notifications.length > 0 && (
-                    <>
-                        <DropdownMenuSeparator />
-                        <div className="p-2">
-                            <Link href="/notifications" onClick={() => setIsOpen(false)}>
-                                <Button 
-                                    variant="ghost" 
-                                    className="w-full justify-between h-9"
-                                >
-                                    <span className="text-sm font-medium">View all notifications</span>
-                                    <ArrowRight className="h-4 w-4" />
-                                </Button>
-                            </Link>
-                        </div>
-                    </>
-                )}
+
+                <DropdownMenuSeparator />
+                <div className="p-2">
+                    <Link href="/notifications" onClick={() => setIsOpen(false)}>
+                        <Button
+                            variant="ghost"
+                            className="w-full justify-between h-9"
+                        >
+                            <span className="text-sm font-medium">View all notifications</span>
+                            <ArrowRight className="h-4 w-4" />
+                        </Button>
+                    </Link>
+                </div>
+
             </DropdownMenuContent>
         </DropdownMenu>
     );

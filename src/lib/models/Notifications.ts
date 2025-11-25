@@ -67,7 +67,7 @@ NotificationSchema.index({ userId: 1, read: 1, createdAt: -1 });
 NotificationSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 });
 
 // Prevent duplicate notifications for same user/event
-NotificationSchema.index({ userId: 1, eventId: 1 }, { unique: true });
+NotificationSchema.index({ userId: 1, eventId: 1, type: 1 });
 
 const Notification: Model<INotification> =
     mongoose.models.Notification ||

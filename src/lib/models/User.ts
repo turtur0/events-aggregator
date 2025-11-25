@@ -7,6 +7,7 @@ export interface IUser {
     passwordHash?: string;
     provider?: 'credentials' | 'google';
 
+    favorites: mongoose.Types.ObjectId[];
     preferences: {
         selectedCategories: string[];
         selectedSubcategories: string[];
@@ -26,7 +27,7 @@ export interface IUser {
                 enabled: boolean;
                 minRecommendationScore: number;
             };
-            popularityFilter?: 'all' | 'mainstream' | 'niche' | 'personalized'; // ← ADD THIS
+            popularityFilter?: 'all' | 'mainstream' | 'niche' | 'personalized';
         };
     };
 
@@ -67,6 +68,12 @@ const UserSchema = new Schema<IUser>(
             enum: ['credentials', 'google'],
             default: 'credentials',
         },
+
+        favorites: [{
+            type: Schema.Types.ObjectId,
+            ref: 'Event',
+        }],
+
 
         preferences: {
             selectedCategories: {
