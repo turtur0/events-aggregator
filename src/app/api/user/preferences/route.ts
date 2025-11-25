@@ -28,12 +28,9 @@ export async function GET() {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
-
-// POST - Set preferences during onboarding or from settings
 export async function POST(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
-
     if (!session?.user?.email) {
       return NextResponse.json({ error: 'Unauthorised' }, { status: 401 });
     }
@@ -48,25 +45,19 @@ export async function POST(request: NextRequest) {
       notifications,
     } = await request.json();
 
-    // Initialize category weights based on selected categories
-    // IMPORTANT: Use 0.8 for selected categories, 0.2 for unselected
-    // This creates stronger preference signals for recommendations
     const allCategories = ['music', 'theatre', 'sports', 'arts', 'family', 'other'];
     const categoryWeights: Record<string, number> = {};
 
     if (selectedCategories && Array.isArray(selectedCategories)) {
       allCategories.forEach((cat: string) => {
-        // Strong preference for selected categories
         categoryWeights[cat] = selectedCategories.includes(cat) ? 0.8 : 0.2;
       });
     } else {
-      // Default: neutral preferences
       allCategories.forEach((cat: string) => {
         categoryWeights[cat] = 0.5;
       });
     }
 
-    // Build update object using dot notation for nested fields
     const updateFields: any = {};
 
     if (selectedCategories !== undefined) {
@@ -77,19 +68,10 @@ export async function POST(request: NextRequest) {
     }
 
     updateFields['preferences.categoryWeights'] = categoryWeights;
-
-    // Set defaults for missing preferences
-    if (popularityPreference !== undefined) {
-      updateFields['preferences.popularityPreference'] = popularityPreference;
-    } else {
-      updateFields['preferences.popularityPreference'] = 0.5;
-    }
-
-    // Default price preferences if not provided
+    updateFields['preferences.popularityPreference'] = popularityPreference ?? 0.5;
     updateFields['preferences.pricePreference'] = 0.5;
     updateFields['preferences.venuePreference'] = 0.5;
 
-    // Add price range
     if (priceRange) {
       if (priceRange.min !== undefined) {
         updateFields['preferences.priceRange.min'] = priceRange.min;
@@ -99,7 +81,7 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Add notifications using dot notation
+    // Notifications - REMOVED popularityFilter
     if (notifications) {
       if (notifications.inApp !== undefined) {
         updateFields['preferences.notifications.inApp'] = notifications.inApp;
@@ -122,9 +104,6 @@ export async function POST(request: NextRequest) {
         if (notifications.smartFiltering.minRecommendationScore !== undefined) {
           updateFields['preferences.notifications.smartFiltering.minRecommendationScore'] = notifications.smartFiltering.minRecommendationScore;
         }
-      }
-      if (notifications.popularityFilter !== undefined) {
-        updateFields['preferences.notifications.popularityFilter'] = notifications.popularityFilter;
       }
     }
 

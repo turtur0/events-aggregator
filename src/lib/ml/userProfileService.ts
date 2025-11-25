@@ -6,7 +6,7 @@ import UserInteraction, { IUserInteraction } from '@/lib/models/UserInteraction'
 import UserFavourite from '@/lib/models/UserFavourites';
 import Event from '@/lib/models/Event';
 import { extractEventFeatures, cosineSimilarity, EventVector } from './vectorService';
-import { CATEGORIES } from '../categories';
+import { CATEGORIES } from '../constants/categories';
 import mongoose from 'mongoose';
 
 // ============================================

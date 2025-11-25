@@ -15,7 +15,7 @@ import { BookingLink } from "@/components/events/booking-link";
 import { SimilarEvents } from "@/components/recommendations/similiar-events";
 import { BackButton } from "@/components/navigation/back-button"; // ✅ Import new component
 import { format, isSameMonth } from "date-fns";
-import { getCategoryLabel } from "@/lib/categories";
+import { getCategoryLabel } from "@/lib/constants/categories";
 import mongoose from "mongoose";
 
 interface EventPageProps {

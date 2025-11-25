@@ -7,7 +7,7 @@ dotenv.config({ path: path.resolve(process.cwd(), '.env.local') });
 
 import { connectDB } from '@/lib/db';
 import Event from '@/lib/models/Event';
-import { CATEGORIES } from '@/lib/categories';
+import { CATEGORIES } from '@/lib/constants/categories';
 import { calculateRawPopularityScore } from '@/lib/ml/popularityService';
 
 async function diagnose() {

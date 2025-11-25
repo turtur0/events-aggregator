@@ -1,3 +1,5 @@
+
+// lib/models/User.ts
 import mongoose, { Schema, Model } from 'mongoose';
 
 export interface IUser {
@@ -16,7 +18,7 @@ export interface IUser {
             min: number;
             max: number;
         };
-        popularityPreference: number;
+        popularityPreference: number; // 0=hidden gems, 0.5=balanced, 1=mainstream
         locations: string[];
         notifications: {
             inApp: boolean;
@@ -27,7 +29,6 @@ export interface IUser {
                 enabled: boolean;
                 minRecommendationScore: number;
             };
-            popularityFilter?: 'all' | 'mainstream' | 'niche' | 'personalized';
         };
     };
 
@@ -37,7 +38,6 @@ export interface IUser {
     createdAt: Date;
     updatedAt: Date;
 }
-
 
 const UserSchema = new Schema<IUser>(
     {
@@ -68,13 +68,10 @@ const UserSchema = new Schema<IUser>(
             enum: ['credentials', 'google'],
             default: 'credentials',
         },
-
         favorites: [{
             type: Schema.Types.ObjectId,
             ref: 'Event',
         }],
-
-
         preferences: {
             selectedCategories: {
                 type: [String],
@@ -108,14 +105,8 @@ const UserSchema = new Schema<IUser>(
                     enabled: { type: Boolean, default: true },
                     minRecommendationScore: { type: Number, default: 0.6 },
                 },
-                popularityFilter: {  // ← ADD THIS ENTIRE BLOCK
-                    type: String,
-                    enum: ['all', 'mainstream', 'niche', 'personalized'],
-                    default: 'personalized'
-                },
             },
         },
-
         userVector: [Number],
         clusterGroup: String,
     },

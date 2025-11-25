@@ -4,7 +4,7 @@ import UserInteraction from '@/lib/models/UserInteraction';
 import { extractEventFeatures, cosineSimilarity } from './vectorService';
 import mongoose from 'mongoose';
 import type { IEvent } from '@/lib/models/Event';
-import { CATEGORIES } from '../categories';
+import { CATEGORIES } from '../constants/categories';
 
 // ============================================
 // PUBLIC RECOMMENDATIONS

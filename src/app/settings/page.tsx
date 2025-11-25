@@ -37,7 +37,8 @@ import {
     Mail,
 } from 'lucide-react';
 import { BackButton } from '@/components/navigation/back-button';
-import { CATEGORIES } from '@/lib/categories';
+import { CATEGORIES } from '@/lib/constants/categories';
+import { PopularitySelector } from '@/components/preferences/popularity-selector';
 
 // Types for better code clarity
 interface UserPreferences {
@@ -565,12 +566,12 @@ export default function SettingsPage() {
                                             key={category.value}
                                             onClick={() => toggleCategory(category.value)}
                                             className={`
-                        px-4 py-2 rounded-lg text-sm font-medium transition-all
-                        ${selectedCategories.has(category.value)
+                            px-4 py-2 rounded-lg text-sm font-medium transition-all
+                            ${selectedCategories.has(category.value)
                                                     ? 'bg-primary text-primary-foreground shadow-sm ring-2 ring-primary/20'
                                                     : 'bg-muted hover:bg-muted/80'
                                                 }
-                      `}
+                        `}
                                         >
                                             {selectedCategories.has(category.value) && (
                                                 <Check className="inline w-4 h-4 mr-1.5 -ml-0.5" />
@@ -580,6 +581,7 @@ export default function SettingsPage() {
                                     ))}
                                 </div>
                             </div>
+
 
                             {/* Subcategories */}
                             {selectedCategories.size > 0 && (
@@ -617,49 +619,59 @@ export default function SettingsPage() {
                             {/* Popularity Preference */}
                             <div className="space-y-4">
                                 <div>
-                                    <Label className="text-base font-medium">Popularity Preference</Label>
+                                    <Label className="text-base font-medium">Event Type Preference</Label>
                                     <p className="text-sm text-muted-foreground mt-1">
                                         Choose the type of events you prefer to discover
                                     </p>
                                 </div>
 
-                                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                                    {POPULARITY_OPTIONS.map((option) => {
-                                        const Icon = option.icon;
-                                        return (
-                                            <button
-                                                key={option.value}
-                                                onClick={() => setPopularityPref(option.value)}
-                                                className={`
-                          p-4 rounded-lg border-2 transition-all text-left
-                          ${popularityPref === option.value
-                                                        ? 'border-primary bg-primary/5 shadow-sm'
-                                                        : 'border-border hover:border-primary/50 hover:bg-muted/50'
-                                                    }
-                        `}
-                                            >
-                                                <div className="flex items-start gap-3">
-                                                    <Icon className={`h-5 w-5 mt-0.5 ${popularityPref === option.value ? 'text-primary' : 'text-muted-foreground'
-                                                        }`} />
-                                                    <div className="flex-1 min-w-0">
-                                                        <div className="font-medium text-sm">{option.label}</div>
-                                                        <div className="text-xs text-muted-foreground mt-0.5">
-                                                            {option.description}
-                                                        </div>
-                                                    </div>
-                                                    {popularityPref === option.value && (
-                                                        <Check className="h-5 w-5 text-primary shrink-0" />
-                                                    )}
-                                                </div>
-                                            </button>
-                                        );
-                                    })}
+                                <PopularitySelector
+                                    value={popularityPref}
+                                    onChange={setPopularityPref}
+                                    variant="cards"
+                                />
+                            </div>
+
+                            <Separator />
+
+                            {/* Price Range */}
+                            <div className="space-y-3">
+                                <Label className="flex items-center gap-2">
+                                    <DollarSign className="h-4 w-4" />
+                                    Price Range
+                                </Label>
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <Label htmlFor="priceMin" className="text-xs">Minimum</Label>
+                                        <Input
+                                            id="priceMin"
+                                            type="number"
+                                            value={priceMin}
+                                            onChange={(e) => setPriceMin(Number(e.target.value))}
+                                            min={0}
+                                            className="mt-1"
+                                        />
+                                    </div>
+                                    <div>
+                                        <Label htmlFor="priceMax" className="text-xs">Maximum</Label>
+                                        <Input
+                                            id="priceMax"
+                                            type="number"
+                                            value={priceMax}
+                                            onChange={(e) => setPriceMax(Number(e.target.value))}
+                                            min={0}
+                                            className="mt-1"
+                                        />
+                                    </div>
                                 </div>
+                                <p className="text-xs text-muted-foreground">
+                                    Free events always included
+                                </p>
                             </div>
                         </CardContent>
                     </Card>
 
-                    {/* Notifications Card */}
+
                     <Card className="border-2 shadow-sm">
                         <CardHeader>
                             <CardTitle className="text-xl flex items-center gap-2">
@@ -688,6 +700,7 @@ export default function SettingsPage() {
                             </div>
 
                             <Separator />
+
 
                             {/* Email Notifications */}
                             <div className="space-y-4">
@@ -744,7 +757,7 @@ export default function SettingsPage() {
                                     placeholder="e.g., taylor swift, hamilton, comedy"
                                 />
                                 <p className="text-xs text-muted-foreground">
-                                    Free events always included
+                                    Get priority alerts for these keywords (comma-separated)
                                 </p>
                             </div>
 
@@ -759,7 +772,7 @@ export default function SettingsPage() {
                                             Smart Filtering
                                         </Label>
                                         <p className="text-sm text-muted-foreground">
-                                            Only notify about events you'll likely enjoy
+                                            Only notify about events matching your preferences
                                         </p>
                                     </div>
                                     <Checkbox
@@ -787,46 +800,17 @@ export default function SettingsPage() {
                                                 Higher = fewer, more relevant notifications
                                             </p>
                                         </div>
+                                        <p className="text-xs text-muted-foreground flex items-start gap-2 p-3 bg-background/50 rounded border">
+                                            <Sparkles className="h-3.5 w-3.5 mt-0.5 shrink-0" />
+                                            Notifications will respect your Event Type Preference above
+                                        </p>
                                     </div>
                                 )}
                             </div>
 
                             <Separator />
 
-                            {/* Price Range */}
-                            <div className="space-y-3">
-                                <Label className="flex items-center gap-2">
-                                    <DollarSign className="h-4 w-4" />
-                                    Price Range
-                                </Label>
-                                <div className="grid grid-cols-2 gap-4">
-                                    <div>
-                                        <Label htmlFor="priceMin" className="text-xs">Minimum</Label>
-                                        <Input
-                                            id="priceMin"
-                                            type="number"
-                                            value={priceMin}
-                                            onChange={(e) => setPriceMin(Number(e.target.value))}
-                                            min={0}
-                                            className="mt-1"
-                                        />
-                                    </div>
-                                    <div>
-                                        <Label htmlFor="priceMax" className="text-xs">Maximum</Label>
-                                        <Input
-                                            id="priceMax"
-                                            type="number"
-                                            value={priceMax}
-                                            onChange={(e) => setPriceMax(Number(e.target.value))}
-                                            min={0}
-                                            className="mt-1"
-                                        />
-                                    </div>
-                                </div>
-                                <p className="text-xs text-muted-foreground">
-                                    Free events always included
-                                </p>
-                            </div>
+                            {/* Price Range - same as Event Preferences */}
                         </CardContent>
                     </Card>
 

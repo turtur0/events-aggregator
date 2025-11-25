@@ -8,7 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { Slider } from '@/components/ui/slider';
-import { CATEGORIES } from '@/lib/categories';
+import { CATEGORIES } from '@/lib/constants/categories';
 import {
     Loader2,
     ChevronRight,
@@ -24,6 +24,8 @@ import {
     Gem
 } from 'lucide-react';
 import { useRequireOnboarding } from '@/lib/hooks/useAuthRedirect';
+import { PopularitySelector } from '@/components/preferences/popularity-selector';
+import { POPULARITY_OPTIONS } from '@/lib/constants/preferences';
 
 const MIN_CATEGORIES = 2;
 type Step = 'username' | 'categories' | 'preferences' | 'notifications';
@@ -355,36 +357,16 @@ export default function Onboarding() {
                             </CardDescription>
                         </CardHeader>
                         <CardContent className="space-y-6">
-                            {/* Popularity Preference */}
+                            {/* Event Type Preference */}
                             <div className="space-y-4">
-                                <div className="flex justify-between items-center">
-                                    <Label className="text-base font-medium">Event Type Preference</Label>
-                                    <span className="text-sm font-semibold text-muted-foreground">
-                                        {popularityOptions.find(opt => opt.value === popularityPref)?.label}
-                                    </span>
-                                </div>
-
-                                <div className="grid grid-cols-3 gap-2">
-                                    {popularityOptions.map((option) => {
-                                        const Icon = option.icon;
-                                        return (
-                                            <button
-                                                key={option.value}
-                                                onClick={() => setPopularityPref(option.value)}
-                                                className={`flex flex-col items-center gap-2 p-4 rounded-lg border-2 transition-all ${popularityPref === option.value
-                                                    ? 'bg-primary/10 border-primary text-primary'
-                                                    : 'border-border hover:border-primary/50 hover:bg-muted/50'
-                                                    }`}
-                                            >
-                                                <Icon className="h-5 w-5" />
-                                                <span className="text-sm font-medium">{option.label}</span>
-                                            </button>
-                                        );
-                                    })}
-                                </div>
-
+                                <Label className="text-base font-medium">What type of events do you prefer?</Label>
+                                <PopularitySelector
+                                    value={popularityPref}
+                                    onChange={setPopularityPref}
+                                    variant="buttons"
+                                />
                                 <p className="text-xs text-muted-foreground">
-                                    {popularityOptions.find(opt => opt.value === popularityPref)?.description}
+                                    {POPULARITY_OPTIONS.find(opt => opt.value === popularityPref)?.description}
                                 </p>
                             </div>
 
@@ -538,7 +520,7 @@ export default function Onboarding() {
                                             Smart Filtering
                                         </Label>
                                         <p className="text-sm text-muted-foreground">
-                                            Only notify about events you'll likely enjoy
+                                            Only notify about events matching your event type preference
                                         </p>
                                     </div>
                                     <Checkbox
@@ -566,33 +548,6 @@ export default function Onboarding() {
                                             <p className="text-xs text-muted-foreground mt-2">
                                                 Higher scores mean fewer but more relevant notifications
                                             </p>
-                                        </div>
-
-                                        <div className="space-y-2">
-                                            <Label className="text-sm font-medium">Popularity Preference</Label>
-                                            <div className="grid grid-cols-2 gap-2">
-                                                {[
-                                                    { value: 'personalized', label: 'Personalized', icon: Target },
-                                                    { value: 'all', label: 'All Events', icon: Sparkles },
-                                                    { value: 'mainstream', label: 'Mainstream', icon: TrendingUp },
-                                                    { value: 'niche', label: 'Hidden Gems', icon: Gem },
-                                                ].map((option) => {
-                                                    const Icon = option.icon;
-                                                    return (
-                                                        <button
-                                                            key={option.value}
-                                                            onClick={() => setPopularityFilter(option.value as any)}
-                                                            className={`flex items-center gap-2 p-2.5 rounded-lg text-xs font-medium transition-all border ${popularityFilter === option.value
-                                                                ? 'bg-primary text-primary-foreground border-primary'
-                                                                : 'bg-background hover:bg-muted border-border'
-                                                                }`}
-                                                        >
-                                                            <Icon className="h-3.5 w-3.5" />
-                                                            {option.label}
-                                                        </button>
-                                                    );
-                                                })}
-                                            </div>
                                         </div>
                                     </div>
                                 )}

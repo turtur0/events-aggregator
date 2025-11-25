@@ -7,7 +7,7 @@ import { Button } from "../ui/button";
 import { FavouriteButton } from "./favourite-button";
 import { SerializedEvent } from "@/lib/models/Event";
 import { format, isSameDay, isSameMonth } from "date-fns";
-import { getCategoryLabel } from "@/lib/categories";
+import { getCategoryLabel } from "@/lib/constants/categories";
 
 interface EventCardProps {
   event: SerializedEvent;

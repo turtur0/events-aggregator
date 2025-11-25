@@ -4,7 +4,7 @@ import UserFavourite from '../models/UserFavourites';
 import Notification from '../models/Notifications';
 import { IEvent } from '@/lib/models/Event';
 import { extractEventFeatures, cosineSimilarity } from '@/lib/ml/vectorService';
-import { CATEGORIES } from '@/lib/categories';
+import { CATEGORIES } from '@/lib/constants/categories';
 
 interface NotificationData {
     userId: string;
@@ -129,11 +129,28 @@ export async function processFavoritedEventUpdate(
         return 0;
     }
 }
-
 /**
- * Evaluate if a user should be notified about an event.
- * Checks for keyword matches first, then personalized recommendations.
+ * Check if event matches user's popularity preference for notifications.
+ * Uses wider tolerance bands to avoid over-filtering.
  */
+function matchesPopularityPreference(event: IEvent, user: any): boolean {
+    const userPref = user.preferences?.popularityPreference ?? 0.5;
+    const eventPopularity = event.stats?.categoryPopularityPercentile ?? 0.5;
+
+    // Wide tolerance bands to avoid missing good events
+    if (userPref <= 0.2) {
+        // Hidden Gems preference: notify for bottom 60% of events
+        return eventPopularity <= 0.6;
+    } else if (userPref >= 0.8) {
+        // Mainstream preference: notify for top 60% of events
+        return eventPopularity >= 0.4;
+    } else {
+        // Balanced preference: notify for all events (no filter)
+        return true;
+    }
+}
+
+// Update evaluateEventForUser to use this filter:
 async function evaluateEventForUser(user: any, event: IEvent): Promise<NotificationData | null> {
     const userId = user._id.toString();
     const eventId = event._id.toString();
@@ -142,7 +159,7 @@ async function evaluateEventForUser(user: any, event: IEvent): Promise<Notificat
     const existingNotification = await Notification.findOne({ userId, eventId });
     if (existingNotification) return null;
 
-    // Check for keyword matches (highest priority)
+    // Check keyword matches first (always notify for keyword matches)
     const keywords = user.preferences?.notifications?.keywords || [];
     if (keywords.length > 0) {
         const matchedKeyword = findMatchingKeyword(event, keywords);
@@ -158,9 +175,14 @@ async function evaluateEventForUser(user: any, event: IEvent): Promise<Notificat
         }
     }
 
-    // Check for personalized recommendations
+    // Check smart filtering
     const smartFiltering = user.preferences?.notifications?.smartFiltering;
     if (smartFiltering?.enabled !== false) {
+        // Apply popularity preference filter before scoring
+        if (!matchesPopularityPreference(event, user)) {
+            return null;
+        }
+
         const score = await calculateRecommendationScore(user, event);
         const threshold = smartFiltering?.minRecommendationScore || 0.6;
 

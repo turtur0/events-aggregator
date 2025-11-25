@@ -1,7 +1,7 @@
 'use client';
 
 import { useRouter, useSearchParams, usePathname } from 'next/navigation';
-import { CATEGORIES } from '@/lib/categories';
+import { CATEGORIES } from '@/lib/constants/categories';
 import {
   Select,
   SelectContent,

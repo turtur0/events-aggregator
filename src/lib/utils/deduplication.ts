@@ -6,7 +6,7 @@
 
 import stringSimilarity from 'string-similarity';
 import type { EventForDedup, DuplicateMatch } from '../scrapers/types';
-import { isValidSubcategory } from '../categories';
+import { isValidSubcategory } from '../constants/categories';
 
 // ============================================
 // CONFIGURATION
