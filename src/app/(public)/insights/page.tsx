@@ -1,6 +1,7 @@
 
 // app/insights/page.tsx
 import { PriceDistributionChart } from '@/components/analytics/PriceDistributionChart';
+import { TimelineChart } from '@/components/analytics/TimelineChart';
 import { Sparkles } from 'lucide-react';
 
 export default function InsightsPage() {
@@ -27,6 +28,7 @@ export default function InsightsPage() {
             <section className="container max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
                 <div className="space-y-8">
                     <PriceDistributionChart />
+                    <TimelineChart />
                 </div>
             </section>
         </div>
