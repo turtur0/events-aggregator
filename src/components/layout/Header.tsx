@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useSession, signOut } from "next-auth/react";
-import { Search, ChevronDown, Music, Theater, Trophy, Palette, Users, Sparkles, Menu, LogOut, Settings, User, Heart } from "lucide-react";
+import { Search, ChevronDown, Music, Theater, Trophy, Palette, Users, Sparkles, Menu, LogOut, Settings, User, Heart, BarChart3 } from "lucide-react";
 import { ThemeToggle } from '../theme/ThemeToggle';
 import { NotificationBell } from "../other/NotificationBell";
 import { Button } from '../ui/Button';
@@ -15,6 +15,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/DropdownMenu';
+import { cn } from '@/lib/utils';
 
 const CATEGORY_LINKS = [
   { label: "Music", slug: "music", icon: Music, description: "Concerts, gigs & live music" },
@@ -28,6 +29,16 @@ const CATEGORY_LINKS = [
 export function Header() {
   const pathname = usePathname();
   const { data: session, status } = useSession();
+
+  // Check if we're on a category page
+  const isOnCategoryPage = pathname?.startsWith('/category/');
+  const currentCategory = isOnCategoryPage ? pathname.split('/')[2] : null;
+
+  // Check if we're on the events page
+  const isOnEventsPage = pathname === '/events';
+
+  // Check if we're on any browse-related page (categories or all events)
+  const isOnBrowsePage = isOnCategoryPage || isOnEventsPage;
 
   async function handleSignOut() {
     await signOut({ redirect: true, callbackUrl: '/' });
@@ -43,10 +54,26 @@ export function Header() {
 
         {/* Navigation */}
         <nav className="flex items-center gap-1 sm:gap-2">
-          {/* Browse Events Dropdown - Hidden on mobile */}
+          {/* Insights Link - Desktop */}
+          <Link href="/insights" className="hidden md:block">
+            <Button
+              variant={pathname === '/insights' ? 'default' : 'ghost'}
+              size="sm"
+              className="gap-2"
+            >
+              <BarChart3 className="h-4 w-4" />
+              <span className="hidden lg:inline">Insights</span>
+            </Button>
+          </Link>
+
+          {/* Browse Events Dropdown - Desktop */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="outline" size="sm" className="hidden sm:flex gap-1">
+              <Button
+                variant={isOnBrowsePage ? 'default' : 'outline'}
+                size="sm"
+                className="hidden sm:flex gap-1"
+              >
                 Browse Events
                 <ChevronDown className="h-4 w-4" />
               </Button>
@@ -56,15 +83,27 @@ export function Header() {
               <DropdownMenuSeparator />
               {CATEGORY_LINKS.map((cat) => {
                 const Icon = cat.icon;
+                const isActive = currentCategory === cat.slug;
                 return (
                   <DropdownMenuItem key={cat.slug} asChild>
                     <Link
                       href={`/category/${cat.slug}`}
-                      className="flex items-start gap-3 py-2"
+                      className={cn(
+                        "flex items-start gap-3 py-2",
+                        isActive && "bg-accent"
+                      )}
                     >
-                      <Icon className="h-5 w-5 mt-0.5 text-muted-foreground" />
+                      <Icon className={cn(
+                        "h-5 w-5 mt-0.5",
+                        isActive ? "text-primary" : "text-muted-foreground"
+                      )} />
                       <div>
-                        <p className="font-medium">{cat.label}</p>
+                        <p className={cn(
+                          "font-medium",
+                          isActive && "text-primary"
+                        )}>
+                          {cat.label}
+                        </p>
                         <p className="text-xs text-muted-foreground">{cat.description}</p>
                       </div>
                     </Link>
@@ -73,10 +112,24 @@ export function Header() {
               })}
               <DropdownMenuSeparator />
               <DropdownMenuItem asChild>
-                <Link href="/events" className="flex items-center gap-3 py-2">
-                  <Search className="h-5 w-5 text-muted-foreground" />
+                <Link
+                  href="/events"
+                  className={cn(
+                    "flex items-center gap-3 py-2",
+                    isOnEventsPage && "bg-accent"
+                  )}
+                >
+                  <Search className={cn(
+                    "h-5 w-5",
+                    isOnEventsPage ? "text-primary" : "text-muted-foreground"
+                  )} />
                   <div>
-                    <p className="font-medium">All Events</p>
+                    <p className={cn(
+                      "font-medium",
+                      isOnEventsPage && "text-primary"
+                    )}>
+                      All Events
+                    </p>
                     <p className="text-xs text-muted-foreground">Search & filter everything</p>
                   </div>
                 </Link>
@@ -93,47 +146,99 @@ export function Header() {
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-56">
+              {/* All Events */}
               <DropdownMenuItem asChild>
-                <Link href="/events" className="flex items-center gap-2">
+                <Link
+                  href="/events"
+                  className={cn(
+                    "flex items-center gap-2",
+                    isOnEventsPage && "bg-accent text-primary"
+                  )}
+                >
                   <Search className="h-4 w-4" />
                   All Events
                 </Link>
               </DropdownMenuItem>
+
+              {/* Insights */}
+              <DropdownMenuItem asChild>
+                <Link
+                  href="/insights"
+                  className={cn(
+                    "flex items-center gap-2",
+                    pathname === '/insights' && "bg-accent text-primary"
+                  )}
+                >
+                  <BarChart3 className="h-4 w-4" />
+                  Insights
+                </Link>
+              </DropdownMenuItem>
+
               <DropdownMenuSeparator />
               <DropdownMenuLabel>Categories</DropdownMenuLabel>
+
+              {/* Categories */}
               {CATEGORY_LINKS.map((cat) => {
                 const Icon = cat.icon;
+                const isActive = currentCategory === cat.slug;
                 return (
                   <DropdownMenuItem key={cat.slug} asChild>
-                    <Link href={`/category/${cat.slug}`} className="flex items-center gap-2">
+                    <Link
+                      href={`/category/${cat.slug}`}
+                      className={cn(
+                        "flex items-center gap-2",
+                        isActive && "bg-accent text-primary"
+                      )}
+                    >
                       <Icon className="h-4 w-4" />
                       {cat.label}
                     </Link>
                   </DropdownMenuItem>
                 );
               })}
+
               <DropdownMenuSeparator />
               <DropdownMenuItem asChild>
                 <Link href="/about">About</Link>
               </DropdownMenuItem>
+
+              {/* User Menu Items (Mobile) */}
               {session?.user && (
                 <>
                   <DropdownMenuSeparator />
                   <DropdownMenuLabel>Account</DropdownMenuLabel>
                   <DropdownMenuItem asChild>
-                    <Link href="/favourites" className="flex items-center gap-2">
+                    <Link
+                      href="/favourites"
+                      className={cn(
+                        "flex items-center gap-2",
+                        pathname === '/favourites' && "bg-accent text-primary"
+                      )}
+                    >
                       <Heart className="h-4 w-4" />
                       My Favourites
                     </Link>
                   </DropdownMenuItem>
                   <DropdownMenuItem asChild>
-                    <Link href="/profile" className="flex items-center gap-2">
+                    <Link
+                      href="/profile"
+                      className={cn(
+                        "flex items-center gap-2",
+                        pathname === '/profile' && "bg-accent text-primary"
+                      )}
+                    >
                       <User className="h-4 w-4" />
                       Profile
                     </Link>
                   </DropdownMenuItem>
                   <DropdownMenuItem asChild>
-                    <Link href="/settings" className="flex items-center gap-2">
+                    <Link
+                      href="/settings"
+                      className={cn(
+                        "flex items-center gap-2",
+                        pathname === '/settings' && "bg-accent text-primary"
+                      )}
+                    >
                       <Settings className="h-4 w-4" />
                       Settings
                     </Link>
@@ -159,7 +264,17 @@ export function Header() {
           ) : session?.user ? (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="outline" size="sm" className="hidden sm:flex gap-2">
+                <Button
+                  variant={
+                    pathname === '/favourites' ||
+                      pathname === '/profile' ||
+                      pathname === '/settings'
+                      ? 'default'
+                      : 'outline'
+                  }
+                  size="sm"
+                  className="hidden sm:flex gap-2"
+                >
                   <User className="h-4 w-4" />
                   <span className="hidden md:inline">{session.user.name}</span>
                   <ChevronDown className="h-4 w-4" />
@@ -172,19 +287,37 @@ export function Header() {
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem asChild>
-                  <Link href="/favourites" className="flex items-center gap-2 cursor-pointer">
+                  <Link
+                    href="/favourites"
+                    className={cn(
+                      "flex items-center gap-2 cursor-pointer",
+                      pathname === '/favourites' && "bg-accent text-primary"
+                    )}
+                  >
                     <Heart className="h-4 w-4" />
                     My Favourites
                   </Link>
                 </DropdownMenuItem>
                 <DropdownMenuItem asChild>
-                  <Link href="/profile" className="flex items-center gap-2 cursor-pointer">
+                  <Link
+                    href="/profile"
+                    className={cn(
+                      "flex items-center gap-2 cursor-pointer",
+                      pathname === '/profile' && "bg-accent text-primary"
+                    )}
+                  >
                     <User className="h-4 w-4" />
                     My Profile
                   </Link>
                 </DropdownMenuItem>
                 <DropdownMenuItem asChild>
-                  <Link href="/settings" className="flex items-center gap-2 cursor-pointer">
+                  <Link
+                    href="/settings"
+                    className={cn(
+                      "flex items-center gap-2 cursor-pointer",
+                      pathname === '/settings' && "bg-accent text-primary"
+                    )}
+                  >
                     <Settings className="h-4 w-4" />
                     Settings
                   </Link>

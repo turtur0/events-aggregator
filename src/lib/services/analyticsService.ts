@@ -1,225 +1,270 @@
-// lib/services/analyticsService.ts
+// lib/services/analyticsService.ts - Fixed filtering logic
+
 import Event from '@/lib/models/Event';
-import { CATEGORIES } from '../constants/categories';
+import { CATEGORIES } from '@/lib/constants/categories';
 
 export interface PriceDistribution {
     category: string;
     displayName: string;
-    isSubcategory: boolean;
-    min: number;
-    q1: number;
-    median: number;
-    q3: number;
-    max: number;
     count: number;
+    min: number;
+    max: number;
     avgPrice: number;
+    median: number;
+    q1: number;
+    q3: number;
+    isSubcategory: boolean;
 }
 
 export interface TimelineData {
     month: string;
-    [category: string]: number | string;
     total: number;
+    [category: string]: number | string;
 }
 
 export interface PopularityData {
-    _id: string;
     title: string;
     category: string;
     priceMin: number;
-    priceMax: number;
     popularity: number;
     favourites: number;
 }
 
 /**
- * Calculate price distribution statistics by category or subcategory
- * @param selectedCategories - Array of category values (e.g., ['music', 'Rock & Alternative'])
+ * Build MongoDB query filter based on selected categories/subcategories
+ */
+function buildCategoryFilter(selectedCategories?: string[]) {
+    if (!selectedCategories || selectedCategories.length === 0) {
+        return {};
+    }
+
+    // Separate main categories from subcategories
+    const mainCategories: string[] = [];
+    const subcategories: string[] = [];
+
+    selectedCategories.forEach(cat => {
+        const isSubcategory = CATEGORIES.some(mainCat => 
+            mainCat.subcategories?.includes(cat)
+        );
+
+        if (isSubcategory) {
+            subcategories.push(cat);
+        } else {
+            mainCategories.push(cat);
+        }
+    });
+
+    // Build OR conditions
+    const conditions: any[] = [];
+
+    if (mainCategories.length > 0) {
+        conditions.push({ category: { $in: mainCategories } });
+    }
+
+    if (subcategories.length > 0) {
+        conditions.push({ subcategories: { $in: subcategories } });
+    }
+
+    return conditions.length > 0 ? { $or: conditions } : {};
+}
+
+/**
+ * Check if an event matches the selected categories
+ */
+function matchesCategories(event: any, selectedCategories?: string[]): boolean {
+    if (!selectedCategories || selectedCategories.length === 0) {
+        return true;
+    }
+
+    // Check main category
+    if (selectedCategories.includes(event.category)) {
+        return true;
+    }
+
+    // Check subcategories
+    if (event.subcategories && Array.isArray(event.subcategories)) {
+        return event.subcategories.some((sub: string) => selectedCategories.includes(sub));
+    }
+
+    return false;
+}
+
+/**
+ * Compute price distribution with optional category filtering
  */
 export async function computePriceDistribution(
     selectedCategories?: string[]
 ): Promise<PriceDistribution[]> {
-    const results: PriceDistribution[] = [];
+    const now = new Date();
+    const categoryFilter = buildCategoryFilter(selectedCategories);
 
-    // If no selection, default to all main categories
-    const categoriesToProcess = selectedCategories && selectedCategories.length > 0
-        ? selectedCategories
-        : CATEGORIES.map(c => c.value);
+    const events = await Event.find({
+        startDate: { $gte: now },
+        isFree: false,
+        priceMin: { $exists: true, $gt: 0 },
+        ...categoryFilter,
+    })
+        .select('category subcategories priceMin priceMax')
+        .lean();
 
-    for (const categoryOrSub of categoriesToProcess) {
-        // Check if it's a main category
-        const mainCategory = CATEGORIES.find(c => c.value === categoryOrSub);
-        const isMainCategory = !!mainCategory;
+    if (events.length === 0) return [];
 
-        // Check if it's a subcategory
-        let parentCategory: string | undefined;
-        let isSubcategory = false;
+    // Group by category or subcategory
+    const groups: Record<string, number[]> = {};
 
-        if (!isMainCategory) {
-            for (const cat of CATEGORIES) {
-                if (cat.subcategories?.includes(categoryOrSub)) {
-                    parentCategory = cat.value;
-                    isSubcategory = true;
-                    break;
-                }
+    events.forEach(event => {
+        if (selectedCategories && selectedCategories.length > 0) {
+            // Filter to only selected categories/subcategories
+            const selectedSubs = event.subcategories?.filter(sub =>
+                selectedCategories.includes(sub)
+            ) || [];
+
+            // Add to subcategory groups
+            selectedSubs.forEach(sub => {
+                if (!groups[sub]) groups[sub] = [];
+                groups[sub].push(event.priceMin || 0);
+            });
+
+            // If main category is selected and no subcategories matched
+            if (selectedCategories.includes(event.category) && selectedSubs.length === 0) {
+                if (!groups[event.category]) groups[event.category] = [];
+                groups[event.category].push(event.priceMin || 0);
             }
-        }
-
-        // Build query - RELAXED to include events without priceMin
-        let query: any = {
-            isFree: false
-        };
-
-        if (isMainCategory) {
-            query.category = categoryOrSub;
-        } else if (isSubcategory && parentCategory) {
-            query.category = parentCategory;
-            query.subcategories = categoryOrSub;
         } else {
-            continue; // Invalid category
+            // No filter - group by main category
+            if (!groups[event.category]) groups[event.category] = [];
+            groups[event.category].push(event.priceMin || 0);
         }
+    });
 
-        // Get events
-        const events = await Event.find(query)
-            .select('priceMin priceMax priceDetails')
-            .lean();
+    // Calculate statistics for each group
+    const result: PriceDistribution[] = [];
 
-        if (events.length === 0) {
-            continue;
-        }
+    for (const [categoryName, prices] of Object.entries(groups)) {
+        if (prices.length === 0) continue;
 
-        // Extract prices - try priceMin, priceMax, or parse from priceDetails
-        const prices = events
-            .map(e => {
-                // Try priceMin first
-                if (e.priceMin && e.priceMin > 0) return e.priceMin;
+        const sorted = prices.sort((a, b) => a - b);
+        const count = sorted.length;
 
-                // Try priceMax as fallback
-                if (e.priceMax && e.priceMax > 0) return e.priceMax;
+        const isSubcategory = CATEGORIES.some(cat =>
+            cat.subcategories?.includes(categoryName)
+        );
 
-                // Try parsing from priceDetails (e.g., "$50-$100" or "From $75")
-                if (e.priceDetails) {
-                    const match = e.priceDetails.match(/\$(\d+)/);
-                    if (match) return parseInt(match[1]);
-                }
-
-                return null;
-            })
-            .filter((p): p is number => p !== null && p > 0)
-            .sort((a, b) => a - b);
-
-        // Skip if no valid prices found
-        if (prices.length === 0) {
-            console.log(`[Analytics] No valid prices for ${categoryOrSub} (${events.length} events)`);
-            continue;
-        }
-
-        const n = prices.length;
-        const min = prices[0];
-        const max = prices[n - 1];
-        const median = n % 2 === 0
-            ? (prices[n / 2 - 1] + prices[n / 2]) / 2
-            : prices[Math.floor(n / 2)];
-        const q1 = prices[Math.floor(n * 0.25)];
-        const q3 = prices[Math.floor(n * 0.75)];
-        const avgPrice = prices.reduce((sum, p) => sum + p, 0) / n;
-
-        results.push({
-            category: categoryOrSub,
-            displayName: isMainCategory
-                ? mainCategory!.label
-                : categoryOrSub,
+        result.push({
+            category: categoryName,
+            displayName: categoryName.charAt(0).toUpperCase() + categoryName.slice(1),
+            count,
+            min: Math.round(sorted[0]),
+            max: Math.round(sorted[count - 1]),
+            avgPrice: Math.round(prices.reduce((sum, p) => sum + p, 0) / count),
+            median: Math.round(sorted[Math.floor(count / 2)]),
+            q1: Math.round(sorted[Math.floor(count * 0.25)]),
+            q3: Math.round(sorted[Math.floor(count * 0.75)]),
             isSubcategory,
-            min,
-            q1,
-            median,
-            q3,
-            max,
-            count: n,
-            avgPrice: Math.round(avgPrice)
         });
     }
 
-    return results;
+    return result.sort((a, b) => b.count - a.count);
 }
 
 /**
- * Calculate event counts over time by category
+ * Compute timeline with optional category filtering
  */
-export async function computeTimeline(): Promise<TimelineData[]> {
-    const sixMonthsFromNow = new Date();
-    sixMonthsFromNow.setMonth(sixMonthsFromNow.getMonth() + 6);
+export async function computeTimeline(
+    selectedCategories?: string[]
+): Promise<TimelineData[]> {
+    const now = new Date();
+    const sixMonthsLater = new Date(now);
+    sixMonthsLater.setMonth(sixMonthsLater.getMonth() + 6);
 
-    const events = await Event.aggregate([
-        {
-            $match: {
-                startDate: {
-                    $gte: new Date(),
-                    $lte: sixMonthsFromNow
-                }
-            }
-        },
-        {
-            $group: {
-                _id: {
-                    month: { $dateToString: { format: '%Y-%m', date: '$startDate' } },
-                    category: '$category'
-                },
-                count: { $sum: 1 }
-            }
-        },
-        {
-            $sort: { '_id.month': 1 }
-        }
-    ]);
+    const categoryFilter = buildCategoryFilter(selectedCategories);
 
-    const timelineMap = new Map<string, TimelineData>();
-
-    for (const item of events) {
-        const month = item._id.month;
-        const category = item._id.category;
-        const count = item.count;
-
-        if (!timelineMap.has(month)) {
-            timelineMap.set(month, {
-                month: formatMonth(month),
-                total: 0
-            });
-        }
-
-        const data = timelineMap.get(month)!;
-        data[category] = count;
-        data.total += count;
-    }
-
-    return Array.from(timelineMap.values());
-}
-
-/**
- * Get events for price vs popularity scatter plot
- */
-export async function computePopularityData(): Promise<PopularityData[]> {
     const events = await Event.find({
-        startDate: { $gte: new Date() },
-        priceMin: { $exists: true, $gt: 0 },
-        'stats.categoryPopularityPercentile': { $exists: true }
+        startDate: { $gte: now, $lte: sixMonthsLater },
+        ...categoryFilter,
     })
-        .select('title category priceMin priceMax stats.categoryPopularityPercentile stats.favouriteCount')
-        .limit(200)
+        .select('startDate category subcategories')
         .lean();
 
-    return events.map(e => ({
-        _id: e._id.toString(),
-        title: e.title,
-        category: e.category,
-        priceMin: e.priceMin || 0,
-        priceMax: e.priceMax || e.priceMin || 0,
-        popularity: e.stats?.categoryPopularityPercentile || 0,
-        favourites: e.stats?.favouriteCount || 0
-    }));
+    // Group by month and category
+    const monthGroups: Record<string, Record<string, number>> = {};
+
+    events.forEach(event => {
+        const monthKey = event.startDate.toLocaleDateString('en-US', {
+            month: 'short',
+            year: 'numeric',
+        });
+
+        if (!monthGroups[monthKey]) {
+            monthGroups[monthKey] = {};
+        }
+
+        // Always count by main category for timeline consistency
+        const categoryKey = event.category;
+        monthGroups[monthKey][categoryKey] = (monthGroups[monthKey][categoryKey] || 0) + 1;
+    });
+
+    // Convert to array format
+    const result: TimelineData[] = Object.entries(monthGroups).map(([month, categories]) => {
+        const row: TimelineData = {
+            month,
+            total: Object.values(categories).reduce((sum, count) => sum + count, 0),
+        };
+
+        // Add each category count
+        Object.entries(categories).forEach(([cat, count]) => {
+            row[cat] = count;
+        });
+
+        return row;
+    });
+
+    // Sort by date
+    return result.sort((a, b) => {
+        const dateA = new Date(a.month);
+        const dateB = new Date(b.month);
+        return dateA.getTime() - dateB.getTime();
+    });
 }
 
-function formatMonth(monthStr: string): string {
-    const [year, month] = monthStr.split('-');
-    const date = new Date(parseInt(year), parseInt(month) - 1);
-    return date.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+/**
+ * Compute popularity data with optional category filtering
+ */
+export async function computePopularityData(
+    selectedCategories?: string[]
+): Promise<PopularityData[]> {
+    const now = new Date();
+    
+    console.log('[Analytics] Computing popularity with filters:', selectedCategories);
+    
+    const categoryFilter = buildCategoryFilter(selectedCategories);
+    
+    console.log('[Analytics] Category filter:', JSON.stringify(categoryFilter));
+
+    const events = await Event.find({
+        startDate: { $gte: now },
+        priceMin: { $exists: true, $gt: 0 },
+        'stats.categoryPopularityPercentile': { $exists: true },
+        ...categoryFilter,
+    })
+        .select('title category subcategories priceMin stats.categoryPopularityPercentile stats.favouriteCount')
+        .limit(500)
+        .lean();
+
+    console.log('[Analytics] Found events:', events.length);
+    
+    // Additional filtering in case MongoDB query wasn't restrictive enough
+    const filteredEvents = selectedCategories && selectedCategories.length > 0
+        ? events.filter(event => matchesCategories(event, selectedCategories))
+        : events;
+
+    console.log('[Analytics] After client-side filtering:', filteredEvents.length);
+
+    return filteredEvents.map(event => ({
+        title: event.title,
+        category: event.category,
+        priceMin: event.priceMin || 0,
+        popularity: event.stats?.categoryPopularityPercentile || 0,
+        favourites: event.stats?.favouriteCount || 0,
+    }));
 }
