@@ -46,7 +46,7 @@ export function Header() {
           {/* Browse Events Dropdown - Hidden on mobile */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="sm" className="hidden sm:flex gap-1">
+              <Button variant="outline" size="sm" className="hidden sm:flex gap-1">
                 Browse Events
                 <ChevronDown className="h-4 w-4" />
               </Button>
@@ -87,7 +87,7 @@ export function Header() {
           {/* Mobile Menu */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon" className="sm:hidden">
+              <Button variant="outline" size="icon" className="sm:hidden">
                 <Menu className="h-5 w-5" />
                 <span className="sr-only">Menu</span>
               </Button>
@@ -207,7 +207,7 @@ export function Header() {
                 </Button>
               </Link>
               <Link href="/auth/signup">
-                <Button size="sm">Sign Up</Button>
+                <Button variant="outline" size="sm">Sign Up</Button>
               </Link>
             </div>
           )}

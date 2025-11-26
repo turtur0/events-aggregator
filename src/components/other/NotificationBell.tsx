@@ -117,7 +117,7 @@ export function NotificationBell() {
     return (
         <DropdownMenu open={isOpen} onOpenChange={setIsOpen}>
             <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon" className="relative">
+                <Button variant="outline" size="icon" className="relative">
                     <Bell className="h-5 w-5" />
                     {unreadCount > 0 && (
                         <Badge
@@ -202,7 +202,6 @@ export function NotificationBell() {
                     )}
                 </div>
 
-
                 <DropdownMenuSeparator />
                 <div className="p-2">
                     <Link href="/notifications" onClick={() => setIsOpen(false)}>
@@ -215,7 +214,6 @@ export function NotificationBell() {
                         </Button>
                     </Link>
                 </div>
-
             </DropdownMenuContent>
         </DropdownMenu>
     );
