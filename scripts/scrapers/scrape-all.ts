@@ -34,9 +34,9 @@ async function main() {
         usePuppeteer: true,
       },
       whatsonOptions: {
-        categories: ['theatre', 'music'],
-        maxPages: 5,
-        maxEventsPerCategory: 50,
+        categories: ['theatre', 'music', 'comedy', 'sport', 'art'],
+        maxPages: 10,
+        maxEventsPerCategory: 75,
         fetchDetails: true,
         detailFetchDelay: 1000,
       },
