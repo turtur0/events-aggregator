@@ -16,8 +16,15 @@ interface ScrapeStats {
   notifications: number;
 }
 
+/**
+ * Main scraper orchestrator that coordinates scraping from all sources,
+ * processes events with deduplication, and reports statistics.
+ * 
+ * Configuration can be adjusted via scrapeAll options.
+ */
 async function main() {
   const startTime = Date.now();
+
   console.log('========================================================');
   console.log('Melbourne Events Aggregator — Full Scrape');
   console.log('========================================================\n');
@@ -25,18 +32,19 @@ async function main() {
   try {
     await connectDB();
 
+    // Scrape from all sources
     const { events, results } = await scrapeAll({
       verbose: true,
       sources: ['ticketmaster', 'marriner', 'whatson'],
       marrinerOptions: {
-        maxShows: 50,
-        maxDetailFetches: 50,
+        maxShows: 10,
+        maxDetailFetches: 10,
         usePuppeteer: true,
       },
       whatsonOptions: {
-        categories: ['theatre', 'music', 'comedy', 'sport', 'art'],
-        maxPages: 10,
-        maxEventsPerCategory: 75,
+        categories: ['theatre', 'music'],
+        maxPages: 2,
+        maxEventsPerCategory: 10,
         fetchDetails: true,
         detailFetchDelay: 1000,
       },
@@ -49,6 +57,7 @@ async function main() {
 
     console.log('\nProcessing events with deduplication...');
 
+    // Initialise statistics
     const stats: ScrapeStats = {
       inserted: 0,
       updated: 0,
@@ -57,20 +66,15 @@ async function main() {
       notifications: 0,
     };
 
-    // Group events by source
-    const eventsBySource = new Map<string, typeof events>();
-    for (const event of events) {
-      if (!eventsBySource.has(event.source)) {
-        eventsBySource.set(event.source, []);
-      }
-      eventsBySource.get(event.source)!.push(event);
-    }
+    // Group events by source for processing
+    const eventsBySource = groupEventsBySource(events);
 
-    // Process each source
+    // Process each source separately
     for (const [source, sourceEvents] of eventsBySource) {
       console.log(`\nProcessing ${sourceEvents.length} events from '${source}'...`);
       const sourceStats = await processEventsWithDeduplication(sourceEvents, source);
 
+      // Accumulate statistics
       stats.inserted += sourceStats.inserted;
       stats.updated += sourceStats.updated;
       stats.merged += sourceStats.merged;
@@ -78,27 +82,9 @@ async function main() {
       stats.notifications += sourceStats.notifications;
     }
 
-    // Summary
-    const duration = ((Date.now() - startTime) / 1000).toFixed(1);
-    const totalInDb = await Event.countDocuments();
+    // Display final summary
+    await displaySummary(stats, events.length, results, startTime);
 
-    console.log('\n========================================================');
-    console.log('SCRAPE COMPLETE');
-    console.log('========================================================');
-    console.log(`Duration:       ${duration}s`);
-    console.log(`Scraped:        ${events.length}`);
-    console.log(`Inserted:       ${stats.inserted}`);
-    console.log(`Updated:        ${stats.updated}`);
-    console.log(`Merged:         ${stats.merged}`);
-    console.log(`Skipped:        ${stats.skipped}`);
-    console.log(`Notifications:  ${stats.notifications}`);
-    console.log(`Total in DB:    ${totalInDb}`);
-    console.log('========================================================\n');
-
-    console.log('Source Breakdown:');
-    for (const result of results) {
-      console.log(`  ${result.stats.source.padEnd(15)} ${result.stats.normalised} events`);
-    }
   } catch (error) {
     console.error('Scraper failed:', error);
     throw error;
@@ -107,11 +93,61 @@ async function main() {
   }
 }
 
+/**
+ * Groups events by their source for separate processing.
+ */
+function groupEventsBySource(events: any[]): Map<string, any[]> {
+  const eventsBySource = new Map<string, any[]>();
+
+  for (const event of events) {
+    if (!eventsBySource.has(event.source)) {
+      eventsBySource.set(event.source, []);
+    }
+    eventsBySource.get(event.source)!.push(event);
+  }
+
+  return eventsBySource;
+}
+
+/**
+ * Displays comprehensive scrape statistics and summary.
+ */
+async function displaySummary(
+  stats: ScrapeStats,
+  totalScraped: number,
+  results: any[],
+  startTime: number
+) {
+  const duration = ((Date.now() - startTime) / 1000).toFixed(1);
+  const totalInDb = await Event.countDocuments();
+
+  console.log('\n========================================================');
+  console.log('SCRAPE COMPLETE');
+  console.log('========================================================');
+  console.log(`Duration:       ${duration}s`);
+  console.log(`Scraped:        ${totalScraped}`);
+  console.log(`Inserted:       ${stats.inserted}`);
+  console.log(`Updated:        ${stats.updated}`);
+  console.log(`Merged:         ${stats.merged}`);
+  console.log(`Skipped:        ${stats.skipped}`);
+  console.log(`Notifications:  ${stats.notifications}`);
+  console.log(`Total in DB:    ${totalInDb}`);
+  console.log('========================================================\n');
+
+  console.log('Source Breakdown:');
+  for (const result of results) {
+    const source = result.stats.source.padEnd(15);
+    const count = result.stats.normalised;
+    console.log(`  ${source} ${count} events`);
+  }
+}
+
+// Execute if run directly
 if (require.main === module) {
   main()
     .then(() => process.exit(0))
-    .catch((err) => {
-      console.error('Fatal error:', err);
+    .catch((error) => {
+      console.error('Fatal error:', error);
       process.exit(1);
     });
 }
