@@ -1,12 +1,13 @@
 // lib/services/notificationService.ts
-import User from '@/lib/models/User';
+;
 import UserFavourite from '../models/UserFavourite';
 import Notification from '../models/Notification';
-import { IEvent } from '@/lib/models/Event';
+;
 ;
 import { CATEGORIES } from '@/lib/constants/categories';
 
 import { cosineSimilarity, extractEventFeatures } from '@/lib/ml';
+import { User, type IEvent } from '@/lib/models';
 
 interface NotificationData {
     userId: string;

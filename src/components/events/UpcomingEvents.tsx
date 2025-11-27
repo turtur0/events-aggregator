@@ -4,7 +4,9 @@ import { Button } from '@/components/ui/Button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import { EventCard } from '@/components/events/EventCard';
 import { connectDB } from "@/lib/db";
-import Event from "@/lib/models/Event";
+import { Event } from '@/lib/models';
+
+;
 
 interface UpcomingEventsProps {
     userFavourites: Set<string>;

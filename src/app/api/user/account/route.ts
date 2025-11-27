@@ -2,11 +2,12 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { connectDB } from '@/lib/db';
-import User from '@/lib/models/User';
-import UserFavourite from '@/lib/models/UserFavourite';
-import UserInteraction from '@/lib/models/UserInteraction';
+;
+;
+;
 import bcrypt from 'bcryptjs';
 import mongoose from 'mongoose';
+import { User, UserFavourite, UserInteraction } from '@/lib/models';
 
 // GET - Get account info
 export async function GET() {

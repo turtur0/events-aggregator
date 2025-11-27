@@ -1,13 +1,14 @@
 // lib/ml/userProfileService.ts
 
-import { IUser } from '@/lib/models/User';
-import { IEvent } from '@/lib/models/Event';
-import UserInteraction, { IUserInteraction } from '@/lib/models/UserInteraction';
-import UserFavourite from '@/lib/models/UserFavourite';
-import Event from '@/lib/models/Event';
+;
+;
+;
+;
+;
 import { extractEventFeatures, cosineSimilarity, EventVector } from './vectorService';
 import { CATEGORIES } from '../constants/categories';
 import mongoose from 'mongoose';
+import { Event, UserFavourite, UserInteraction, type IUserInteraction, type IEvent, type IUser } from '@/lib/models';
 
 // ============================================
 // CONFIGURATION

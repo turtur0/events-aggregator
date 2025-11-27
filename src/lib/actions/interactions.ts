@@ -3,10 +3,11 @@
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { connectDB } from '@/lib/db';
-import UserInteraction from '@/lib/models/UserInteraction';
+;
 import UserFavourite from '../models/UserFavourite';
-import Event from '@/lib/models/Event';
+;
 import mongoose from 'mongoose';
+import { Event, UserInteraction } from '@/lib/models';
 
 type InteractionSource = 'search' | 'recommendation' | 'category_browse' | 'homepage' | 'direct' | 'similar_events';
 

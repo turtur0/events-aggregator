@@ -1,12 +1,14 @@
-import User from '@/lib/models/User';
-import Event from '@/lib/models/Event';
+;
+;
 import UserFavourite from '../models/UserFavourite';
 import { Resend } from 'resend';
 import { render } from '@react-email/render';
 import DigestEmail from '../email/templates/digest-email';
-import type { IEvent } from '@/lib/models/Event';
+;
 
 import { extractEventFeatures } from '@/lib/ml';
+import { Event, User, type IEvent } from '@/lib/models';
+
 ;
 
 // Lazy initialization - only create client when needed

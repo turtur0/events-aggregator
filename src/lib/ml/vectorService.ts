@@ -1,6 +1,7 @@
 // lib/ml/vectorService.ts
-import { IEvent } from '@/lib/models/Event';
+;
 import { CATEGORIES } from '../constants/categories';
+import { type IEvent } from '@/lib/models';
 
 // ============================================
 // CONFIGURATION

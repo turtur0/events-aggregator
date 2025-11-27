@@ -2,13 +2,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
-import User from '@/lib/models/User';
+;
 ;
 ;
 import { connectDB } from '@/lib/db';
 import mongoose from 'mongoose';
 
 import { getPersonalizedRecommendations, getTrendingEvents } from '@/lib/ml';
+import { User } from '@/lib/models';
 
 // CRITICAL: Force this route to be dynamic (never cached)
 export const dynamic = 'force-dynamic';

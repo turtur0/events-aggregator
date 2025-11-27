@@ -9,10 +9,11 @@ import { ForYouSection } from '@/components/recommendations/ForYouSection';
 import { TrendingSection } from '@/components/recommendations/TrendingSection';
 import { UpcomingEvents } from '@/components/events/UpcomingEvents';
 import { connectDB } from "@/lib/db";
-import Event from "@/lib/models/Event";
+;
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { getUserFavourites } from "@/lib/actions/interactions";
+import { Event } from '@/lib/models';
 
 const CATEGORIES = [
   { label: "Music", slug: "music", icon: Music, color: "bg-purple-500/10 text-purple-500 hover:bg-purple-500/20" },

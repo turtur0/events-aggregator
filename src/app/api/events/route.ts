@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { connectDB } from '@/lib/db';
-import Event, { IEvent } from '@/lib/models/Event';
+;
 import { Types, FilterQuery } from 'mongoose';
+import { Event, type IEvent } from '@/lib/models';
 
 const EVENTS_PER_PAGE = 18;
 

@@ -1,10 +1,11 @@
 // lib/ml/recommendationService.ts
-import Event from '@/lib/models/Event';
-import UserInteraction from '@/lib/models/UserInteraction';
+;
+;
 import { extractEventFeatures, cosineSimilarity } from './vectorService';
 import mongoose from 'mongoose';
-import type { IEvent } from '@/lib/models/Event';
+;
 import { CATEGORIES } from '../constants/categories';
+import { Event, UserInteraction, type IEvent } from '@/lib/models';
 
 // ============================================
 // PUBLIC RECOMMENDATIONS

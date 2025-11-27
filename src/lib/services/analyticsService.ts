@@ -1,7 +1,8 @@
 // lib/services/analyticsService.ts - Fixed filtering logic
 
-import Event from '@/lib/models/Event';
+;
 import { CATEGORIES } from '@/lib/constants/categories';
+import { Event } from '@/lib/models';
 
 export interface PriceDistribution {
     category: string;
