@@ -1,11 +1,16 @@
+
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { connectDB } from '@/lib/db';
 import { User } from '@/lib/models';
 
-;
+const ALL_CATEGORIES = ['music', 'theatre', 'sports', 'arts', 'family', 'other'];
 
+/**
+ * GET /api/user/preferences
+ * Retrieves the current user's preferences.
+ */
 export async function GET() {
   try {
     const session = await getServerSession(authOptions);
@@ -29,6 +34,10 @@ export async function GET() {
   }
 }
 
+/**
+ * POST /api/user/preferences
+ * Creates or updates user preferences (used during onboarding).
+ */
 export async function POST(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
@@ -38,81 +47,14 @@ export async function POST(request: NextRequest) {
 
     await connectDB();
 
-    const {
-      selectedCategories,
-      selectedSubcategories,
-      popularityPreference,
-      priceRange,
-      notifications,
-    } = await request.json();
-
-    const allCategories = ['music', 'theatre', 'sports', 'arts', 'family', 'other'];
-    const categoryWeights: Record<string, number> = {};
-
-    if (selectedCategories && Array.isArray(selectedCategories)) {
-      allCategories.forEach((cat: string) => {
-        categoryWeights[cat] = selectedCategories.includes(cat) ? 0.8 : 0.2;
-      });
-    } else {
-      allCategories.forEach((cat: string) => {
-        categoryWeights[cat] = 0.5;
-      });
-    }
-
-    const updateFields: any = {};
-
-    if (selectedCategories !== undefined) {
-      updateFields['preferences.selectedCategories'] = selectedCategories;
-    }
-    if (selectedSubcategories !== undefined) {
-      updateFields['preferences.selectedSubcategories'] = selectedSubcategories;
-    }
-
-    updateFields['preferences.categoryWeights'] = categoryWeights;
-    updateFields['preferences.popularityPreference'] = popularityPreference ?? 0.5;
-    updateFields['preferences.pricePreference'] = 0.5;
-    updateFields['preferences.venuePreference'] = 0.5;
-
-    if (priceRange) {
-      if (priceRange.min !== undefined) {
-        updateFields['preferences.priceRange.min'] = priceRange.min;
-      }
-      if (priceRange.max !== undefined) {
-        updateFields['preferences.priceRange.max'] = priceRange.max;
-      }
-    }
-
-    // Email notifications configuration
-    if (notifications) {
-      if (notifications.inApp !== undefined) {
-        updateFields['preferences.notifications.inApp'] = notifications.inApp;
-      }
-      if (notifications.email !== undefined) {
-        updateFields['preferences.notifications.email'] = notifications.email;
-      }
-      if (notifications.emailFrequency !== undefined) {
-        updateFields['preferences.notifications.emailFrequency'] = notifications.emailFrequency;
-      }
-      if (notifications.keywords !== undefined) {
-        updateFields['preferences.notifications.keywords'] = Array.isArray(notifications.keywords)
-          ? notifications.keywords
-          : [];
-      }
-      if (notifications.smartFiltering) {
-        if (notifications.smartFiltering.enabled !== undefined) {
-          updateFields['preferences.notifications.smartFiltering.enabled'] = notifications.smartFiltering.enabled;
-        }
-        if (notifications.smartFiltering.minRecommendationScore !== undefined) {
-          updateFields['preferences.notifications.smartFiltering.minRecommendationScore'] = notifications.smartFiltering.minRecommendationScore;
-        }
-      }
-    }
+    const body = await request.json();
+    const updateFields = buildPreferenceUpdateFields(body);
 
     const user = await User.findOneAndUpdate(
       { email: session.user.email },
       { $set: updateFields },
       { new: true, runValidators: true }
-    ).select('preferences');
+    ).select('preferences email name username _id');
 
     if (!user) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
@@ -138,6 +80,10 @@ export async function POST(request: NextRequest) {
   }
 }
 
+/**
+ * PATCH /api/user/preferences
+ * Partially updates user preferences.
+ */
 export async function PATCH(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
@@ -149,65 +95,7 @@ export async function PATCH(request: NextRequest) {
     await connectDB();
 
     const body = await request.json();
-    const updateFields: Record<string, any> = {};
-
-    if (body.selectedCategories !== undefined) {
-      updateFields['preferences.selectedCategories'] = body.selectedCategories;
-
-      const allCategories = ['music', 'theatre', 'sports', 'arts', 'family', 'other'];
-      const categoryWeights: Record<string, number> = {};
-      allCategories.forEach((cat: string) => {
-        categoryWeights[cat] = body.selectedCategories.includes(cat) ? 0.8 : 0.2;
-      });
-      updateFields['preferences.categoryWeights'] = categoryWeights;
-    }
-
-    if (body.selectedSubcategories !== undefined) {
-      updateFields['preferences.selectedSubcategories'] = body.selectedSubcategories;
-    }
-    if (body.categoryWeights !== undefined) {
-      updateFields['preferences.categoryWeights'] = body.categoryWeights;
-    }
-    if (body.priceRange) {
-      if (body.priceRange.min !== undefined) {
-        updateFields['preferences.priceRange.min'] = body.priceRange.min;
-      }
-      if (body.priceRange.max !== undefined) {
-        updateFields['preferences.priceRange.max'] = body.priceRange.max;
-      }
-    }
-    if (body.popularityPreference !== undefined) {
-      updateFields['preferences.popularityPreference'] = body.popularityPreference;
-    }
-    if (body.locations !== undefined) {
-      updateFields['preferences.locations'] = body.locations;
-    }
-
-    if (body.notifications) {
-      const notifs = body.notifications;
-      if (notifs.inApp !== undefined) {
-        updateFields['preferences.notifications.inApp'] = notifs.inApp;
-      }
-      if (notifs.email !== undefined) {
-        updateFields['preferences.notifications.email'] = notifs.email;
-      }
-      if (notifs.emailFrequency !== undefined) {
-        updateFields['preferences.notifications.emailFrequency'] = notifs.emailFrequency;
-      }
-      if (notifs.keywords !== undefined) {
-        updateFields['preferences.notifications.keywords'] = Array.isArray(notifs.keywords)
-          ? notifs.keywords
-          : [];
-      }
-      if (notifs.smartFiltering) {
-        if (notifs.smartFiltering.enabled !== undefined) {
-          updateFields['preferences.notifications.smartFiltering.enabled'] = notifs.smartFiltering.enabled;
-        }
-        if (notifs.smartFiltering.minRecommendationScore !== undefined) {
-          updateFields['preferences.notifications.smartFiltering.minRecommendationScore'] = notifs.smartFiltering.minRecommendationScore;
-        }
-      }
-    }
+    const updateFields = buildPreferenceUpdateFields(body);
 
     if (Object.keys(updateFields).length === 0) {
       return NextResponse.json(
@@ -236,5 +124,109 @@ export async function PATCH(request: NextRequest) {
       { error: error.message || 'Failed to update preferences' },
       { status: 500 }
     );
+  }
+}
+
+/**
+ * Builds the update fields object from request body.
+ * Handles category weights, notifications, and other preferences.
+ */
+function buildPreferenceUpdateFields(body: any): Record<string, any> {
+  const updateFields: Record<string, any> = {};
+
+  // Category selection and weights
+  if (body.selectedCategories !== undefined) {
+    updateFields['preferences.selectedCategories'] = body.selectedCategories;
+    updateFields['preferences.categoryWeights'] = calculateCategoryWeights(body.selectedCategories);
+  } else if (body.categoryWeights !== undefined) {
+    updateFields['preferences.categoryWeights'] = body.categoryWeights;
+  }
+
+  // Subcategories
+  if (body.selectedSubcategories !== undefined) {
+    updateFields['preferences.selectedSubcategories'] = body.selectedSubcategories;
+  }
+
+  // Popularity preference
+  if (body.popularityPreference !== undefined) {
+    updateFields['preferences.popularityPreference'] = body.popularityPreference;
+  } else {
+    updateFields['preferences.popularityPreference'] = 0.5;
+  }
+
+  // Price and venue preferences (defaults)
+  updateFields['preferences.pricePreference'] = 0.5;
+  updateFields['preferences.venuePreference'] = 0.5;
+
+  // Price range
+  if (body.priceRange) {
+    if (body.priceRange.min !== undefined) {
+      updateFields['preferences.priceRange.min'] = body.priceRange.min;
+    }
+    if (body.priceRange.max !== undefined) {
+      updateFields['preferences.priceRange.max'] = body.priceRange.max;
+    }
+  }
+
+  // Locations
+  if (body.locations !== undefined) {
+    updateFields['preferences.locations'] = body.locations;
+  }
+
+  // Notification settings
+  if (body.notifications) {
+    applyNotificationSettings(updateFields, body.notifications);
+  }
+
+  return updateFields;
+}
+
+/**
+ * Calculates category weights based on selected categories.
+ * Selected categories get 0.8 weight, others get 0.2.
+ */
+function calculateCategoryWeights(selectedCategories?: string[]): Record<string, number> {
+  const weights: Record<string, number> = {};
+
+  if (selectedCategories && Array.isArray(selectedCategories)) {
+    ALL_CATEGORIES.forEach(cat => {
+      weights[cat] = selectedCategories.includes(cat) ? 0.8 : 0.2;
+    });
+  } else {
+    ALL_CATEGORIES.forEach(cat => {
+      weights[cat] = 0.5;
+    });
+  }
+
+  return weights;
+}
+
+/**
+ * Applies notification settings to the update fields object.
+ */
+function applyNotificationSettings(updateFields: Record<string, any>, notifications: any) {
+  if (notifications.inApp !== undefined) {
+    updateFields['preferences.notifications.inApp'] = notifications.inApp;
+  }
+  if (notifications.email !== undefined) {
+    updateFields['preferences.notifications.email'] = notifications.email;
+  }
+  if (notifications.emailFrequency !== undefined) {
+    updateFields['preferences.notifications.emailFrequency'] = notifications.emailFrequency;
+  }
+  if (notifications.keywords !== undefined) {
+    updateFields['preferences.notifications.keywords'] = Array.isArray(notifications.keywords)
+      ? notifications.keywords
+      : [];
+  }
+  if (notifications.smartFiltering) {
+    if (notifications.smartFiltering.enabled !== undefined) {
+      updateFields['preferences.notifications.smartFiltering.enabled'] =
+        notifications.smartFiltering.enabled;
+    }
+    if (notifications.smartFiltering.minRecommendationScore !== undefined) {
+      updateFields['preferences.notifications.smartFiltering.minRecommendationScore'] =
+        notifications.smartFiltering.minRecommendationScore;
+    }
   }
 }

@@ -1,3 +1,4 @@
+
 import { NextRequest, NextResponse } from 'next/server';
 import { sendScheduledDigests } from '@/lib/services';
 import { connectDB } from '@/lib/db';
@@ -5,15 +6,28 @@ import { connectDB } from '@/lib/db';
 export const runtime = 'nodejs';
 export const maxDuration = 300;
 
+type DigestFrequency = 'weekly' | 'monthly';
+
+/**
+ * GET /api/cron/send-digests
+ * Cron job endpoint for sending scheduled email digests.
+ * 
+ * Query params:
+ * - frequency: 'weekly' or 'monthly'
+ * 
+ * Requires Bearer token authentication via CRON_SECRET env variable.
+ */
 export async function GET(request: NextRequest) {
-    const authHeader = request.headers.get('authorization');
+    // Verify cron secret
+    const authHeader = request.headers.get('authorisation');
     if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
         console.error('[Cron] Unauthorised access attempt');
         return NextResponse.json({ error: 'Unauthorised' }, { status: 401 });
     }
 
-    const frequency = request.nextUrl.searchParams.get('frequency') as 'weekly' | 'monthly';
+    const frequency = request.nextUrl.searchParams.get('frequency') as DigestFrequency;
 
+    // Validate frequency parameter
     if (!frequency || !['weekly', 'monthly'].includes(frequency)) {
         return NextResponse.json(
             { error: 'Invalid frequency. Must be "weekly" or "monthly"' },
@@ -25,7 +39,6 @@ export async function GET(request: NextRequest) {
         console.log(`[Cron] Starting ${frequency} digest job`);
 
         await connectDB();
-
         const results = await sendScheduledDigests(frequency);
 
         console.log(`[Cron] Job complete:`, results);

@@ -352,18 +352,18 @@ export function scoreEventForUser(
  * @param user - User document with preferences
  * @param options - Filtering and pagination options
  */
-export async function getPersonalizedRecommendations(
+export async function getPersonalisedRecommendations(
     userId: mongoose.Types.ObjectId,
     user: IUser,
     options: {
         limit?: number;
-        excludeFavorited?: boolean;
+        excludeFavourited?: boolean;
         category?: string;
         minDate?: Date;
         maxDate?: Date;
     } = {}
 ): Promise<ScoredEvent[]> {
-    const { limit = 20, excludeFavorited = true, category, minDate, maxDate } = options;
+    const { limit = 20, excludeFavourited = true, category, minDate, maxDate } = options;
 
     // 1. Compute user profile
     const userProfile = await computeUserProfile(userId, user);
@@ -400,7 +400,7 @@ export async function getPersonalizedRecommendations(
 
     // 5. Exclude favourited
     let favouritedIds: Set<string> = new Set();
-    if (excludeFavorited) {
+    if (excludeFavourited) {
         const favourites = await UserFavourite.find({ userId }).select('eventId').lean();
         favouritedIds = new Set(favourites.map(f => f.eventId.toString()));
     }

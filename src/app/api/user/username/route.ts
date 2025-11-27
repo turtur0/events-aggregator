@@ -1,42 +1,35 @@
-// src/app/api/user/username/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { connectDB } from '@/lib/db';
 import { User } from '@/lib/models';
 
-;
-
+/**
+ * POST /api/user/username
+ * Updates the user's username.
+ */
 export async function POST(request: NextRequest) {
     try {
         const session = await getServerSession(authOptions);
 
         if (!session?.user?.email) {
-            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+            return NextResponse.json({ error: 'Unauthorised' }, { status: 401 });
         }
 
         const { username } = await request.json();
 
-        if (!username || username.length < 3) {
-            return NextResponse.json(
-                { error: 'Username must be at least 3 characters' },
-                { status: 400 }
-            );
-        }
-
-        if (!/^[a-zA-Z0-9_]+$/.test(username)) {
-            return NextResponse.json(
-                { error: 'Username can only contain letters, numbers, and underscores' },
-                { status: 400 }
-            );
+        // Validate username
+        const validationError = validateUsername(username);
+        if (validationError) {
+            return NextResponse.json({ error: validationError }, { status: 400 });
         }
 
         await connectDB();
 
-        // Check if username is already taken
+        // Check if username is already taken (excluding current user)
         const existingUser = await User.findOne({
             username: username.toLowerCase(),
-            email: { $ne: session.user.email } // Exclude current user
+            email: { $ne: session.user.email }
         });
 
         if (existingUser) {
@@ -46,7 +39,7 @@ export async function POST(request: NextRequest) {
             );
         }
 
-        // Update user's username
+        // Update username
         await User.findOneAndUpdate(
             { email: session.user.email },
             { username: username.toLowerCase() },
@@ -64,4 +57,17 @@ export async function POST(request: NextRequest) {
             { status: 500 }
         );
     }
+}
+
+/** Validates username format and length. */
+function validateUsername(username: string): string | null {
+    if (!username || username.length < 3) {
+        return 'Username must be at least 3 characters';
+    }
+
+    if (!/^[a-zA-Z0-9_]+$/.test(username)) {
+        return 'Username can only contain letters, numbers, and underscores';
+    }
+
+    return null;
 }

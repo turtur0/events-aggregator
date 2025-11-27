@@ -1,18 +1,26 @@
-// app/api/recommendations/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { connectDB } from '@/lib/db';
 import mongoose from 'mongoose';
-
-import { getPersonalizedRecommendations, getTrendingEvents } from '@/lib/ml';
+import { getPersonalisedRecommendations, getTrendingEvents } from '@/lib/ml';
 import type { ScoredEvent } from '@/lib/ml';
 import { User } from '@/lib/models';
 
-// CRITICAL: Force this route to be dynamic (never cached)
+// Force dynamic rendering (never cached)
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
+/**
+ * GET /api/recommendations
+ * Returns personalised recommendations for authenticated users,
+ * or trending events for unauthenticated users.
+ * 
+ * Query params:
+ * - limit: number of events to return (default: 12)
+ * - category: filter by category
+ * - excludeFavorited: exclude favourited events (default: true)
+ */
 export async function GET(req: NextRequest) {
     try {
         await connectDB();
@@ -20,91 +28,36 @@ export async function GET(req: NextRequest) {
         const { searchParams } = new URL(req.url);
         const limit = parseInt(searchParams.get('limit') || '12');
         const category = searchParams.get('category') || undefined;
-        const excludeFavorited = searchParams.get('excludeFavorited') !== 'false';
+        const excludeFavourited = searchParams.get('excludeFavorited') !== 'false';
 
-        // Check if user is authenticated
         const session = await getServerSession(authOptions);
 
-        let events: any[] = [];
-        let isPersonalized = false;
-
+        // Try to get personalised recommendations
         if (session?.user?.email) {
-            // PERSONALIZED RECOMMENDATIONS (Authenticated)
             const user = await User.findOne({ email: session.user.email });
-            if (user) {
-                console.log(`[Recommendations] Generating personalized for user: ${user._id}`);
-                isPersonalized = true;
 
-                const recommendations = await getPersonalizedRecommendations(
+            if (user) {
+                console.log(`[Recommendations] Generating personalised for user: ${user._id}`);
+
+                const recommendations = await getPersonalisedRecommendations(
                     user._id as mongoose.Types.ObjectId,
                     user,
-                    { limit, category, excludeFavorited }
+                    { limit, category, excludeFavourited }
                 );
 
-                // Fix: Add proper type annotation
-                events = recommendations.map(({ event, score, explanation }: ScoredEvent) => ({
-                    _id: event._id.toString(),
-                    title: event.title,
-                    description: event.description,
-                    category: event.category,
-                    subcategories: event.subcategories,
-                    startDate: event.startDate.toISOString(),
-                    endDate: event.endDate?.toISOString(),
-                    venue: event.venue,
-                    priceMin: event.priceMin,
-                    priceMax: event.priceMax,
-                    isFree: event.isFree,
-                    bookingUrl: event.bookingUrl,
-                    imageUrl: event.imageUrl,
-                    primarySource: event.primarySource,
-                    stats: event.stats || { viewCount: 0, favouriteCount: 0, clickthroughCount: 0 },
-                    score,
-                    reason: explanation.reason,
-                }));
+                const events = formatScoredEvents(recommendations);
+                console.log(`[Recommendations] Returned ${events.length} personalised events`);
 
-                console.log(`[Recommendations] Returned ${events.length} personalized events`);
+                return createRecommendationsResponse(events, true);
             }
         }
 
-        // Fallback to trending if not authenticated or user not found
-        if (!isPersonalized) {
-            console.log('[Recommendations] Using trending (not personalized)');
-            const trendingEvents = await getTrendingEvents({
-                limit,
-                category,
-            });
+        // Fallback to trending events
+        console.log('[Recommendations] Using trending (not personalised)');
+        const trendingEvents = await getTrendingEvents({ limit, category });
+        const events = formatBasicEvents(trendingEvents);
 
-            events = trendingEvents.map(event => ({
-                _id: event._id.toString(),
-                title: event.title,
-                description: event.description,
-                category: event.category,
-                subcategories: event.subcategories,
-                startDate: event.startDate.toISOString(),
-                endDate: event.endDate?.toISOString(),
-                venue: event.venue,
-                priceMin: event.priceMin,
-                priceMax: event.priceMax,
-                isFree: event.isFree,
-                bookingUrl: event.bookingUrl,
-                imageUrl: event.imageUrl,
-                primarySource: event.primarySource,
-                stats: event.stats || { viewCount: 0, favouriteCount: 0, clickthroughCount: 0 },
-            }));
-        }
-
-        // Add cache control headers to prevent client-side caching
-        const headers = new Headers();
-        headers.set('Cache-Control', 'no-store, no-cache, must-revalidate');
-        headers.set('Pragma', 'no-cache');
-        headers.set('Expires', '0');
-
-        return NextResponse.json({
-            recommendations: events,
-            count: events.length,
-            isPersonalized,
-            timestamp: new Date().toISOString(), // For debugging cache issues
-        }, { headers });
+        return createRecommendationsResponse(events, false);
     } catch (error) {
         console.error('Error getting recommendations:', error);
         return NextResponse.json(
@@ -112,4 +65,64 @@ export async function GET(req: NextRequest) {
             { status: 500 }
         );
     }
+}
+
+/** Formats scored events with recommendation details. */
+function formatScoredEvents(recommendations: ScoredEvent[]) {
+    return recommendations.map(({ event, score, explanation }) => ({
+        _id: event._id.toString(),
+        title: event.title,
+        description: event.description,
+        category: event.category,
+        subcategories: event.subcategories,
+        startDate: event.startDate.toISOString(),
+        endDate: event.endDate?.toISOString(),
+        venue: event.venue,
+        priceMin: event.priceMin,
+        priceMax: event.priceMax,
+        isFree: event.isFree,
+        bookingUrl: event.bookingUrl,
+        imageUrl: event.imageUrl,
+        primarySource: event.primarySource,
+        stats: event.stats || { viewCount: 0, favouriteCount: 0, clickthroughCount: 0 },
+        score,
+        reason: explanation.reason,
+    }));
+}
+
+/** Formats basic events without scoring. */
+function formatBasicEvents(events: any[]) {
+    return events.map(event => ({
+        _id: event._id.toString(),
+        title: event.title,
+        description: event.description,
+        category: event.category,
+        subcategories: event.subcategories,
+        startDate: event.startDate.toISOString(),
+        endDate: event.endDate?.toISOString(),
+        venue: event.venue,
+        priceMin: event.priceMin,
+        priceMax: event.priceMax,
+        isFree: event.isFree,
+        bookingUrl: event.bookingUrl,
+        imageUrl: event.imageUrl,
+        primarySource: event.primarySource,
+        stats: event.stats || { viewCount: 0, favouriteCount: 0, clickthroughCount: 0 },
+    }));
+}
+
+/** Creates response with no-cache headers. */
+function createRecommendationsResponse(events: any[], isPersonalised: boolean) {
+    const headers = new Headers({
+        'Cache-Control': 'no-store, no-cache, must-revalidate',
+        'Pragma': 'no-cache',
+        'Expires': '0',
+    });
+
+    return NextResponse.json({
+        recommendations: events,
+        count: events.length,
+        isPersonalised,
+        timestamp: new Date().toISOString(),
+    }, { headers });
 }

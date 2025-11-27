@@ -28,7 +28,7 @@ export {
     buildUserVectorFromPreferences,
     computeUserProfile,
     scoreEventForUser,
-    getPersonalizedRecommendations,
+    getPersonalisedRecommendations,
     getSimilarEvents as getSimilarEventsDetailed,
     updateStoredUserProfile,
 } from './user-profile-service';

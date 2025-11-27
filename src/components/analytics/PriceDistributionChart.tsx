@@ -44,7 +44,7 @@ export function PriceDistributionChart() {
 
     const clearFilters = () => setSelectedCategories([]);
 
-    const getColorForCategory = (cat: PriceDistribution) => {
+    const getColourForCategory = (cat: PriceDistribution) => {
         if (cat.isSubcategory) {
             for (const mainCat of CATEGORIES) {
                 if (mainCat.subcategories?.includes(cat.category)) {
@@ -99,23 +99,27 @@ export function PriceDistributionChart() {
                                 tick={{ fontSize: 10 }}
                                 interval={0}
                             />
-                            <YAxis 
+                            <YAxis
                                 label={{ value: 'Price (AUD)', angle: -90, position: 'insideLeft', style: { fontSize: 11 } }}
-                                tick={{ fontSize: 10 }} 
+                                tick={{ fontSize: 10 }}
                             />
                             <Tooltip content={<PriceTooltip />} />
 
+                            {/* Transparent bar for Q1 baseline */}
                             <Bar dataKey="q1" stackId="range" fill="transparent" />
+
+                            {/* Interquartile range bar (Q1 to Q3) */}
                             <Bar dataKey={(entry) => entry.q3 - entry.q1} stackId="range">
                                 {data.map((entry, index) => (
                                     <Cell
-                                        key={`cell-${index}`}
-                                        fill={getColorForCategory(entry)}
+                                        key={`price-cell-${index}`}
+                                        fill={getColourForCategory(entry)}
                                         opacity={0.3}
                                     />
                                 ))}
                             </Bar>
 
+                            {/* Median price line */}
                             <Line
                                 type="monotone"
                                 dataKey="median"
@@ -127,14 +131,14 @@ export function PriceDistributionChart() {
                         </ComposedChart>
                     </ResponsiveContainer>
 
-                    {/* Summary */}
+                    {/* Summary Cards */}
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 mt-6">
-                        {data.map(item => (
+                        {data.map((item, index) => (
                             <div
-                                key={item.category}
+                                key={`summary-${index}`}
                                 className="p-3 rounded-lg border bg-card hover:shadow-sm transition-shadow"
                                 style={{
-                                    borderLeftColor: getColorForCategory(item),
+                                    borderLeftColor: getColourForCategory(item),
                                     borderLeftWidth: 3
                                 }}
                             >
@@ -159,6 +163,7 @@ export function PriceDistributionChart() {
     );
 }
 
+/** Tooltip component for price distribution chart */
 function PriceTooltip({ active, payload }: any) {
     if (!active || !payload || !payload.length) return null;
     const data = payload[0].payload as PriceDistribution;

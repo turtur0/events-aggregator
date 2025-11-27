@@ -3,6 +3,13 @@ import { getSimilarEvents } from '@/lib/ml';
 import { connectDB } from '@/lib/db';
 import mongoose from 'mongoose';
 
+/**
+ * GET /api/events/[eventId]/similar
+ * Returns events similar to the specified event.
+ * 
+ * Query params:
+ * - limit: number of events (default: 6)
+ */
 export async function GET(
     req: NextRequest,
     context: { params: Promise<{ eventId: string }> }
@@ -27,31 +34,14 @@ export async function GET(
             { limit }
         );
 
-        if (!similarEvents || similarEvents.length === 0) {
+        if (!similarEvents?.length) {
             return NextResponse.json({
                 similarEvents: [],
                 count: 0,
             });
         }
 
-        const formatted = similarEvents.map(({ event, similarity }) => ({
-            _id: event._id.toString(),
-            title: event.title,
-            description: event.description,
-            category: event.category,
-            subcategories: event.subcategories || [],
-            startDate: event.startDate.toISOString(),
-            endDate: event.endDate?.toISOString(),
-            venue: event.venue,
-            priceMin: event.priceMin,
-            priceMax: event.priceMax,
-            isFree: event.isFree,
-            bookingUrl: event.bookingUrl,
-            imageUrl: event.imageUrl,
-            primarySource: event.primarySource,
-            stats: event.stats || {},
-            similarity: Math.round(similarity * 100),
-        }));
+        const formatted = formatSimilarEvents(similarEvents);
 
         return NextResponse.json({
             similarEvents: formatted,
@@ -67,4 +57,26 @@ export async function GET(
             { status: 500 }
         );
     }
+}
+
+/** Formats similar events with similarity scores. */
+function formatSimilarEvents(events: Array<{ event: any; similarity: number }>) {
+    return events.map(({ event, similarity }) => ({
+        _id: event._id.toString(),
+        title: event.title,
+        description: event.description,
+        category: event.category,
+        subcategories: event.subcategories || [],
+        startDate: event.startDate.toISOString(),
+        endDate: event.endDate?.toISOString(),
+        venue: event.venue,
+        priceMin: event.priceMin,
+        priceMax: event.priceMax,
+        isFree: event.isFree,
+        bookingUrl: event.bookingUrl,
+        imageUrl: event.imageUrl,
+        primarySource: event.primarySource,
+        stats: event.stats || {},
+        similarity: Math.round(similarity * 100),
+    }));
 }

@@ -1,91 +1,47 @@
+
 import { NextRequest, NextResponse } from 'next/server';
 import bcrypt from 'bcryptjs';
 import { connectDB } from '@/lib/db';
 import { User } from '@/lib/models';
 
-;
+interface SignupRequest {
+    email: string;
+    password: string;
+    name: string;
+    username?: string;
+}
 
+/**
+ * POST /api/auth/signup
+ * Creates a new user account with email/password authentication.
+ */
 export async function POST(request: NextRequest) {
     try {
-        const { email, password, name, username } = await request.json();
+        const { email, password, name, username } = await request.json() as SignupRequest;
 
-        // Validation
-        if (!email || !password || !name) {
-            return NextResponse.json(
-                { error: 'Missing required fields' },
-                { status: 400 }
-            );
-        }
-
-        if (password.length < 8) {
-            return NextResponse.json(
-                { error: 'Password must be at least 8 characters' },
-                { status: 400 }
-            );
-        }
-
-        // Validate username if provided
-        if (username) {
-            if (username.length < 3) {
-                return NextResponse.json(
-                    { error: 'Username must be at least 3 characters' },
-                    { status: 400 }
-                );
-            }
-            if (!/^[a-zA-Z0-9_]+$/.test(username)) {
-                return NextResponse.json(
-                    { error: 'Username can only contain letters, numbers, and underscores' },
-                    { status: 400 }
-                );
-            }
+        // Validate required fields
+        const validationError = validateSignupData({ email, password, name, username });
+        if (validationError) {
+            return NextResponse.json({ error: validationError }, { status: 400 });
         }
 
         await connectDB();
 
-        // Check if email exists
-        const existingEmail = await User.findOne({ email });
-        if (existingEmail) {
-            return NextResponse.json(
-                { error: 'Email already registered' },
-                { status: 409 }
-            );
+        // Check for existing user
+        const existingError = await checkExistingUser(email, username);
+        if (existingError) {
+            return NextResponse.json({ error: existingError }, { status: 409 });
         }
 
-        // Check if username exists (if provided)
-        if (username) {
-            const existingUsername = await User.findOne({ username: username.toLowerCase() });
-            if (existingUsername) {
-                return NextResponse.json(
-                    { error: 'Username already taken' },
-                    { status: 409 }
-                );
-            }
-        }
-
-        // Hash password
-        const salt = await bcrypt.genSalt(10);
-        const passwordHash = await bcrypt.hash(password, salt);
-
-        // Create user
+        // Create user with hashed password
+        const passwordHash = await bcrypt.hash(password, 10);
         const user = await User.create({
             email,
             name,
             username: username?.toLowerCase(),
             passwordHash,
             provider: 'credentials',
-            preferences: {
-                selectedCategories: [],
-                selectedSubcategories: [],
-                categoryWeights: {},
-                priceRange: { min: 0, max: 500 },
-                popularityPreference: 0.5,
-                locations: ['Melbourne'],
-                notifications: {
-                    inApp: true,
-                    email: false,
-                    emailFrequency: 'weekly',
-                },
-            },
+            preferences: createDefaultPreferences(),
         });
 
         return NextResponse.json(
@@ -107,4 +63,60 @@ export async function POST(request: NextRequest) {
             { status: 500 }
         );
     }
+}
+
+/** Validates signup data and returns error message if invalid. */
+function validateSignupData({ email, password, name, username }: SignupRequest): string | null {
+    if (!email || !password || !name) {
+        return 'Missing required fields';
+    }
+
+    if (password.length < 8) {
+        return 'Password must be at least 8 characters';
+    }
+
+    if (username) {
+        if (username.length < 3) {
+            return 'Username must be at least 3 characters';
+        }
+        if (!/^[a-zA-Z0-9_]+$/.test(username)) {
+            return 'Username can only contain letters, numbers, and underscores';
+        }
+    }
+
+    return null;
+}
+
+/** Checks for existing user with same email or username. */
+async function checkExistingUser(email: string, username?: string): Promise<string | null> {
+    const existingEmail = await User.findOne({ email });
+    if (existingEmail) {
+        return 'Email already registered';
+    }
+
+    if (username) {
+        const existingUsername = await User.findOne({ username: username.toLowerCase() });
+        if (existingUsername) {
+            return 'Username already taken';
+        }
+    }
+
+    return null;
+}
+
+/** Creates default user preferences. */
+function createDefaultPreferences() {
+    return {
+        selectedCategories: [],
+        selectedSubcategories: [],
+        categoryWeights: {},
+        priceRange: { min: 0, max: 500 },
+        popularityPreference: 0.5,
+        locations: ['Melbourne'],
+        notifications: {
+            inApp: true,
+            email: false,
+            emailFrequency: 'weekly',
+        },
+    };
 }
