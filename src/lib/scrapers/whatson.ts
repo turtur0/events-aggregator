@@ -1,4 +1,3 @@
-// lib/scrapers/whatson.ts
 import { load, CheerioAPI, Cheerio } from 'cheerio';
 import type { Element } from 'domhandler';
 import { NormalisedEvent } from './types';
@@ -6,11 +5,11 @@ import { mapWhatsOnCategory } from '../utils/category-mapper';
 
 const BASE_URL = 'https://whatson.melbourne.vic.gov.au';
 
-// More realistic browser headers to avoid 403
+/** Browser-like headers to avoid 403 responses */
 const HEADERS = {
   'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
   'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
-  'Accept-Language': 'en-US,en;q=0.9',
+  'Accept-Language': 'en-AU,en;q=0.9',
   'Accept-Encoding': 'gzip, deflate, br',
   'Connection': 'keep-alive',
   'Upgrade-Insecure-Requests': '1',
@@ -19,6 +18,12 @@ const HEADERS = {
   'Sec-Fetch-Site': 'none',
   'Cache-Control': 'max-age=0',
 };
+
+/** Known Melbourne suburbs for venue location extraction */
+const MELBOURNE_SUBURBS = [
+  'Melbourne', 'Carlton', 'Fitzroy', 'Collingwood',
+  'Richmond', 'Southbank', 'St Kilda', 'South Yarra', 'Docklands'
+];
 
 interface ListingEvent {
   url: string;
@@ -42,13 +47,25 @@ interface DetailedEvent extends ListingEvent {
 }
 
 export interface WhatsOnScrapeOptions {
+  /** Categories to scrape (e.g., 'theatre', 'music') */
   categories?: string[];
+  /** Maximum number of pages to scrape per category */
   maxPages?: number;
+  /** Maximum events to collect per category */
   maxEventsPerCategory?: number;
+  /** Whether to fetch detailed event pages */
   fetchDetails?: boolean;
+  /** Delay between detail page fetches in milliseconds */
   detailFetchDelay?: number;
 }
 
+/**
+ * Scrapes events from What's On Melbourne website.
+ * Can scrape multiple categories and optionally fetch detailed event information.
+ * 
+ * @param opts - Scraping options
+ * @returns Array of normalised events
+ */
 export async function scrapeWhatsOnMelbourne(opts: WhatsOnScrapeOptions = {}): Promise<NormalisedEvent[]> {
   const categories = opts.categories || ['theatre', 'music'];
   const fetchDetails = opts.fetchDetails ?? false;
@@ -60,6 +77,7 @@ export async function scrapeWhatsOnMelbourne(opts: WhatsOnScrapeOptions = {}): P
 
   for (const category of categories) {
     console.log(`[WhatsOn] Processing category: ${category}`);
+
     const listingEvents = await collectEventsFromListings(category, opts.maxPages || 10);
     console.log(`[WhatsOn] Found ${listingEvents.length} events from listings`);
 
@@ -69,6 +87,7 @@ export async function scrapeWhatsOnMelbourne(opts: WhatsOnScrapeOptions = {}): P
     for (let i = 0; i < listingEvents.length && processedCount < limit; i++) {
       const listing = listingEvents[i];
 
+      // Skip duplicates based on title
       const titleKey = listing.title.toLowerCase().trim();
       if (seenTitles.has(titleKey)) {
         console.log(`[WhatsOn] Skipping duplicate: ${listing.title}`);
@@ -77,6 +96,7 @@ export async function scrapeWhatsOnMelbourne(opts: WhatsOnScrapeOptions = {}): P
 
       let eventData: DetailedEvent = listing;
 
+      // Optionally fetch detailed information
       if (fetchDetails) {
         const details = await fetchEventDetails(listing.url);
         if (details) {
@@ -102,6 +122,10 @@ export async function scrapeWhatsOnMelbourne(opts: WhatsOnScrapeOptions = {}): P
   return allEvents;
 }
 
+/**
+ * Collects event listings from category pages with pagination.
+ * Implements retry logic and rate limiting to handle server restrictions.
+ */
 async function collectEventsFromListings(category: string, maxPages: number): Promise<ListingEvent[]> {
   const events: ListingEvent[] = [];
   const seenUrls = new Set<string>();
@@ -111,14 +135,13 @@ async function collectEventsFromListings(category: string, maxPages: number): Pr
     try {
       const pageUrl = `${BASE_URL}/tags/${category}${page > 1 ? `/page-${page}` : ''}`;
 
-      // Add longer delay before each request
+      // Rate limiting with random delay
       if (page > 1) {
-        await delay(2000 + Math.random() * 1000); // Random delay 2-3s
+        await delay(2000 + Math.random() * 1000);
       }
 
       const res = await fetch(pageUrl, {
         headers: HEADERS,
-        // Add signal for timeout
         signal: AbortSignal.timeout(15000)
       });
 
@@ -131,15 +154,15 @@ async function collectEventsFromListings(category: string, maxPages: number): Pr
           break;
         }
 
-        // Wait longer before retry
         await delay(5000);
         continue;
       }
 
-      consecutiveFailures = 0; // Reset on success
+      consecutiveFailures = 0;
       const $ = load(await res.text());
       const prevCount = events.length;
 
+      // Parse event listings from page
       $('.page-preview').each((_, el) => {
         const $el = $(el);
         const listingType = $el.attr('data-listing-type');
@@ -158,11 +181,13 @@ async function collectEventsFromListings(category: string, maxPages: number): Pr
       const newCount = events.length - prevCount;
       console.log(`[WhatsOn] Page ${page}: +${newCount} events (${events.length} total)`);
 
+      // Stop if no new events found
       if (newCount === 0) {
         console.log(`[WhatsOn] No new events found on page ${page}, stopping`);
         break;
       }
 
+      // Check for next page
       const hasNextPage = $('.pagination a[rel="next"]').length > 0 ||
         $('.pagination .next a').length > 0;
 
@@ -171,8 +196,8 @@ async function collectEventsFromListings(category: string, maxPages: number): Pr
         break;
       }
 
-    } catch (err: any) {
-      console.error(`[WhatsOn] Page ${page} error:`, err.message);
+    } catch (error: any) {
+      console.error(`[WhatsOn] Page ${page} error:`, error.message);
       consecutiveFailures++;
 
       if (consecutiveFailures >= 3) {
@@ -187,6 +212,9 @@ async function collectEventsFromListings(category: string, maxPages: number): Pr
   return events;
 }
 
+/**
+ * Parses a single event listing item from the page.
+ */
 function parseListingItem($: CheerioAPI, $el: Cheerio<Element>): ListingEvent | null {
   const $link = $el.find('a.main-link');
   const href = $link.attr('href');
@@ -202,8 +230,11 @@ function parseListingItem($: CheerioAPI, $el: Cheerio<Element>): ListingEvent | 
   const dates = parseDatesFromListing($el);
 
   const imgSrc = $el.find('.page_image').attr('src');
-  const imageUrl = imgSrc?.startsWith('http') ? imgSrc : imgSrc ? `${BASE_URL}${imgSrc}` : undefined;
+  const imageUrl = imgSrc?.startsWith('http')
+    ? imgSrc
+    : imgSrc ? `${BASE_URL}${imgSrc}` : undefined;
 
+  // Extract tags
   const tags: string[] = [];
   $el.find('.tag-list a').each((_, tagEl) => {
     const tag = $(tagEl).text().trim().toLowerCase();
@@ -224,6 +255,9 @@ function parseListingItem($: CheerioAPI, $el: Cheerio<Element>): ListingEvent | 
   };
 }
 
+/**
+ * Parses date information from listing item.
+ */
 function parseDatesFromListing($el: Cheerio<Element>): { startDate?: Date; endDate?: Date } {
   const timeEls = $el.find('time[datetime]');
   const dates: Date[] = [];
@@ -231,23 +265,29 @@ function parseDatesFromListing($el: Cheerio<Element>): { startDate?: Date; endDa
   timeEls.each((_, el) => {
     const dt = $el.find(el).attr('datetime');
     if (dt) {
-      const d = new Date(dt);
-      if (!isNaN(d.getTime())) dates.push(d);
+      const date = new Date(dt);
+      if (!isNaN(date.getTime())) {
+        dates.push(date);
+      }
     }
   });
 
   if (dates.length === 0) return {};
 
   dates.sort((a, b) => a.getTime() - b.getTime());
+
   return {
     startDate: dates[0],
     endDate: dates.length > 1 ? dates[dates.length - 1] : undefined,
   };
 }
 
+/**
+ * Fetches and parses detailed information from an event page.
+ */
 async function fetchEventDetails(url: string): Promise<Partial<DetailedEvent> | null> {
   try {
-    await delay(1000 + Math.random() * 500); // Random delay
+    await delay(1000 + Math.random() * 500);
 
     const res = await fetch(url, {
       headers: HEADERS,
@@ -268,12 +308,15 @@ async function fetchEventDetails(url: string): Promise<Partial<DetailedEvent> | 
       ...extractPrices($),
       accessibility: extractAccessibility($),
     };
-  } catch (err: any) {
-    console.log(`[WhatsOn] Detail error for ${url}:`, err.message);
+  } catch (error: any) {
+    console.log(`[WhatsOn] Detail error for ${url}:`, error.message);
     return null;
   }
 }
 
+/**
+ * Extracts event description from meta tags or page content.
+ */
 function extractDescription($: CheerioAPI): string | undefined {
   return $('meta[name="description"]').attr('content')?.trim() ||
     $('meta[property="og:description"]').attr('content')?.trim() ||
@@ -281,12 +324,21 @@ function extractDescription($: CheerioAPI): string | undefined {
     undefined;
 }
 
+/**
+ * Extracts venue name from location widget or venue elements.
+ */
 function extractVenue($: CheerioAPI): string | undefined {
   const locationWidget = $('.location.details-widget p').first().text().trim();
-  if (locationWidget) return locationWidget.split('\n')[0].trim();
+  if (locationWidget) {
+    return locationWidget.split('\n')[0].trim();
+  }
+
   return $('[class*="venue"]').first().text().trim().split('\n')[0] || undefined;
 }
 
+/**
+ * Extracts full address from location widget.
+ */
 function extractAddress($: CheerioAPI): string | undefined {
   const lines = $('.location.details-widget p')
     .text()
@@ -294,21 +346,27 @@ function extractAddress($: CheerioAPI): string | undefined {
     .split('\n')
     .map(l => l.trim())
     .filter(Boolean);
+
   return lines.slice(1).join(', ') || undefined;
 }
 
+/**
+ * Extracts price information including ranges and free events.
+ */
 function extractPrices($: CheerioAPI): {
   priceMin?: number;
   priceMax?: number;
   priceDetails?: string;
-  isFree?: boolean
+  isFree?: boolean;
 } {
   const widget = $('.price-and-bookings').text();
 
+  // Check for free events
   if (/\bfree\b/i.test(widget)) {
     return { priceMin: 0, priceMax: 0, isFree: true };
   }
 
+  // Check for price range format
   const rangeMatch = widget.match(/From\s*\$(\d+(?:\.\d+)?)\s*to\s*\$(\d+(?:\.\d+)?)/i);
   if (rangeMatch) {
     return {
@@ -318,6 +376,7 @@ function extractPrices($: CheerioAPI): {
     };
   }
 
+  // Extract all dollar amounts
   const prices = widget
     .match(/\$(\d+(?:\.\d+)?)/g)
     ?.map(p => parseFloat(p.replace('$', '')))
@@ -334,15 +393,29 @@ function extractPrices($: CheerioAPI): {
   return {};
 }
 
+/**
+ * Extracts detailed price information from price table.
+ */
 function extractPriceTable($: CheerioAPI): string | undefined {
-  const rows = $('.price-table tr td').map((_, el) => $(el).text().trim()).get();
+  const rows = $('.price-table tr td')
+    .map((_, el) => $(el).text().trim())
+    .get();
+
   return rows.length > 0 ? rows.join('; ') : undefined;
 }
 
+/**
+ * Extracts accessibility features listed on the event page.
+ */
 function extractAccessibility($: CheerioAPI): string[] {
-  return $('.accessibility-feature__link').map((_, el) => $(el).text().trim()).get();
+  return $('.accessibility-feature__link')
+    .map((_, el) => $(el).text().trim())
+    .get();
 }
 
+/**
+ * Converts detailed event data to normalised format.
+ */
 function toNormalisedEvent(event: DetailedEvent, categoryTag: string): NormalisedEvent | null {
   if (!event.startDate) {
     console.log(`[WhatsOn] Skipping "${event.title}" - no start date`);
@@ -379,23 +452,31 @@ function toNormalisedEvent(event: DetailedEvent, categoryTag: string): Normalise
   };
 }
 
+/**
+ * Extracts suburb from address string by matching known Melbourne suburbs.
+ */
 function extractSuburb(address: string): string {
-  const suburbs = [
-    'Melbourne', 'Carlton', 'Fitzroy', 'Collingwood',
-    'Richmond', 'Southbank', 'St Kilda', 'South Yarra', 'Docklands'
-  ];
-
-  for (const s of suburbs) {
-    if (address.includes(s)) return s;
+  for (const suburb of MELBOURNE_SUBURBS) {
+    if (address.includes(suburb)) {
+      return suburb;
+    }
   }
-
   return 'Melbourne';
 }
 
+/**
+ * Converts text to URL-friendly slug.
+ */
 function slugify(text: string): string {
-  return text.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+  return text
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-|-$/g, '');
 }
 
-function delay(ms: number) {
-  return new Promise(r => setTimeout(r, ms));
+/**
+ * Simple delay utility for rate limiting.
+ */
+function delay(ms: number): Promise<void> {
+  return new Promise(resolve => setTimeout(resolve, ms));
 }

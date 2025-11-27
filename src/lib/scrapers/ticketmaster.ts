@@ -5,13 +5,23 @@ const TICKETMASTER_BASE_URL = 'https://app.ticketmaster.com/discovery/v2';
 const MELBOURNE_LAT = '-37.8136';
 const MELBOURNE_LNG = '144.9631';
 const RADIUS = '50';
+const MAX_PAGES = 10;
 
+/**
+ * Fetches a single page of events from Ticketmaster API.
+ * 
+ * @param page - Zero-based page number
+ * @param size - Number of events per page (max 100)
+ * @returns Array of raw Ticketmaster events
+ */
 export async function fetchTicketmasterEvents(
   page = 0,
   size = 100
 ): Promise<TicketmasterEvent[]> {
   const API_KEY = process.env.TICKETMASTER_API_KEY;
-  if (!API_KEY) throw new Error('TICKETMASTER_API_KEY not found');
+  if (!API_KEY) {
+    throw new Error('TICKETMASTER_API_KEY not found in environment variables');
+  }
 
   const params = new URLSearchParams({
     apikey: API_KEY,
@@ -35,11 +45,16 @@ export async function fetchTicketmasterEvents(
   return data._embedded?.events || [];
 }
 
+/**
+ * Fetches all available events from Ticketmaster API with pagination.
+ * Deduplicates events that appear multiple times due to multiple dates.
+ * 
+ * @returns Array of unique Ticketmaster events
+ */
 export async function fetchAllTicketmasterEvents(): Promise<TicketmasterEvent[]> {
   const uniqueEventsMap = new Map<string, TicketmasterEvent>();
   let page = 0;
   let hasMore = true;
-  const MAX_PAGES = 10;
 
   console.log('[Ticketmaster] Fetching events');
 
@@ -52,12 +67,14 @@ export async function fetchAllTicketmasterEvents(): Promise<TicketmasterEvent[]>
         break;
       }
 
+      // Deduplicate by event name and venue
       events.forEach(event => {
         const key = createEventKey(event);
 
         if (!uniqueEventsMap.has(key)) {
           uniqueEventsMap.set(key, event);
         } else {
+          // Merge date ranges for recurring events
           const existing = uniqueEventsMap.get(key)!;
           uniqueEventsMap.set(key, mergeEventDates(existing, event));
         }
@@ -65,7 +82,9 @@ export async function fetchAllTicketmasterEvents(): Promise<TicketmasterEvent[]>
 
       console.log(`[Ticketmaster] Page ${page + 1}: ${uniqueEventsMap.size} unique events`);
       page++;
-      await new Promise(r => setTimeout(r, 200));
+
+      // Rate limiting
+      await delay(200);
     } catch (error) {
       console.error(`[Ticketmaster] Failed page ${page}:`, error);
       hasMore = false;
@@ -75,6 +94,12 @@ export async function fetchAllTicketmasterEvents(): Promise<TicketmasterEvent[]>
   return Array.from(uniqueEventsMap.values());
 }
 
+/**
+ * Normalises a Ticketmaster event to the standard event format.
+ * 
+ * @param event - Raw Ticketmaster event data
+ * @returns Normalised event object
+ */
 export function normaliseTicketmasterEvent(event: TicketmasterEvent): NormalisedEvent {
   const classification = event.classifications?.[0];
   const segment = classification?.segment?.name;
@@ -124,6 +149,9 @@ export function normaliseTicketmasterEvent(event: TicketmasterEvent): Normalised
   };
 }
 
+/**
+ * Creates a unique key for deduplication based on event name and venue.
+ */
 function createEventKey(event: TicketmasterEvent): string {
   const venue = event._embedded?.venues?.[0]?.name || 'unknown';
   const name = event.name
@@ -134,6 +162,10 @@ function createEventKey(event: TicketmasterEvent): string {
   return `${name}::${venue}`;
 }
 
+/**
+ * Merges date ranges when the same event appears multiple times.
+ * Keeps the earliest start date and latest end date.
+ */
 function mergeEventDates(
   existing: TicketmasterEvent,
   incoming: TicketmasterEvent
@@ -162,12 +194,17 @@ function mergeEventDates(
   };
 }
 
+/**
+ * Extracts price information from Ticketmaster event data.
+ */
 function extractPriceInfo(event: TicketmasterEvent): {
   priceMin?: number;
   priceMax?: number;
   isFree: boolean;
 } {
-  if (!event.priceRanges?.length) return { isFree: false };
+  if (!event.priceRanges?.length) {
+    return { isFree: false };
+  }
 
   const mins = event.priceRanges
     .map(r => r.min)
@@ -187,6 +224,9 @@ function extractPriceInfo(event: TicketmasterEvent): {
   };
 }
 
+/**
+ * Parses date and time strings into a Date object.
+ */
 function parseDate(date: string | undefined, time?: string): Date | undefined {
   if (!date) return undefined;
 
@@ -206,8 +246,18 @@ function parseDate(date: string | undefined, time?: string): Date | undefined {
   }
 }
 
+/**
+ * Returns a fallback date 30 days in the future for events with missing dates.
+ */
 function getFallbackDate(): Date {
   const date = new Date();
   date.setDate(date.getDate() + 30);
   return date;
+}
+
+/**
+ * Simple delay utility for rate limiting.
+ */
+function delay(ms: number): Promise<void> {
+  return new Promise(resolve => setTimeout(resolve, ms));
 }

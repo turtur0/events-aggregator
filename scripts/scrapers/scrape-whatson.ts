@@ -9,8 +9,8 @@ import { processEventsWithDeduplication } from './scrape-with-dedup';
 
 const DEFAULT_OPTIONS: WhatsOnScrapeOptions = {
   categories: ['theatre', 'music', 'comedy', 'sport', 'art'],
-  maxPages: 10,
-  maxEventsPerCategory: 75,
+  maxPages: 2,
+  maxEventsPerCategory: 25,
   fetchDetails: true,
   detailFetchDelay: 1000,
 };

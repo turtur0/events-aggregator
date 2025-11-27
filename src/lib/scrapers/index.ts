@@ -9,17 +9,28 @@ export { scrapeWhatsOnMelbourne } from './whatson';
 export type { WhatsOnScrapeOptions } from './whatson';
 
 interface ScrapeAllOptions {
+  /** Which sources to scrape from */
   sources?: ('ticketmaster' | 'marriner' | 'whatson')[];
+  /** Enable detailed console logging */
   verbose?: boolean;
+  /** Run scrapers in parallel or sequentially */
   parallel?: boolean;
+  /** Options specific to Marriner scraper */
   marrinerOptions?: {
     maxShows?: number;
     maxDetailFetches?: number;
     usePuppeteer?: boolean;
   };
+  /** Options specific to WhatsOn scraper */
   whatsonOptions?: WhatsOnScrapeOptions;
 }
 
+/**
+ * Orchestrates scraping from multiple event sources.
+ * 
+ * @param options - Configuration for scraping behaviour
+ * @returns Combined events and individual scrape results
+ */
 export async function scrapeAll(
   options?: ScrapeAllOptions
 ): Promise<{ events: NormalisedEvent[]; results: ScrapeResult[] }> {
@@ -36,6 +47,7 @@ export async function scrapeAll(
     console.log(`[Scraper] Mode: ${parallel ? 'parallel' : 'sequential'}`);
   }
 
+  // Build task list based on selected sources
   const tasks: { name: string; fn: () => Promise<ScrapeResult> }[] = [];
 
   if (sources.includes('ticketmaster')) {
@@ -54,14 +66,15 @@ export async function scrapeAll(
     });
   }
 
+  // Execute tasks
   if (parallel) {
     const settled = await Promise.allSettled(tasks.map(t => t.fn()));
-    settled.forEach((r, i) => {
-      if (r.status === 'fulfilled') {
-        results.push(r.value);
-        allEvents.push(...r.value.events);
+    settled.forEach((result, index) => {
+      if (result.status === 'fulfilled') {
+        results.push(result.value);
+        allEvents.push(...result.value.events);
       } else {
-        console.error(`[${tasks[i].name}] Failed:`, r.reason);
+        console.error(`[${tasks[index].name}] Failed:`, result.reason);
       }
     });
   } else {
@@ -70,8 +83,8 @@ export async function scrapeAll(
         const result = await task.fn();
         results.push(result);
         allEvents.push(...result.events);
-      } catch (err) {
-        console.error(`[${task.name}] Failed:`, err);
+      } catch (error) {
+        console.error(`[${task.name}] Failed:`, error);
       }
     }
   }
@@ -89,64 +102,63 @@ export async function scrapeAll(
   return { events: allEvents, results };
 }
 
+/**
+ * Scrapes events from Ticketmaster API.
+ */
 async function scrapeTicketmaster(verbose: boolean): Promise<ScrapeResult> {
   const start = Date.now();
-  let fetched = 0;
-  let normalised = 0;
-  let errors = 0;
+  const stats = {
+    source: 'ticketmaster',
+    fetched: 0,
+    normalised: 0,
+    errors: 0,
+    duration: 0,
+  };
 
   if (verbose) console.log('[Ticketmaster] Starting scrape');
 
   try {
     const rawEvents = await fetchAllTicketmasterEvents();
-    fetched = rawEvents.length;
+    stats.fetched = rawEvents.length;
 
     const events: NormalisedEvent[] = [];
     for (const raw of rawEvents) {
       try {
         events.push(normaliseTicketmasterEvent(raw));
-        normalised++;
+        stats.normalised++;
       } catch {
-        errors++;
+        stats.errors++;
         if (verbose) console.error(`[Ticketmaster] Failed to normalise: ${raw.name}`);
       }
     }
 
-    if (verbose) console.log(`[Ticketmaster] Complete: ${normalised} events`);
+    if (verbose) console.log(`[Ticketmaster] Complete: ${stats.normalised} events`);
 
-    return {
-      events,
-      stats: {
-        source: 'ticketmaster',
-        fetched,
-        normalised,
-        errors,
-        duration: Date.now() - start,
-      },
-    };
+    stats.duration = Date.now() - start;
+    return { events, stats };
   } catch (error) {
     if (verbose) console.error('[Ticketmaster] Error:', error);
-    return {
-      events: [],
-      stats: {
-        source: 'ticketmaster',
-        fetched,
-        normalised,
-        errors: errors + 1,
-        duration: Date.now() - start,
-      },
-    };
+    stats.errors++;
+    stats.duration = Date.now() - start;
+    return { events: [], stats };
   }
 }
 
+/**
+ * Scrapes events from Marriner Group website.
+ */
 async function scrapeMarriner(
   verbose: boolean,
   options?: { maxShows?: number; maxDetailFetches?: number; usePuppeteer?: boolean }
 ): Promise<ScrapeResult> {
   const start = Date.now();
-  let fetched = 0;
-  let normalised = 0;
-  let errors = 0;
+  const stats = {
+    source: 'marriner',
+    fetched: 0,
+    normalised: 0,
+    errors: 0,
+    duration: 0,
+  };
 
   if (verbose) console.log('[Marriner] Starting scrape');
 
@@ -157,46 +169,38 @@ async function scrapeMarriner(
       usePuppeteer: options?.usePuppeteer ?? true,
     });
 
-    fetched = events.length;
-    normalised = events.length;
+    stats.fetched = events.length;
+    stats.normalised = events.length;
 
-    if (verbose) console.log(`[Marriner] Complete: ${normalised} events`);
+    if (verbose) console.log(`[Marriner] Complete: ${stats.normalised} events`);
 
-    return {
-      events,
-      stats: {
-        source: 'marriner',
-        fetched,
-        normalised,
-        errors,
-        duration: Date.now() - start,
-      },
-    };
+    stats.duration = Date.now() - start;
+    return { events, stats };
   } catch (error) {
     if (verbose) console.error('[Marriner] Error:', error);
-    return {
-      events: [],
-      stats: {
-        source: 'marriner',
-        fetched,
-        normalised,
-        errors: errors + 1,
-        duration: Date.now() - start,
-      },
-    };
+    stats.errors++;
+    stats.duration = Date.now() - start;
+    return { events: [], stats };
   }
 }
 
+/**
+ * Scrapes events from What's On Melbourne website.
+ */
 async function scrapeWhatsOn(
   verbose: boolean,
   options?: WhatsOnScrapeOptions
 ): Promise<ScrapeResult> {
   const start = Date.now();
-  let fetched = 0;
-  let normalised = 0;
-  let errors = 0;
+  const stats = {
+    source: 'whatson',
+    fetched: 0,
+    normalised: 0,
+    errors: 0,
+    duration: 0,
+  };
 
-  if (verbose) console.log("[WhatsOn] Starting scrape");
+  if (verbose) console.log('[WhatsOn] Starting scrape');
 
   try {
     const defaultOptions: WhatsOnScrapeOptions = {
@@ -212,32 +216,17 @@ async function scrapeWhatsOn(
       ...options,
     });
 
-    fetched = events.length;
-    normalised = events.length;
+    stats.fetched = events.length;
+    stats.normalised = events.length;
 
-    if (verbose) console.log(`[WhatsOn] Complete: ${normalised} events`);
+    if (verbose) console.log(`[WhatsOn] Complete: ${stats.normalised} events`);
 
-    return {
-      events,
-      stats: {
-        source: 'whatson',
-        fetched,
-        normalised,
-        errors,
-        duration: Date.now() - start,
-      },
-    };
+    stats.duration = Date.now() - start;
+    return { events, stats };
   } catch (error) {
-    if (verbose) console.error("[WhatsOn] Error:", error);
-    return {
-      events: [],
-      stats: {
-        source: 'whatson',
-        fetched,
-        normalised,
-        errors: errors + 1,
-        duration: Date.now() - start,
-      },
-    };
+    if (verbose) console.error('[WhatsOn] Error:', error);
+    stats.errors++;
+    stats.duration = Date.now() - start;
+    return { events: [], stats };
   }
 }
