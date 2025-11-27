@@ -1,11 +1,13 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 import { useSession, signOut } from "next-auth/react";
 import { Search, ChevronDown, Music, Theater, Trophy, Palette, Users, Sparkles, Menu, LogOut, Settings, User, Heart, BarChart3 } from "lucide-react";
 import { ThemeToggle } from '../theme/ThemeToggle';
 import { NotificationBell } from "../notifications/NotificationBell";
+import { AuthModal } from '../auth/AuthModals';
 import { Button } from '../ui/Button';
 import {
   DropdownMenu,
@@ -28,17 +30,44 @@ const CATEGORY_LINKS = [
 
 export function Header() {
   const pathname = usePathname();
+  const searchParams = useSearchParams();
   const { data: session, status } = useSession();
+  const [authModalOpen, setAuthModalOpen] = useState(false);
+  const [authModalView, setAuthModalView] = useState<'signin' | 'signup'>('signin');
 
-  // Check if we're on a category page
+  // Handle URL-triggered auth modals
+  useEffect(() => {
+    const authParam = searchParams.get('auth');
+    if (authParam === 'signin' || authParam === 'signup') {
+      setAuthModalView(authParam);
+      setAuthModalOpen(true);
+      // Clean up URL
+      const url = new URL(window.location.href);
+      url.searchParams.delete('auth');
+      window.history.replaceState({}, '', url.toString());
+    }
+  }, [searchParams]);
+
+  // Check if we're on specific pages
   const isOnCategoryPage = pathname?.startsWith('/category/');
   const currentCategory = isOnCategoryPage ? pathname.split('/')[2] : null;
-
-  // Check if we're on the events page
   const isOnEventsPage = pathname === '/events';
-
-  // Check if we're on any browse-related page (categories or all events)
   const isOnBrowsePage = isOnCategoryPage || isOnEventsPage;
+  const isOnInsightsPage = pathname === '/insights';
+  const isOnNotificationsPage = pathname === '/notifications';
+  const isOnSignInPage = pathname === '/signin';
+  const isOnSignUpPage = pathname === '/signup';
+  const isOnProfilePages = pathname === '/favourites' || pathname === '/profile' || pathname === '/settings';
+
+  const openSignIn = () => {
+    setAuthModalView('signin');
+    setTimeout(() => setAuthModalOpen(true), 0);
+  };
+
+  const openSignUp = () => {
+    setAuthModalView('signup');
+    setTimeout(() => setAuthModalOpen(true), 0);
+  };
 
   async function handleSignOut() {
     await signOut({ redirect: true, callbackUrl: '/' });
@@ -57,7 +86,7 @@ export function Header() {
           {/* Insights Link - Desktop */}
           <Link href="/insights" className="hidden md:block">
             <Button
-              variant={pathname === '/insights' ? 'default' : 'ghost'}
+              variant={isOnInsightsPage ? 'default' : 'outline'}
               size="sm"
               className="gap-2"
             >
@@ -166,7 +195,7 @@ export function Header() {
                   href="/insights"
                   className={cn(
                     "flex items-center gap-2",
-                    pathname === '/insights' && "bg-accent text-primary"
+                    isOnInsightsPage && "bg-accent text-primary"
                   )}
                 >
                   <BarChart3 className="h-4 w-4" />
@@ -253,7 +282,7 @@ export function Header() {
           </DropdownMenu>
 
           {/* Notification Bell - Only show for authenticated users */}
-          {session?.user && <NotificationBell />}
+          {session?.user && <NotificationBell isActive={isOnNotificationsPage} />}
 
           {/* Theme Toggle */}
           <ThemeToggle />
@@ -265,13 +294,7 @@ export function Header() {
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button
-                  variant={
-                    pathname === '/favourites' ||
-                      pathname === '/profile' ||
-                      pathname === '/settings'
-                      ? 'default'
-                      : 'outline'
-                  }
+                  variant={isOnProfilePages ? 'default' : 'outline'}
                   size="sm"
                   className="hidden sm:flex gap-2"
                 >
@@ -334,18 +357,23 @@ export function Header() {
             </DropdownMenu>
           ) : (
             <div className="hidden sm:flex gap-2">
-              <Link href="/signin">
-                <Button variant="outline" size="sm">
-                  Sign In
-                </Button>
-              </Link>
-              <Link href="/signup">
-                <Button variant="outline" size="sm">Sign Up</Button>
-              </Link>
+              <Button variant="outline" size="sm" onClick={openSignIn}>
+                Sign In
+              </Button>
+              <Button variant="outline" size="sm" onClick={openSignUp}>
+                Sign Up
+              </Button>
             </div>
           )}
         </nav>
       </div>
+
+      {/* Auth Modal */}
+      <AuthModal
+        isOpen={authModalOpen}
+        onClose={() => setAuthModalOpen(false)}
+        defaultView={authModalView}
+      />
     </header>
   );
 }

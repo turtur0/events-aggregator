@@ -27,6 +27,10 @@ interface Notification {
     relevanceScore?: number;
 }
 
+interface NotificationBellProps {
+    isActive?: boolean;
+}
+
 const NOTIFICATION_CONFIG = {
     keyword_match: {
         icon: Search,
@@ -44,7 +48,7 @@ const NOTIFICATION_CONFIG = {
         icon: Heart,
         color: 'text-pink-500',
         bgColor: 'bg-pink-500/10',
-        label: 'Favorite Update',
+        label: 'Favourite Update',
     },
 };
 
@@ -60,7 +64,7 @@ function formatTimeAgo(date: string): string {
     return `${Math.floor(diffInSeconds / 604800)}w ago`;
 }
 
-export function NotificationBell() {
+export function NotificationBell({ isActive = false }: NotificationBellProps) {
     const [notifications, setNotifications] = useState<Notification[]>([]);
     const [unreadCount, setUnreadCount] = useState(0);
     const [isOpen, setIsOpen] = useState(false);
@@ -117,7 +121,11 @@ export function NotificationBell() {
     return (
         <DropdownMenu open={isOpen} onOpenChange={setIsOpen}>
             <DropdownMenuTrigger asChild>
-                <Button variant="outline" size="icon" className="relative">
+                <Button
+                    variant={isActive ? 'default' : 'outline'}
+                    size="icon"
+                    className="relative"
+                >
                     <Bell className="h-5 w-5" />
                     {unreadCount > 0 && (
                         <Badge
