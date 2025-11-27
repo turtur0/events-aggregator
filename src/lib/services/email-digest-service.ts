@@ -4,23 +4,14 @@ import DigestEmail from '../email/templates/digest-email';
 
 import { Event, User, UserFavourite, type IEvent } from '@/lib/models';
 import { extractEventFeatures } from '@/lib/ml';
+import { CATEGORIES } from '@/lib/constants/categories';
 
-;
-
-// Lazy initialization - only create client when needed
-let resendClient: Resend | null = null;
-function getResendClient() {
-    if (!resendClient) {
-        if (!process.env.RESEND_API_KEY) {
-            throw new Error('RESEND_API_KEY environment variable is not set');
-        }
-        resendClient = new Resend(process.env.RESEND_API_KEY);
-    }
-    return resendClient;
-}
+// ============================================
+// TYPE DEFINITIONS
+// ============================================
 
 /**
- * Serialized event type for email template
+ * Serialised event for email template rendering
  */
 interface SerializedEvent {
     _id: string;
@@ -35,293 +26,76 @@ interface SerializedEvent {
 }
 
 /**
- * Digest content structure
+ * Aggregated digest content for a single user
  */
 interface DigestContent {
     keywordMatches: IEvent[];
-    updatedFavorites: IEvent[];
+    updatedFavourites: IEvent[];
     recommendations: { category: string; events: IEvent[] }[];
 }
 
 /**
- * Send scheduled digest emails to all eligible users.
- * Called by cron job for weekly/monthly digests.
+ * Result summary from digest send operation
  */
-export async function sendScheduledDigests(frequency: 'weekly' | 'monthly') {
-    console.log(`[Digest] Starting ${frequency} digest send`);
+interface DigestResult {
+    sent: number;
+    skipped: number;
+    errors: number;
+}
 
-    // Find users who want this frequency
-    const users = await User.find({
-        'preferences.notifications.email': true,
-        'preferences.notifications.emailFrequency': frequency,
-    }).lean();
+// ============================================
+// RESEND CLIENT (Lazy Initialisation)
+// ============================================
 
-    console.log(`[Digest] Found ${users.length} eligible users for ${frequency} digest`);
+let resendClient: Resend | null = null;
 
-    let sent = 0;
-    let skipped = 0;
-    let errors = 0;
-
-    for (const user of users) {
-        try {
-            const content = await gatherDigestContent(user, frequency);
-
-            if (!hasContent(content)) {
-                console.log(`[Digest] Skipping ${user.email} - no content`);
-                skipped++;
-                continue;
-            }
-
-            await sendDigestEmail(user, content, frequency);
-
-            // Update last sent timestamp
-            await User.updateOne(
-                { _id: user._id },
-                { $set: { 'preferences.notifications.lastEmailSent': new Date() } }
-            );
-
-            sent++;
-
-            // Rate limiting: wait 100ms between emails
-            await new Promise(resolve => setTimeout(resolve, 100));
-
-        } catch (error) {
-            console.error(`[Digest] Error for ${user.email}:`, error);
-            errors++;
+function getResendClient(): Resend {
+    if (!resendClient) {
+        if (!process.env.RESEND_API_KEY) {
+            throw new Error('RESEND_API_KEY environment variable is not set');
         }
+        resendClient = new Resend(process.env.RESEND_API_KEY);
     }
-
-    console.log(`[Digest] Complete: ${sent} sent, ${skipped} skipped, ${errors} errors`);
-    return { sent, skipped, errors };
+    return resendClient;
 }
 
-/**
- * Gather all content for the email digest
- */
-async function gatherDigestContent(
-    user: any,
-    frequency: 'weekly' | 'monthly'
-): Promise<DigestContent> {
-    const now = new Date();
-
-    // Lookback period: how far back to check for new events
-    const lookbackDays = frequency === 'weekly' ? 7 : 30;
-    const lookbackDate = user.preferences.notifications.lastEmailSent ||
-        new Date(Date.now() - lookbackDays * 24 * 60 * 60 * 1000);
-
-    // Lookahead period: how far forward to include upcoming events
-    const lookaheadDays = frequency === 'weekly' ? 30 : 60;
-    const maxDate = new Date(now.getTime() + lookaheadDays * 24 * 60 * 60 * 1000);
-
-    console.log(`[Digest] Gathering content for ${user.email} since: ${lookbackDate.toISOString()}`);
-
-    // 1. Keyword matches - NEW events only
-    const keywordMatches = await findKeywordMatches(user, lookbackDate, maxDate);
-
-    // 2. Updated favorites
-    const updatedFavorites = await findUpdatedFavorites(user, lookbackDate);
-
-    // 3. Personalized recommendations
-    const recommendations = await buildRecommendations(user, lookbackDate, maxDate, frequency);
-
-    console.log(`[Digest] Content for ${user.email}: ${keywordMatches.length} keywords, ${updatedFavorites.length} updated favorites, ${recommendations.length} recommendation categories`);
-
-    return {
-        keywordMatches,
-        updatedFavorites,
-        recommendations,
-    };
-}
+// ============================================
+// PRIVATE HELPERS
+// ============================================
 
 /**
- * Find events matching user's notification keywords
+ * Checks if digest content has any items to send
  */
-async function findKeywordMatches(
-    user: any,
-    sinceDate: Date,
-    maxDate: Date
-): Promise<IEvent[]> {
-    const keywords = user.preferences.notifications.keywords || [];
-    if (keywords.length === 0) {
-        console.log(`[Digest] No keywords configured for ${user.email}`);
-        return [];
-    }
-
-    console.log(`[Digest] Checking keywords for ${user.email}: ${keywords.join(', ')}`);
-
-    const keywordRegex = keywords.join('|');
-
-    const events = await Event.find({
-        $or: [
-            { title: { $regex: keywordRegex, $options: 'i' } },
-            { description: { $regex: keywordRegex, $options: 'i' } },
-        ],
-        startDate: { $gte: new Date(), $lte: maxDate },
-        scrapedAt: { $gte: sinceDate }, // Only new events
-    })
-        .sort({ startDate: 1 })
-        .limit(5)
-        .lean();
-
-    console.log(`[Digest] Found ${events.length} keyword matches for ${user.email}`);
-    return events;
-}
-
-/**
- * Find favorited events that have been updated
- */
-async function findUpdatedFavorites(
-    user: any,
-    sinceDate: Date
-): Promise<IEvent[]> {
-    // Get user's favorite event IDs
-    const favorites = await UserFavourite.find({ userId: user._id }).lean();
-    const favoriteEventIds = favorites.map(f => f.eventId);
-
-    if (favoriteEventIds.length === 0) {
-        console.log(`[Digest] No favorites for ${user.email}`);
-        return [];
-    }
-
-    console.log(`[Digest] User ${user.email} has ${favoriteEventIds.length} favorited events`);
-
-    // Find favorited events that were updated since last email
-    const events = await Event.find({
-        _id: { $in: favoriteEventIds },
-        startDate: { $gte: new Date() },
-        lastUpdated: { $gt: sinceDate },
-    })
-        .sort({ startDate: 1 })
-        .limit(5)
-        .lean();
-
-    console.log(`[Digest] Found ${events.length} updated favorites for ${user.email}`);
-    if (events.length > 0) {
-        console.log(`[Digest] Updated favorites: ${events.map(e => e.title).join(', ')}`);
-    }
-
-    return events;
-}
-
-/**
- * Build personalized recommendations per category
- */
-async function buildRecommendations(
-    user: any,
-    sinceDate: Date,
-    maxDate: Date,
-    frequency: 'weekly' | 'monthly'
-): Promise<{ category: string; events: IEvent[] }[]> {
-    const selectedCategories = user.preferences.selectedCategories || [];
-    if (selectedCategories.length === 0) {
-        console.log(`[Digest] No categories selected for ${user.email}`);
-        return [];
-    }
-
-    console.log(`[Digest] Building recommendations for ${user.email} in categories: ${selectedCategories.join(', ')}`);
-
-    // Get user's favorited events to exclude
-    const favorites = await UserFavourite.find({ userId: user._id }).lean();
-    const favoriteEventIds = favorites.map(f => f.eventId);
-
-    const eventsPerCategory = frequency === 'weekly' ? 3 : 5;
-    const recommendations: { category: string; events: IEvent[] }[] = [];
-
-    for (const category of selectedCategories) {
-        // Get new events in this category
-        const candidateEvents = await Event.find({
-            category,
-            startDate: { $gte: new Date(), $lte: maxDate },
-            scrapedAt: { $gte: sinceDate }, // Only new events
-            _id: { $nin: favoriteEventIds }, // Exclude already favorited
-        })
-            .sort({ startDate: 1 })
-            .limit(100)
-            .lean();
-
-        console.log(`[Digest] Found ${candidateEvents.length} new events in ${category} for ${user.email}`);
-
-        if (candidateEvents.length === 0) continue;
-
-        // Score and rank events
-        const userVector = buildSimpleUserVector(user);
-
-        const scored = candidateEvents.map(event => {
-            const eventVector = extractEventFeatures(event);
-            const contentMatch = cosineSimilarity(userVector, eventVector.fullVector);
-            const popularity = Math.min((event.stats?.favouriteCount || 0) / 100, 1);
-            const score = contentMatch * 0.7 + popularity * 0.3;
-
-            return { event, score };
-        });
-
-        scored.sort((a, b) => b.score - a.score);
-        const topEvents = scored.slice(0, eventsPerCategory).map(s => s.event);
-
-        if (topEvents.length > 0) {
-            recommendations.push({ category, events: topEvents });
-            console.log(`[Digest] Added ${topEvents.length} recommendations for ${category}`);
-        }
-    }
-
-    return recommendations;
-}
-
-/**
- * Send digest email to a single user
- */
-async function sendDigestEmail(
-    user: any,
-    content: DigestContent,
-    frequency: 'weekly' | 'monthly'
-) {
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
-    const unsubscribeUrl = `${baseUrl}/settings`;
-    const preferencesUrl = `${baseUrl}/settings`;
-
-    // Serialize events for email template
-    const serializedContent = {
-        keywordMatches: content.keywordMatches.map(serializeEvent),
-        updatedFavorites: content.updatedFavorites.map(serializeEvent),
-        recommendations: content.recommendations.map(cat => ({
-            category: cat.category,
-            events: cat.events.map(serializeEvent),
-        })),
-    };
-
-    // Render email HTML
-    const emailHtml = await render(
-        DigestEmail({
-            userName: user.name.split(' ')[0] || 'there',
-            keywordMatches: serializedContent.keywordMatches,
-            updatedFavorites: serializedContent.updatedFavorites,
-            recommendations: serializedContent.recommendations,
-            unsubscribeUrl,
-            preferencesUrl,
-        })
+function hasContent(content: DigestContent): boolean {
+    return (
+        content.keywordMatches.length > 0 ||
+        content.updatedFavourites.length > 0 ||
+        content.recommendations.length > 0
     );
-
-    // Send email via Resend
-    const resend = getResendClient();
-    const { data, error } = await resend.emails.send({
-        from: 'Melbourne Events <onboarding@resend.dev>', // Change to your verified domain
-        to: user.email,
-        subject: getDigestSubject(content, frequency),
-        html: emailHtml,
-    });
-
-    if (error) {
-        throw new Error(`Failed to send email: ${error.message}`);
-    }
-
-    console.log(`[Digest] Successfully sent ${frequency} digest to ${user.email}`);
-    return data;
 }
 
 /**
- * Helper: Serialize event for email template
+ * Generates contextual email subject line based on content
  */
-function serializeEvent(event: IEvent): SerializedEvent {
+function getDigestSubject(content: DigestContent, frequency: 'weekly' | 'monthly'): string {
+    const total =
+        content.keywordMatches.length +
+        content.updatedFavourites.length +
+        content.recommendations.reduce((sum, cat) => sum + cat.events.length, 0);
+
+    const periodText = frequency === 'weekly' ? 'This Week' : 'This Month';
+
+    if (content.keywordMatches.length > 0) {
+        return `${total} events including "${content.keywordMatches[0].title}" - Melbourne Events`;
+    }
+
+    return `${total} curated events for you ${periodText} - Melbourne Events`;
+}
+
+/**
+ * Converts Mongoose event document to plain object for email template
+ */
+function serialiseEvent(event: IEvent): SerializedEvent {
     return {
         _id: event._id.toString(),
         title: event.title,
@@ -336,66 +110,29 @@ function serializeEvent(event: IEvent): SerializedEvent {
 }
 
 /**
- * Helper: Check if digest has any content
+ * Builds user preference vector for similarity scoring
+ * Must stay in sync with notificationService and recommendationService
  */
-function hasContent(content: DigestContent): boolean {
-    return (
-        content.keywordMatches.length > 0 ||
-        content.updatedFavorites.length > 0 ||
-        content.recommendations.length > 0
-    );
-}
-
-/**
- * Helper: Generate email subject line
- */
-function getDigestSubject(content: DigestContent, frequency: 'weekly' | 'monthly'): string {
-    const total =
-        content.keywordMatches.length +
-        content.updatedFavorites.length +
-        content.recommendations.reduce((sum, cat) => sum + cat.events.length, 0);
-
-    const periodText = frequency === 'weekly' ? 'This Week' : 'This Month';
-
-    if (content.keywordMatches.length > 0) {
-        const firstEvent = content.keywordMatches[0];
-        return `${total} events including "${firstEvent.title}" - Melbourne Events`;
-    }
-
-    return `${total} curated events for you ${periodText} - Melbourne Events`;
-}
-
-/**
- * Helper: Build simple user preference vector
- */
-function buildSimpleUserVector(user: any): number[] {
+function buildUserVector(user: any): number[] {
     const vector: number[] = [];
     const categoryWeights = user.preferences?.categoryWeights || {};
-    const categories = ['music', 'theatre', 'sports', 'arts', 'family', 'other'];
 
-    for (const cat of categories) {
+    // Main category weights (6 categories × 10.0)
+    const mainCategories = ['music', 'theatre', 'sports', 'arts', 'family', 'other'];
+    mainCategories.forEach(cat => {
         vector.push((categoryWeights[cat] || 0.5) * 10.0);
-    }
+    });
 
-    const CATEGORIES = [
-        { value: 'music', subcategories: ['Rock & Alternative', 'Pop & Electronic', 'Hip Hop & R&B', 'Jazz & Blues', 'Classical & Orchestra', 'Country & Folk', 'Metal & Punk', 'World Music'] },
-        { value: 'theatre', subcategories: ['Musicals', 'Drama', 'Comedy Shows', 'Ballet & Dance', 'Opera', 'Cabaret', 'Shakespeare', 'Experimental'] },
-        { value: 'sports', subcategories: ['AFL', 'Cricket', 'Soccer', 'Basketball', 'Tennis', 'Rugby', 'Motorsports', 'Other Sports'] },
-        { value: 'arts', subcategories: ['Comedy Festival', 'Film & Cinema', 'Art Exhibitions', 'Literary Events', 'Cultural Festivals', 'Markets & Fairs'] },
-        { value: 'family', subcategories: ['Kids Shows', 'Family Entertainment', 'Educational', 'Circus & Magic'] },
-        { value: 'other', subcategories: ['Workshops', 'Networking', 'Wellness', 'Community Events'] },
-    ];
+    // Subcategory weights (all subcategories × 2.0)
+    CATEGORIES.forEach(cat => {
+        const categoryWeight = categoryWeights[cat.value] || 0.5;
+        const subcategories = cat.subcategories || [];
+        subcategories.forEach(() => {
+            vector.push(categoryWeight * 2.0);
+        });
+    });
 
-    const ALL_SUBCATEGORIES = CATEGORIES.flatMap(cat =>
-        (cat.subcategories || []).map(sub => `${cat.value}:${sub}`)
-    );
-
-    for (const fullSubcat of ALL_SUBCATEGORIES) {
-        const [category] = fullSubcat.split(':');
-        const categoryWeight = categoryWeights[category] || 0.5;
-        vector.push(categoryWeight * 2.0);
-    }
-
+    // User preference dimensions
     vector.push((user.preferences?.pricePreference || 0.5) * 1.0);
     vector.push((user.preferences?.venuePreference || 0.5) * 1.0);
     vector.push((user.preferences?.popularityPreference || 0.5) * 3.0);
@@ -404,7 +141,7 @@ function buildSimpleUserVector(user: any): number[] {
 }
 
 /**
- * Helper: Calculate cosine similarity
+ * Calculates cosine similarity between two vectors
  */
 function cosineSimilarity(vectorA: number[], vectorB: number[]): number {
     if (vectorA.length !== vectorB.length) {
@@ -424,9 +161,259 @@ function cosineSimilarity(vectorA: number[], vectorB: number[]): number {
     magnitudeA = Math.sqrt(magnitudeA);
     magnitudeB = Math.sqrt(magnitudeB);
 
-    if (magnitudeA === 0 || magnitudeB === 0) {
-        return 0;
-    }
+    if (magnitudeA === 0 || magnitudeB === 0) return 0;
 
     return dotProduct / (magnitudeA * magnitudeB);
+}
+
+// ============================================
+// CONTENT GATHERING
+// ============================================
+
+/**
+ * Finds events matching user's notification keywords
+ * Only returns events scraped since last digest
+ */
+async function findKeywordMatches(
+    user: any,
+    sinceDate: Date,
+    maxDate: Date
+): Promise<IEvent[]> {
+    const keywords = user.preferences?.notifications?.keywords || [];
+    if (!keywords.length) return [];
+
+    const keywordRegex = keywords.join('|');
+
+    const events = await Event.find({
+        $or: [
+            { title: { $regex: keywordRegex, $options: 'i' } },
+            { description: { $regex: keywordRegex, $options: 'i' } },
+        ],
+        startDate: { $gte: new Date(), $lte: maxDate },
+        scrapedAt: { $gte: sinceDate },
+    })
+        .sort({ startDate: 1 })
+        .limit(5)
+        .lean();
+
+    return events;
+}
+
+/**
+ * Finds favourited events that have been updated since last digest
+ */
+async function findUpdatedFavourites(
+    user: any,
+    sinceDate: Date
+): Promise<IEvent[]> {
+    const favourites = await UserFavourite.find({ userId: user._id }).lean();
+    if (!favourites.length) return [];
+
+    const favouriteEventIds = favourites.map(f => f.eventId);
+
+    const events = await Event.find({
+        _id: { $in: favouriteEventIds },
+        startDate: { $gte: new Date() },
+        lastUpdated: { $gt: sinceDate },
+    })
+        .sort({ startDate: 1 })
+        .limit(5)
+        .lean();
+
+    return events;
+}
+
+/**
+ * Builds personalised recommendations per category
+ * Scores events using cosine similarity and popularity
+ */
+async function buildRecommendations(
+    user: any,
+    sinceDate: Date,
+    maxDate: Date,
+    frequency: 'weekly' | 'monthly'
+): Promise<{ category: string; events: IEvent[] }[]> {
+    const selectedCategories = user.preferences?.selectedCategories || [];
+    if (!selectedCategories.length) return [];
+
+    // Get favourited event IDs to exclude
+    const favourites = await UserFavourite.find({ userId: user._id }).lean();
+    const favouriteEventIds = favourites.map(f => f.eventId);
+
+    const eventsPerCategory = frequency === 'weekly' ? 3 : 5;
+    const recommendations: { category: string; events: IEvent[] }[] = [];
+
+    for (const category of selectedCategories) {
+        // Query new events in category
+        const candidateEvents = await Event.find({
+            category,
+            startDate: { $gte: new Date(), $lte: maxDate },
+            scrapedAt: { $gte: sinceDate },
+            _id: { $nin: favouriteEventIds },
+        })
+            .sort({ startDate: 1 })
+            .limit(100)
+            .lean();
+
+        if (!candidateEvents.length) continue;
+
+        // Score and rank events
+        const userVector = buildUserVector(user);
+
+        const scored = candidateEvents.map(event => {
+            const eventVector = extractEventFeatures(event);
+            const contentMatch = cosineSimilarity(userVector, eventVector.fullVector);
+            const popularity = Math.min((event.stats?.favouriteCount || 0) / 100, 1);
+            const score = contentMatch * 0.7 + popularity * 0.3;
+
+            return { event, score };
+        });
+
+        scored.sort((a, b) => b.score - a.score);
+        const topEvents = scored.slice(0, eventsPerCategory).map(s => s.event);
+
+        if (topEvents.length > 0) {
+            recommendations.push({ category, events: topEvents });
+        }
+    }
+
+    return recommendations;
+}
+
+/**
+ * Gathers all content sections for a single user's digest
+ */
+async function gatherDigestContent(
+    user: any,
+    frequency: 'weekly' | 'monthly'
+): Promise<DigestContent> {
+    const now = new Date();
+
+    // Calculate time windows
+    const lookbackDays = frequency === 'weekly' ? 7 : 30;
+    const lookbackDate = user.preferences?.notifications?.lastEmailSent ||
+        new Date(Date.now() - lookbackDays * 24 * 60 * 60 * 1000);
+
+    const lookaheadDays = frequency === 'weekly' ? 30 : 60;
+    const maxDate = new Date(now.getTime() + lookaheadDays * 24 * 60 * 60 * 1000);
+
+    // Gather all content sections
+    const [keywordMatches, updatedFavourites, recommendations] = await Promise.all([
+        findKeywordMatches(user, lookbackDate, maxDate),
+        findUpdatedFavourites(user, lookbackDate),
+        buildRecommendations(user, lookbackDate, maxDate, frequency),
+    ]);
+
+    return { keywordMatches, updatedFavourites, recommendations };
+}
+
+// ============================================
+// EMAIL SENDING
+// ============================================
+
+/**
+ * Sends digest email to a single user via Resend
+ */
+async function sendDigestEmail(
+    user: any,
+    content: DigestContent,
+    frequency: 'weekly' | 'monthly'
+): Promise<void> {
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+
+    // Serialise all events for email template
+    const serialisedContent = {
+        keywordMatches: content.keywordMatches.map(serialiseEvent),
+        updatedFavourites: content.updatedFavourites.map(serialiseEvent),
+        recommendations: content.recommendations.map(cat => ({
+            category: cat.category,
+            events: cat.events.map(serialiseEvent),
+        })),
+    };
+
+    // Render email HTML
+    const emailHtml = await render(
+        DigestEmail({
+            userName: user.name.split(' ')[0] || 'there',
+            keywordMatches: serialisedContent.keywordMatches,
+            updatedFavourites: serialisedContent.updatedFavourites,
+            recommendations: serialisedContent.recommendations,
+            unsubscribeUrl: `${baseUrl}/settings`,
+            preferencesUrl: `${baseUrl}/settings`,
+        })
+    );
+
+    // Send via Resend
+    const resend = getResendClient();
+    const { error } = await resend.emails.send({
+        from: 'Melbourne Events <onboarding@resend.dev>',
+        to: user.email,
+        subject: getDigestSubject(content, frequency),
+        html: emailHtml,
+    });
+
+    if (error) {
+        throw new Error(`Failed to send email: ${error.message}`);
+    }
+
+    console.log(`[Digest] Sent ${frequency} digest to ${user.email}`);
+}
+
+// ============================================
+// PUBLIC API
+// ============================================
+
+/**
+ * Sends scheduled digest emails to all eligible users
+ * Called by cron job for weekly/monthly digests
+ * 
+ * @param frequency - 'weekly' or 'monthly' digest cadence
+ * @returns Summary of send operation (sent, skipped, errors)
+ */
+export async function sendScheduledDigests(
+    frequency: 'weekly' | 'monthly'
+): Promise<DigestResult> {
+    console.log(`[Digest] Starting ${frequency} digest send`);
+
+    // Find users who want this frequency
+    const users = await User.find({
+        'preferences.notifications.email': true,
+        'preferences.notifications.emailFrequency': frequency,
+    }).lean();
+
+    console.log(`[Digest] Found ${users.length} eligible users`);
+
+    const result: DigestResult = { sent: 0, skipped: 0, errors: 0 };
+
+    for (const user of users) {
+        try {
+            const content = await gatherDigestContent(user, frequency);
+
+            if (!hasContent(content)) {
+                console.log(`[Digest] Skipping ${user.email} - no content`);
+                result.skipped++;
+                continue;
+            }
+
+            await sendDigestEmail(user, content, frequency);
+
+            // Update last sent timestamp
+            await User.updateOne(
+                { _id: user._id },
+                { $set: { 'preferences.notifications.lastEmailSent': new Date() } }
+            );
+
+            result.sent++;
+
+            // Rate limiting: 100ms between emails
+            await new Promise(resolve => setTimeout(resolve, 100));
+
+        } catch (error) {
+            console.error(`[Digest] Error for ${user.email}:`, error);
+            result.errors++;
+        }
+    }
+
+    console.log(`[Digest] Complete:`, result);
+    return result;
 }

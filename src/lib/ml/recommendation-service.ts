@@ -1,7 +1,3 @@
-// ============================================
-// lib/ml/recommendation-service.ts
-// ============================================
-
 import { extractEventFeatures, cosineSimilarity } from '@/lib/ml';
 import { CATEGORIES } from '../constants/categories';
 import { Event, UserInteraction, type IEvent } from '@/lib/models';

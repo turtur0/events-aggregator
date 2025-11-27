@@ -30,7 +30,7 @@ interface Event {
 interface DigestEmailProps {
     userName: string;
     keywordMatches: Event[];
-    updatedFavorites: Event[];
+    updatedFavourites: Event[];
     recommendations: { category: string; events: Event[] }[];
     unsubscribeUrl: string;
     preferencesUrl: string;
@@ -39,17 +39,17 @@ interface DigestEmailProps {
 export default function DigestEmail({
     userName = 'there',
     keywordMatches = [],
-    updatedFavorites = [],
+    updatedFavourites = [],
     recommendations = [],
     unsubscribeUrl = '',
     preferencesUrl = '',
 }: DigestEmailProps) {
     const hasContent = keywordMatches.length > 0 ||
-        updatedFavorites.length > 0 ||
+        updatedFavourites.length > 0 ||
         recommendations.length > 0;
 
     const totalEvents = keywordMatches.length +
-        updatedFavorites.length +
+        updatedFavourites.length +
         recommendations.reduce((sum, cat) => sum + cat.events.length, 0);
 
     return (
@@ -105,7 +105,7 @@ export default function DigestEmail({
                                 </>
                             )}
 
-                            {updatedFavorites.length > 0 && (
+                            {updatedFavourites.length > 0 && (
                                 <>
                                     <Section style={section}>
                                         <Heading style={h2}>Updates to Your Saved Events</Heading>
@@ -113,7 +113,7 @@ export default function DigestEmail({
                                             Changes to events you've favourited
                                         </Text>
                                     </Section>
-                                    {updatedFavorites.map((event) => (
+                                    {updatedFavourites.map((event) => (
                                         <EventCard key={event._id} event={event} />
                                     ))}
                                     <Hr style={divider} />

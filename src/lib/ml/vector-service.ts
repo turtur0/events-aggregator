@@ -1,7 +1,3 @@
-// ============================================
-// lib/ml/vector-service.ts
-// ============================================
-
 import { CATEGORIES } from '../constants/categories';
 import { type IEvent } from '@/lib/models';
 

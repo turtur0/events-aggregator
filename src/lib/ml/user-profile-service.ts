@@ -1,7 +1,3 @@
-// ============================================
-// lib/ml/user-profile-service.ts
-// ============================================
-
 import { extractEventFeatures, cosineSimilarity, type EventVector } from './vector-service';
 import { CATEGORIES } from '../constants/categories';
 import { Event, UserFavourite, UserInteraction, type IEvent, type IUser } from '@/lib/models';

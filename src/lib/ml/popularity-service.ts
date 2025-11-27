@@ -1,7 +1,3 @@
-// ============================================
-// lib/ml/popularity-service.ts
-// ============================================
-
 import { CATEGORIES } from '../constants/categories';
 import { Event, type IEvent } from '@/lib/models';
 
