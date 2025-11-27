@@ -32,7 +32,7 @@ async function testDigest() {
         // Import after DB connection
         const User = (await import('@/lib/models/User')).default;
         const Event = (await import('@/lib/models/Event')).default;
-        const { sendScheduledDigests } = await import('@/lib/services/emailDigestService');
+        const { sendScheduledDigests } = await import('@/lib/services');
 
         // === STEP 1: Check User ===
         console.log('👤 Fetching user:', testEmail);

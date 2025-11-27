@@ -1,7 +1,7 @@
 // lib/services/scrape-with-dedup.ts
 import Event from '@/lib/models/Event';
 import { findDuplicates, mergeEvents } from '@/lib/utils/deduplication';
-import { processNewEventNotifications, processFavoritedEventUpdate } from '@/lib/services/notificationService';
+import { processNewEventNotifications, processFavouritedEventUpdate } from '@/lib/services';
 import type { NormalisedEvent, EventForDedup } from '@/lib/scrapers/types';
 
 interface Stats {
@@ -329,7 +329,7 @@ async function notifyFavoriteUsers(eventId: any, changes: EventChanges): Promise
     const updatedEvent = await Event.findById(eventId).lean();
     if (!updatedEvent) return 0;
 
-    return await processFavoritedEventUpdate(updatedEvent, changes);
+    return await processFavouritedEventUpdate(updatedEvent, changes);
   } catch (error) {
     console.error('[Dedup] Error sending favorite notifications:', error);
     return 0;
