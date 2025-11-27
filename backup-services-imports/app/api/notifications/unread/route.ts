@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { connectDB } from '@/lib/db';
-import { getUnreadNotifications, getUnreadCount } from '@/lib/services';
+import { getUnreadNotifications, getUnreadCount } from '@/lib/services/notificationService';
 
 export async function GET(request: NextRequest) {
     try {

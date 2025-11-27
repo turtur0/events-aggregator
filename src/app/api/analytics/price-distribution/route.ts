@@ -1,7 +1,7 @@
 // app/api/analytics/price-distribution/route.ts
 import { NextResponse } from 'next/server';
 import { connectDB } from '@/lib/db';
-import { computePriceDistribution } from '@/lib/services/analyticsService';
+import { computePriceDistribution } from '@/lib/services';
 
 export async function GET(request: Request) {
     try {

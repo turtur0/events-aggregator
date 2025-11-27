@@ -6,7 +6,7 @@ import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, Legend, Responsi
 import { Loader2, Calendar } from 'lucide-react';
 import { ChartWrapper } from './ChartWrapper';
 import { CategoryFilter, CATEGORY_COLORS } from './CategoryFilter';
-import type { TimelineData } from '@/lib/services';
+import type { TimelineData } from '@/lib/services/analyticsService';
 
 export function TimelineChart() {
     const [data, setData] = useState<TimelineData[]>([]);

@@ -7,7 +7,7 @@ import { Loader2, DollarSign } from 'lucide-react';
 import { CATEGORIES } from '@/lib/constants/categories';
 import { ChartWrapper } from './ChartWrapper';
 import { CategoryFilter, CATEGORY_COLORS } from './CategoryFilter';
-import type { PriceDistribution } from '@/lib/services';
+import type { PriceDistribution } from '@/lib/services/analyticsService';
 
 export function PriceDistributionChart() {
     const [data, setData] = useState<PriceDistribution[]>([]);

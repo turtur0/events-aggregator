@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { connectDB } from '@/lib/db';
-import { computePopularityData } from '@/lib/services/analyticsService';
+import { computePopularityData } from '@/lib/services';
 
 export async function GET(request: Request) {
     try {

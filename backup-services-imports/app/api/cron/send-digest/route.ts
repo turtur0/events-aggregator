@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { sendScheduledDigests } from '@/lib/services';
+import { sendScheduledDigests } from '@/lib/services/emailDigestService';
 import { connectDB } from '@/lib/db';
 
 export const runtime = 'nodejs';

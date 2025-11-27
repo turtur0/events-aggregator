@@ -1,13 +1,9 @@
-;
-;
-import UserFavourite from '../models/UserFavourite';
 import { Resend } from 'resend';
 import { render } from '@react-email/render';
 import DigestEmail from '../email/templates/digest-email';
-;
 
+import { Event, User, UserFavourite, type IEvent } from '@/lib/models';
 import { extractEventFeatures } from '@/lib/ml';
-import { Event, User, type IEvent } from '@/lib/models';
 
 ;
 

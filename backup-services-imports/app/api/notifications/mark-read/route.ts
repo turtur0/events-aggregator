@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { connectDB } from '@/lib/db';
-import { markAsRead, markAllAsRead } from '@/lib/services';
+import { markAsRead, markAllAsRead } from '@/lib/services/notificationService';
 
 export async function POST(request: NextRequest) {
     try {

@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { connectDB } from '@/lib/db';
-import { computeTimeline } from '@/lib/services';
+import { computePopularityData } from '@/lib/services/analyticsService';
 
 export async function GET(request: Request) {
     try {
@@ -13,10 +13,10 @@ export async function GET(request: Request) {
             ? categoriesParam.split(',').filter(Boolean)
             : undefined;
 
-        const data = await computeTimeline(selectedCategories);
+        const data = await computePopularityData(selectedCategories);
         return NextResponse.json({ data });
     } catch (error) {
-        console.error('[Analytics] Timeline error:', error);
-        return NextResponse.json({ error: 'Failed to compute timeline' }, { status: 500 });
+        console.error('[Analytics] Popularity error:', error);
+        return NextResponse.json({ error: 'Failed to compute popularity data' }, { status: 500 });
     }
 }

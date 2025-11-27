@@ -6,7 +6,7 @@ import { ScatterChart, Scatter, XAxis, YAxis, CartesianGrid, Tooltip, Legend, Re
 import { Loader2, TrendingUp } from 'lucide-react';
 import { ChartWrapper } from './ChartWrapper';
 import { CategoryFilter, CATEGORY_COLORS } from './CategoryFilter';
-import type { PopularityData } from '@/lib/services';
+import type { PopularityData } from '@/lib/services/analyticsService';
 
 export function PopularityScatterChart() {
     const [data, setData] = useState<PopularityData[]>([]);

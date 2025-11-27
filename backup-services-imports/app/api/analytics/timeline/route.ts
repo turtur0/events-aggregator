@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { connectDB } from '@/lib/db';
-import { computeTimeline } from '@/lib/services';
+import { computeTimeline } from '@/lib/services/analyticsService';
 
 export async function GET(request: Request) {
     try {
