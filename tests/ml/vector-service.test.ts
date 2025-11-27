@@ -1,5 +1,5 @@
 // tests/ml/vectorService.test.ts
-import { extractEventFeatures, cosineSimilarity, FEATURE_WEIGHTS } from '@/lib/ml/vectorService';
+import { extractEventFeatures, cosineSimilarity, FEATURE_WEIGHTS } from '@/lib/ml/vector-service';
 import { IEvent } from '@/lib/models/Event';
 import mongoose from 'mongoose';
 

@@ -2,7 +2,7 @@
 // lib/ml/user-profile-service.ts
 // ============================================
 
-import { extractEventFeatures, cosineSimilarity, type EventVector } from './vectorService';
+import { extractEventFeatures, cosineSimilarity, type EventVector } from './vector-service';
 import { CATEGORIES } from '../constants/categories';
 import { Event, UserFavourite, UserInteraction, type IEvent, type IUser } from '@/lib/models';
 import mongoose from 'mongoose';
@@ -22,8 +22,8 @@ const INTERACTION_WEIGHTS = {
 /** Time decay rate (0.01 ≈ 30 day half-life) */
 const TIME_DECAY_LAMBDA = 0.01;
 
-/** Blend ratio: 30% explicit preferences, 70% learned behavior */
-const REGULARIZATION_LAMBDA = 0.3;
+/** Blend ratio: 30% explicit preferences, 70% learnt behaviour */
+const REGULARISATION_LAMBDA = 0.3;
 
 /** 
  * Final scoring weights
@@ -170,8 +170,8 @@ export function buildUserVectorFromPreferences(user: IUser): number[] {
 
     // Price, venue, and popularity preferences
     const priceMiddle = (user.preferences.priceRange.min + user.preferences.priceRange.max) / 2;
-    const priceNormalized = Math.log10(priceMiddle + 1) / Math.log10(500 + 1);
-    priorVector.push(priceNormalized * 1.0);
+    const priceNormalised = Math.log10(priceMiddle + 1) / Math.log10(500 + 1);
+    priorVector.push(priceNormalised * 1.0);
     priorVector.push(0.5 * 1.0); // Venue tier (neutral)
     priorVector.push((user.preferences.popularityPreference || 0.5) * 3.0);
 
@@ -179,12 +179,12 @@ export function buildUserVectorFromPreferences(user: IUser): number[] {
 }
 
 /**
- * Compute complete user profile by blending explicit and learned preferences
+ * Compute complete user profile by blending explicit and learnt preferences
  * 
  * Strategy:
  * - Cold start (no interactions): Use 100% explicit preferences
- * - With interactions: Blend 30% explicit + 70% learned (regularization)
- * - Normalize to unit length for consistent similarity calculations
+ * - With interactions: Blend 30% explicit + 70% learnt (regularisation)
+ * - Normalise to unit length for consistent similarity calculations
  * 
  * @param userId - User's MongoDB ObjectId
  * @param user - User document with preferences
@@ -194,32 +194,32 @@ export async function computeUserProfile(
     userId: mongoose.Types.ObjectId,
     user: IUser
 ): Promise<UserProfile> {
-    const learnedData = await buildUserVectorFromInteractions(userId);
+    const learntData = await buildUserVectorFromInteractions(userId);
     const priorVector = buildUserVectorFromPreferences(user);
 
     let finalVector: number[];
     let confidence: number;
     let interactionCount: number;
 
-    if (!learnedData) {
+    if (!learntData) {
         // Cold start: use explicit preferences only
         finalVector = priorVector;
         confidence = 0.3;
         interactionCount = 0;
     } else {
-        // Regularized blend
+        // Regularised blend
         finalVector = [];
         for (let i = 0; i < priorVector.length; i++) {
             const blended =
-                REGULARIZATION_LAMBDA * priorVector[i] +
-                (1 - REGULARIZATION_LAMBDA) * (learnedData.vector[i] || 0);
+                REGULARISATION_LAMBDA * priorVector[i] +
+                (1 - REGULARISATION_LAMBDA) * (learntData.vector[i] || 0);
             finalVector.push(blended);
         }
-        confidence = learnedData.confidence;
-        interactionCount = learnedData.count;
+        confidence = learntData.confidence;
+        interactionCount = learntData.count;
     }
 
-    // L2 normalization
+    // L2 normalisation
     const magnitude = Math.sqrt(finalVector.reduce((sum, v) => sum + v * v, 0));
     if (magnitude > 0) {
         finalVector = finalVector.map(v => v / magnitude);
@@ -261,19 +261,19 @@ export async function computeUserProfile(
  * 1. Content similarity (60%): How well event matches user preferences
  * 2. Popularity boost (20%): Adjust for user's mainstream/niche preference
  * 3. Novelty bonus (10%): Encourage diversity (different from recent favourites)
- * 4. Temporal relevance (10%): Prioritize upcoming events
+ * 4. Temporal relevance (10%): Prioritise upcoming events
  * 
  * @param userProfile - User's computed profile
  * @param event - Event to score
  * @param user - User document (for popularity preference)
- * @param recentFavoriteVectors - Recent favourite event vectors (for novelty)
+ * @param recentFavouriteVectors - Recent favourite event vectors (for novelty)
  * @returns Scored event with explanation
  */
 export function scoreEventForUser(
     userProfile: UserProfile,
     event: IEvent,
     user: IUser,
-    recentFavoriteVectors: EventVector[]
+    recentFavouriteVectors: EventVector[]
 ): ScoredEvent {
     const eventVector = extractEventFeatures(event);
 
@@ -293,8 +293,8 @@ export function scoreEventForUser(
 
     // 3. Novelty bonus (diversity injection)
     let noveltyBonus = 1.0;
-    if (recentFavoriteVectors.length > 0) {
-        const similarities = recentFavoriteVectors.map(fav =>
+    if (recentFavouriteVectors.length > 0) {
+        const similarities = recentFavouriteVectors.map(fav =>
             cosineSimilarity(fav.fullVector, eventVector.fullVector)
         );
         const maxSimilarity = Math.max(...similarities);
@@ -342,13 +342,13 @@ export function scoreEventForUser(
 }
 
 /**
- * Get personalized recommendations for a user
+ * Get personalised recommendations for a user
  * Main entry point for the recommendation engine
  * 
  * Process:
- * 1. Compute user profile (blend explicit + learned preferences)
+ * 1. Compute user profile (blend explicit + learnt preferences)
  * 2. Fetch candidate events matching user's location/category filters
- * 3. Exclude already favorited events (optional)
+ * 3. Exclude already favourited events (optional)
  * 4. Score each event using multi-factor algorithm
  * 5. Return top N highest-scoring events
  * 
@@ -373,13 +373,13 @@ export async function getPersonalizedRecommendations(
     const userProfile = await computeUserProfile(userId, user);
 
     // 2. Get recent favourites for novelty calculation
-    const recentFavorites = await UserFavourite.find({ userId })
+    const recentFavourites = await UserFavourite.find({ userId })
         .populate('eventId')
         .sort({ createdAt: -1 })
         .limit(10)
         .lean();
 
-    const recentFavoriteVectors = recentFavorites
+    const recentFavouriteVectors = recentFavourites
         .map(fav => {
             const event = fav.eventId as unknown as IEvent;
             return event ? extractEventFeatures(event) : null;
@@ -402,17 +402,17 @@ export async function getPersonalizedRecommendations(
         .limit(1000)
         .lean();
 
-    // 5. Exclude favorited
-    let favoritedIds: Set<string> = new Set();
+    // 5. Exclude favourited
+    let favouritedIds: Set<string> = new Set();
     if (excludeFavorited) {
-        const favorites = await UserFavourite.find({ userId }).select('eventId').lean();
-        favoritedIds = new Set(favorites.map(f => f.eventId.toString()));
+        const favourites = await UserFavourite.find({ userId }).select('eventId').lean();
+        favouritedIds = new Set(favourites.map(f => f.eventId.toString()));
     }
 
     // 6. Score events
     const scoredEvents = candidateEvents
-        .filter(event => !favoritedIds.has(event._id.toString()))
-        .map(event => scoreEventForUser(userProfile, event, user, recentFavoriteVectors));
+        .filter(event => !favouritedIds.has(event._id.toString()))
+        .map(event => scoreEventForUser(userProfile, event, user, recentFavouriteVectors));
 
     // 7. Sort and return top N
     scoredEvents.sort((a, b) => b.score - a.score);

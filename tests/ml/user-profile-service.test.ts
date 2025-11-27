@@ -4,8 +4,8 @@ import {
     buildUserVectorFromPreferences,
     computeUserProfile,
     scoreEventForUser,
-} from '@/lib/ml/userProfileService';
-import { extractEventFeatures } from '@/lib/ml/vectorService';
+} from '@/lib/ml/user-profile-service';
+import { extractEventFeatures } from '@/lib/ml/vector-service';
 import { IUser } from '@/lib/models/User';
 import { IEvent } from '@/lib/models/Event';
 import mongoose from 'mongoose';

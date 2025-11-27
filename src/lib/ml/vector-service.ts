@@ -77,7 +77,7 @@ export const FEATURE_WEIGHTS = {
 
 /**
  * Event represented as a weighted numerical vector
- * All features are normalized and weighted for similarity calculations
+ * All features are normalised and weighted for similarity calculations
  */
 export interface EventVector {
   eventId: string;
@@ -104,7 +104,7 @@ export interface EventVector {
  * - Venue: 1 dim (tier score, lightly weighted)
  * - Popularity: 1 dim (percentile, moderately weighted)
  * 
- * @param event - Event to vectorize
+ * @param event - Event to vectorise
  * @returns EventVector with weighted features
  */
 export function extractEventFeatures(event: IEvent): EventVector {
@@ -156,7 +156,7 @@ export function extractEventFeatures(event: IEvent): EventVector {
 // ============================================
 
 /**
- * Normalize price using log scale to compress range
+ * Normalise price using log scale to compress range
  * Free events = 0, expensive events approach 1
  */
 function normalisePriceLog(event: IEvent): number {
@@ -222,7 +222,7 @@ function calculatePopularityScore(event: IEvent): number {
   const { viewCount = 0, favouriteCount = 0, clickthroughCount = 0 } = event.stats || {};
   const rawScore = viewCount * 0.1 + favouriteCount * 5 + clickthroughCount * 2;
 
-  // Sigmoid to normalize to 0-1
+  // Sigmoid to normalise to 0-1
   const scale = 0.01;
   return 1 / (1 + Math.exp(-rawScore * scale));
 }
@@ -305,7 +305,7 @@ export async function getCategoryPopularityPercentile(
 }
 
 /**
- * Normalize vector to unit length (L2 normalization)
+ * Normalise vector to unit length (L2 normalisation)
  * Useful for cosine similarity calculations
  */
 export function normaliseVector(vector: number[]): number[] {

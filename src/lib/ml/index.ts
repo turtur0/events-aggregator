@@ -8,7 +8,7 @@ export {
     getHiddenGems,
     getColdStartPopularityScore,
     compareToCategory,
-} from './popularityService';
+} from './popularity-service';
 
 // ============================================
 // RECOMMENDATION SERVICE
@@ -18,7 +18,7 @@ export {
     getRisingStars,
     getUndiscoveredGems,
     getSimilarEvents,
-} from './recommendationService';
+} from './recommendation-service';
 
 // ============================================
 // USER PROFILE SERVICE
@@ -31,12 +31,12 @@ export {
     getPersonalizedRecommendations,
     getSimilarEvents as getSimilarEventsDetailed,
     updateStoredUserProfile,
-} from './userProfileService';
+} from './user-profile-service';
 
 export type {
     UserProfile,
     ScoredEvent,
-} from './userProfileService';
+} from './user-profile-service';
 
 // ============================================
 // VECTOR SERVICE
@@ -48,19 +48,19 @@ export {
     getCategoryPopularityPercentile,
     normaliseVector,
     FEATURE_WEIGHTS,
-} from './vectorService';
+} from './vector-service';
 
 export type {
     EventVector,
-} from './vectorService';
+} from './vector-service';
 
 // ============================================
 // DEFAULT EXPORT (Main ML Service Interface)
 // ============================================
-import * as popularityService from './popularityService';
-import * as recommendationService from './recommendationService';
-import * as userProfileService from './userProfileService';
-import * as vectorService from './vectorService';
+import * as popularityService from './popularity-service';
+import * as recommendationService from './recommendation-service';
+import * as userProfileService from './user-profile-service';
+import * as vectorService from './vector-service';
 
 export default {
     // Popularity
