@@ -1,10 +1,5 @@
-// ============================================
-// category-mapper.ts
-// Centralized category mapping for all sources
-// ============================================
-
 /**
- * Map What's On Melbourne categories to normalized categories
+ * Map What's On Melbourne categories to normalised categories
  */
 export function mapWhatsOnCategory(
   categoryTag: string,
@@ -214,7 +209,7 @@ export function mapTicketmasterCategory(
 }
 
 /**
- * Map Marriner categories to normalized categories
+ * Map Marriner categories to normalised categories
  */
 export function mapMarrinerCategory(
   title: string,
