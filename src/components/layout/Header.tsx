@@ -35,20 +35,17 @@ export function Header() {
   const [authModalOpen, setAuthModalOpen] = useState(false);
   const [authModalView, setAuthModalView] = useState<'signin' | 'signup'>('signin');
 
-  // Handle URL-triggered auth modals
   useEffect(() => {
     const authParam = searchParams.get('auth');
     if (authParam === 'signin' || authParam === 'signup') {
       setAuthModalView(authParam);
       setAuthModalOpen(true);
-      // Clean up URL
       const url = new URL(window.location.href);
       url.searchParams.delete('auth');
       window.history.replaceState({}, '', url.toString());
     }
   }, [searchParams]);
 
-  // Check if we're on specific pages
   const isOnCategoryPage = pathname?.startsWith('/category/');
   const currentCategory = isOnCategoryPage ? pathname.split('/')[2] : null;
   const isOnEventsPage = pathname === '/events';
@@ -87,11 +84,11 @@ export function Header() {
           {/* Insights Link - Desktop */}
           <Link href="/insights" className="hidden md:block">
             <Button
-              variant={isOnInsightsPage ? 'default' : 'outline'}
+              variant="outline"
               size="sm"
               className={cn(
                 "gap-2 transition-all",
-                !isOnInsightsPage && "border-2 border-secondary/30 bg-secondary/5 text-secondary hover:bg-secondary/10 hover:border-secondary/50"
+                isOnInsightsPage && "bg-secondary/10 border-secondary/40 text-secondary hover:bg-secondary/15"
               )}
             >
               <BarChart3 className="h-4 w-4" />
@@ -103,11 +100,11 @@ export function Header() {
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button
-                variant={isOnBrowsePage ? 'default' : 'outline'}
+                variant="outline"
                 size="sm"
                 className={cn(
                   "hidden sm:flex gap-1 transition-all",
-                  !isOnBrowsePage && "border-2 border-primary/30 bg-primary/5 text-primary hover:bg-primary/10 hover:border-primary/50"
+                  isOnBrowsePage && "bg-primary/10 border-primary/40 text-primary hover:bg-primary/15"
                 )}
               >
                 Browse Events
@@ -288,7 +285,7 @@ export function Header() {
             </DropdownMenuContent>
           </DropdownMenu>
 
-          {/* Notification Bell - Only show for authenticated users */}
+          {/* Notification Bell */}
           {session?.user && <NotificationBell isActive={isOnNotificationsPage} />}
 
           {/* Theme Toggle */}
@@ -301,11 +298,11 @@ export function Header() {
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button
-                  variant={isOnProfilePages ? 'default' : 'outline'}
+                  variant="outline"
                   size="sm"
                   className={cn(
                     "hidden sm:flex gap-2 transition-all",
-                    !isOnProfilePages && "border-2 border-border/50 hover:border-primary/30"
+                    isOnProfilePages && "bg-primary/10 border-primary/40 text-primary hover:bg-primary/15"
                   )}
                 >
                   <User className="h-4 w-4" />
@@ -371,7 +368,7 @@ export function Header() {
                 variant="outline"
                 size="sm"
                 onClick={openSignIn}
-                className="border-2 border-primary/30 bg-primary/5 text-primary hover:bg-primary/10 hover:border-primary/50 transition-all"
+                className="transition-all hover:bg-primary/10 hover:border-primary/40 hover:text-primary"
               >
                 Sign In
               </Button>
@@ -379,7 +376,7 @@ export function Header() {
                 variant="outline"
                 size="sm"
                 onClick={openSignUp}
-                className="border-2 border-secondary/30 bg-secondary/5 text-secondary hover:bg-secondary/10 hover:border-secondary/50 transition-all"
+                className="transition-all hover:bg-secondary/10 hover:border-secondary/40 hover:text-secondary"
               >
                 Sign Up
               </Button>

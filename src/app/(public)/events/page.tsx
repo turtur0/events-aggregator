@@ -9,6 +9,8 @@ import { EventFilters } from '@/components/events/EventFilters';
 import { Suspense } from "react";
 import { SerializedEvent } from "@/lib/models/Event";
 import { getUserFavourites } from "@/lib/actions/interactions";
+import { Search } from "lucide-react";
+import { BackButton } from "@/components/navigation/BackButton";
 
 async function EventsGrid({
   page,
@@ -29,7 +31,6 @@ async function EventsGrid({
   accessibleOnly: boolean;
   userFavourites: Set<string>;
 }) {
-  // Build API URL with all filters
   const params = new URLSearchParams({
     page: page.toString(),
   });
@@ -54,10 +55,8 @@ async function EventsGrid({
   const eventsData: SerializedEvent[] = data.events;
   const { totalEvents, totalPages } = data.pagination;
 
-  // Determine source based on filters
   const source = searchQuery ? 'search' : category ? 'category_browse' : 'direct';
 
-  // Show empty state for no results
   if (eventsData.length === 0) {
     const hasFilters = searchQuery || category || subcategory || dateFilter || freeOnly || accessibleOnly;
 
@@ -79,14 +78,12 @@ async function EventsGrid({
 
   return (
     <>
-      {/* Results count */}
-      <div className="mb-4 text-sm text-muted-foreground">
-        <span>
-          Found <strong>{totalEvents}</strong> event{totalEvents !== 1 ? 's' : ''}
-        </span>
+      <div className="mb-6 flex items-center justify-between">
+        <p className="text-sm text-muted-foreground">
+          Found <strong className="text-foreground">{totalEvents.toLocaleString()}</strong> event{totalEvents !== 1 ? 's' : ''}
+        </p>
       </div>
 
-      {/* Events Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
         {eventsData.map((event) => (
           <EventCard
@@ -98,7 +95,6 @@ async function EventsGrid({
         ))}
       </div>
 
-      {/* Pagination */}
       {totalPages > 1 && (
         <Pagination
           currentPage={page}
@@ -141,7 +137,6 @@ export default async function EventsPage({
   const freeOnly = params.free === 'true';
   const accessibleOnly = params.accessible === 'true';
 
-  // Get user's favourites if logged in
   const session = await getServerSession(authOptions);
   let userFavourites = new Set<string>();
 
@@ -155,29 +150,40 @@ export default async function EventsPage({
   return (
     <div className="w-full">
       {/* Header Section */}
-      <section className="bg-linear-to-b from-primary/5 to-background">
+      <section className="bg-linear-to-b from-primary/5 via-background to-background">
         <div className="container max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16">
-          <h1 className="text-4xl sm:text-5xl font-bold mb-3">
-            {searchQuery ? `Search: "${searchQuery}"` : 'All Events'}
-          </h1>
-          <p className="text-lg text-muted-foreground">
-            Discover concerts, shows, festivals, and events across Melbourne
-          </p>
+          <BackButton fallbackUrl="/" className="mb-8" />
+
+          <div className="flex items-start gap-4 mb-4">
+            <div className="rounded-2xl bg-primary/10 p-3 ring-1 ring-primary/20">
+              <Search className="h-8 w-8 text-primary" />
+            </div>
+            <div>
+              <h1 className="text-4xl sm:text-5xl font-bold tracking-tight mb-2">
+                {searchQuery ? `Search: "${searchQuery}"` : 'All Events'}
+              </h1>
+              <p className="text-lg text-muted-foreground">
+                Discover concerts, shows, festivals, and events across Melbourne
+              </p>
+            </div>
+          </div>
         </div>
       </section>
 
       {/* Search & Filters */}
-      <section className="container max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="mb-6">
-          <SearchBar />
-        </div>
-        <div className="mb-8">
-          <EventFilters />
+      <section className="border-b bg-background/95 backdrop-blur supports-backdrop-filter:bg-background/60">
+        <div className="container max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+          <div className="mb-4">
+            <SearchBar />
+          </div>
+          <div>
+            <EventFilters />
+          </div>
         </div>
       </section>
 
       {/* Events Grid */}
-      <section className="container max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-16">
+      <section className="container max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16">
         <Suspense fallback={<EventsGridSkeleton />} key={suspenseKey}>
           <EventsGrid
             page={currentPage}
@@ -189,7 +195,6 @@ export default async function EventsPage({
             accessibleOnly={accessibleOnly}
             userFavourites={userFavourites}
           />
-
         </Suspense>
       </section>
     </div>

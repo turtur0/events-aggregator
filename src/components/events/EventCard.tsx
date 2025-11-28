@@ -194,10 +194,10 @@ export function EventCard({ event, source = 'direct', initialFavourited = false 
         <Button
           asChild
           variant="outline"
-          className="w-full border-2 border-secondary/30 hover:border-secondary/50 hover:bg-secondary/10 transition-all group"
+          className="w-full border-2 border-primary/30 hover:border-primary/50 hover:bg-primary/10 transition-all group"
         >
           <Link href={`/events/${event._id}`} className="flex items-center justify-center">
-            <span className="text-foreground group-hover:text-secondary transition-colors">View Details</span>
+            <span className="text-foreground group-hover:text-primary transition-colors">View Details</span>
             <span className="ml-2 group-hover:translate-x-0.5 transition-transform">→</span>
           </Link>
         </Button>

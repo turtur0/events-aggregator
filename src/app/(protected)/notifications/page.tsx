@@ -35,21 +35,21 @@ interface Notification {
 const NOTIFICATION_CONFIG = {
     keyword_match: {
         icon: Search,
-        color: 'text-blue-500',
+        color: 'text-blue-600 dark:text-blue-400',
         bgColor: 'bg-blue-500/10',
         borderColor: 'border-blue-500/20',
         label: 'Keyword Match',
     },
     recommendation: {
         icon: Sparkles,
-        color: 'text-purple-500',
+        color: 'text-purple-600 dark:text-purple-400',
         bgColor: 'bg-purple-500/10',
         borderColor: 'border-purple-500/20',
         label: 'Recommended',
     },
     favorite_update: {
         icon: Heart,
-        color: 'text-pink-500',
+        color: 'text-pink-600 dark:text-pink-400',
         bgColor: 'bg-pink-500/10',
         borderColor: 'border-pink-500/20',
         label: 'Favorite Update',
@@ -62,10 +62,10 @@ function formatTimeAgo(date: string): string {
     const diffInSeconds = Math.floor((now.getTime() - past.getTime()) / 1000);
 
     if (diffInSeconds < 60) return 'just now';
-    if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)} minutes ago`;
-    if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)} hours ago`;
-    if (diffInSeconds < 604800) return `${Math.floor(diffInSeconds / 86400)} days ago`;
-    return `${Math.floor(diffInSeconds / 604800)} weeks ago`;
+    if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)}m ago`;
+    if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)}h ago`;
+    if (diffInSeconds < 604800) return `${Math.floor(diffInSeconds / 86400)}d ago`;
+    return `${Math.floor(diffInSeconds / 604800)}w ago`;
 }
 
 export default function NotificationsPage() {
@@ -137,13 +137,13 @@ export default function NotificationsPage() {
     const readNotifications = allNotifications.filter(n => n.read);
 
     return (
-        <div className="w-full min-h-screen bg-linear-to-b from-background to-muted/20">
+        <div className="w-full min-h-screen bg-gradient-to-b from-background to-muted/20">
             {/* Header */}
             <section className="border-b bg-background/95 backdrop-blur supports-backdrop-filter:bg-background/60">
                 <div className="container max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
-                    <BackButton fallbackUrl="/" className="mb-6" />
+                    <BackButton fallbackUrl="/" className="mb-8" />
 
-                    <div className="flex items-center justify-between">
+                    <div className="flex items-center justify-between flex-wrap gap-4">
                         <div className="flex items-center gap-4">
                             <div className="rounded-2xl bg-primary/10 p-3 ring-1 ring-primary/20">
                                 <Bell className="h-8 w-8 text-primary" />
@@ -159,7 +159,11 @@ export default function NotificationsPage() {
                         </div>
 
                         {unreadNotifications.length > 0 && (
-                            <Button onClick={markAllAsRead} variant="outline" className="gap-2">
+                            <Button
+                                onClick={markAllAsRead}
+                                variant="outline"
+                                className="gap-2 border-2 hover:border-primary/40 hover:bg-primary/5 transition-all"
+                            >
                                 <CheckCheck className="h-4 w-4" />
                                 Mark all read
                             </Button>
@@ -175,7 +179,7 @@ export default function NotificationsPage() {
                         <TabsTrigger value="unread" className="gap-2">
                             Unread
                             {unreadNotifications.length > 0 && (
-                                <Badge variant="secondary" className="ml-1">
+                                <Badge variant="secondary" className="ml-1 bg-primary/10 text-primary border border-primary/20">
                                     {unreadNotifications.length}
                                 </Badge>
                             )}
@@ -185,8 +189,10 @@ export default function NotificationsPage() {
 
                     <TabsContent value="unread" className="space-y-3">
                         {unreadNotifications.length === 0 ? (
-                            <Card className="p-12 text-center">
-                                <Bell className="h-16 w-16 mx-auto mb-4 text-muted-foreground/40" />
+                            <Card className="p-12 text-center border-2 border-border/50">
+                                <div className="rounded-full bg-muted/50 p-6 w-fit mx-auto mb-4">
+                                    <Bell className="h-12 w-12 text-muted-foreground/40" />
+                                </div>
                                 <h3 className="text-lg font-semibold mb-2">All caught up!</h3>
                                 <p className="text-sm text-muted-foreground">
                                     No new notifications at the moment
@@ -205,8 +211,10 @@ export default function NotificationsPage() {
 
                     <TabsContent value="all" className="space-y-3">
                         {allNotifications.length === 0 ? (
-                            <Card className="p-12 text-center">
-                                <Bell className="h-16 w-16 mx-auto mb-4 text-muted-foreground/40" />
+                            <Card className="p-12 text-center border-2 border-border/50">
+                                <div className="rounded-full bg-muted/50 p-6 w-fit mx-auto mb-4">
+                                    <Bell className="h-12 w-12 text-muted-foreground/40" />
+                                </div>
                                 <h3 className="text-lg font-semibold mb-2">No notifications yet</h3>
                                 <p className="text-sm text-muted-foreground">
                                     We'll notify you when we find events you might like
@@ -240,21 +248,26 @@ function NotificationCard({
 
     return (
         <Card
-            className={`p-4 transition-all hover:shadow-md ${!notification.read ? 'bg-primary/5 border-primary/20' : ''
+            className={`p-4 border-2 transition-all hover:shadow-md ${!notification.read
+                    ? 'bg-primary/5 border-primary/30 hover:border-primary/40'
+                    : 'border-border/50 hover:border-border'
                 }`}
         >
             <div className="flex gap-4">
-                <div className={`rounded-lg p-3 ${config.bgColor} shrink-0 h-fit`}>
+                <div className={`rounded-lg border ${config.borderColor} p-3 ${config.bgColor} shrink-0 h-fit`}>
                     <Icon className={`h-5 w-5 ${config.color}`} />
                 </div>
 
                 <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-2">
+                    <div className="flex items-center gap-2 mb-2 flex-wrap">
                         <span className={`text-xs font-semibold uppercase tracking-wide ${config.color}`}>
                             {config.label}
                         </span>
                         {notification.relevanceScore && notification.relevanceScore >= 0.8 && (
-                            <Badge variant="secondary" className="text-xs">
+                            <Badge
+                                variant="secondary"
+                                className="text-xs bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/30"
+                            >
                                 {Math.round(notification.relevanceScore * 100)}% match
                             </Badge>
                         )}
@@ -268,12 +281,16 @@ function NotificationCard({
                     <h3 className="font-semibold text-base mb-1">{notification.title}</h3>
                     <p className="text-sm text-muted-foreground mb-3">{notification.message}</p>
 
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-3 flex-wrap">
                         <span className="text-xs text-muted-foreground">
                             {formatTimeAgo(notification.createdAt)}
                         </span>
                         <Link href={`/events/${notification.eventId._id}`}>
-                            <Button variant="outline" size="sm">
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                className="border-2 hover:border-primary/40 hover:bg-primary/5 transition-all"
+                            >
                                 View Event
                             </Button>
                         </Link>
@@ -282,7 +299,7 @@ function NotificationCard({
                                 variant="ghost"
                                 size="sm"
                                 onClick={() => onMarkAsRead(notification._id)}
-                                className="gap-2"
+                                className="gap-2 hover:bg-accent transition-all"
                             >
                                 <Check className="h-3 w-3" />
                                 Mark read

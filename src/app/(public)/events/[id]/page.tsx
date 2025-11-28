@@ -4,8 +4,6 @@ import { Calendar, MapPin, DollarSign, Users, Clock, Video, Info } from "lucide-
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { connectDB } from "@/lib/db";
-;
-;
 import { Badge } from '@/components/ui/Badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import { Separator } from '@/components/ui/Separator';
@@ -13,7 +11,7 @@ import { FavouriteButton } from '@/components/events/FavouriteButton';
 import { ViewTracker } from '@/components/events/ViewTracker';
 import { BookingLink } from '@/components/events/BookingLink';
 import { SimilarEvents } from '@/components/recommendations/SimilarEvents';
-import { BackButton } from '@/components/navigation/BackButton'; // ✅ Import new component
+import { BackButton } from '@/components/navigation/BackButton';
 import { format, isSameMonth } from "date-fns";
 import { getCategoryLabel } from "@/lib/constants/categories";
 import mongoose from "mongoose";
@@ -22,6 +20,16 @@ import { Event, UserFavourite } from '@/lib/models';
 interface EventPageProps {
     params: Promise<{ id: string }>;
 }
+
+// Category color mapping
+const CATEGORY_COLORS: Record<string, string> = {
+    music: "bg-orange-500/10 text-orange-700 dark:text-orange-400 border border-orange-500/30",
+    theatre: "bg-rose-500/10 text-rose-700 dark:text-rose-400 border border-rose-500/30",
+    sports: "bg-teal-500/10 text-teal-700 dark:text-teal-400 border border-teal-500/30",
+    arts: "bg-purple-500/10 text-purple-700 dark:text-purple-400 border border-purple-500/30",
+    family: "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/30",
+    other: "bg-sky-500/10 text-sky-700 dark:text-sky-400 border border-sky-500/30",
+};
 
 export async function generateMetadata({ params }: EventPageProps) {
     const { id } = await params;
@@ -137,6 +145,7 @@ export default async function EventPage({ params }: EventPageProps) {
 
     const bookingUrls = event.bookingUrls || {};
     const hasMultipleSources = event.sources && event.sources.length > 1;
+    const categoryColorClass = CATEGORY_COLORS[event.category] || CATEGORY_COLORS.other;
 
     return (
         <div className="w-full">
@@ -149,7 +158,7 @@ export default async function EventPage({ params }: EventPageProps) {
                     {/* Main Content */}
                     <div className="lg:col-span-2">
                         {event.imageUrl && (
-                            <div className="relative h-96 w-full rounded-lg overflow-hidden mb-6">
+                            <div className="relative h-96 w-full rounded-lg overflow-hidden mb-6 border-2 border-border/50">
                                 <Image
                                     src={event.imageUrl}
                                     alt={event.title}
@@ -170,21 +179,31 @@ export default async function EventPage({ params }: EventPageProps) {
                         <div className="mb-6">
                             <div className="flex items-center justify-between gap-4 mb-3">
                                 <div className="flex items-center gap-2 flex-wrap">
-                                    <Badge variant="secondary">
+                                    <Badge className={`${categoryColorClass} transition-all font-medium hover:shadow-[0_0_12px_currentColor] hover:scale-105 hover:bg-transparent`}>
                                         {getCategoryLabel(event.category)}
                                     </Badge>
                                     {event.subcategories?.map((sub) => (
-                                        <Badge key={sub} variant="outline">
+                                        <Badge
+                                            key={sub}
+                                            variant="outline"
+                                            className="bg-muted/50 border-border/60 text-foreground transition-all hover:shadow-[0_0_8px_rgba(var(--foreground-rgb),0.3)] hover:scale-105"
+                                        >
                                             {sub}
                                         </Badge>
                                     ))}
                                     {event.endDate && (
-                                        <Badge variant="outline">
+                                        <Badge
+                                            variant="outline"
+                                            className="bg-muted/50 border-border/60 text-foreground transition-all hover:shadow-[0_0_8px_rgba(var(--foreground-rgb),0.3)] hover:scale-105"
+                                        >
                                             Multi-day Event
                                         </Badge>
                                     )}
                                     {event.ageRestriction && (
-                                        <Badge variant="destructive">
+                                        <Badge
+                                            variant="destructive"
+                                            className="transition-all hover:shadow-[0_0_12px_rgba(239,68,68,0.5)] hover:scale-105"
+                                        >
                                             {event.ageRestriction}
                                         </Badge>
                                     )}
@@ -226,10 +245,10 @@ export default async function EventPage({ params }: EventPageProps) {
                                 <Separator className="my-6" />
                                 <div className="mb-6">
                                     <h2 className="text-2xl font-bold mb-4 flex items-center gap-2">
-                                        <Video className="h-6 w-6" />
+                                        <Video className="h-6 w-6 text-primary" />
                                         Preview
                                     </h2>
-                                    <div className="relative w-full aspect-video rounded-lg overflow-hidden">
+                                    <div className="relative w-full aspect-video rounded-lg overflow-hidden border-2 border-border/50">
                                         <iframe
                                             src={event.videoUrl}
                                             className="w-full h-full"
@@ -246,12 +265,16 @@ export default async function EventPage({ params }: EventPageProps) {
                                 <Separator className="my-6" />
                                 <div className="mb-6">
                                     <h2 className="text-2xl font-bold mb-4 flex items-center gap-2">
-                                        <Users className="h-6 w-6" />
+                                        <Users className="h-6 w-6 text-emerald-600 dark:text-emerald-400" />
                                         Accessibility
                                     </h2>
                                     <div className="flex flex-wrap gap-2">
                                         {event.accessibility.map((feature) => (
-                                            <Badge key={feature} variant="secondary">
+                                            <Badge
+                                                key={feature}
+                                                variant="secondary"
+                                                className="bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/30 transition-all hover:shadow-[0_0_10px_rgba(16,185,129,0.3)] hover:scale-105"
+                                            >
                                                 {feature}
                                             </Badge>
                                         ))}
@@ -264,7 +287,7 @@ export default async function EventPage({ params }: EventPageProps) {
 
                         <div>
                             <h2 className="text-2xl font-bold mb-4">Venue</h2>
-                            <Card>
+                            <Card className="border-2 border-border/50 hover:border-primary/30 transition-all">
                                 <CardContent className="p-6">
                                     <h3 className="font-bold text-lg mb-2">{event.venue.name}</h3>
                                     <p className="text-muted-foreground mb-1">{event.venue.address}</p>
@@ -276,10 +299,10 @@ export default async function EventPage({ params }: EventPageProps) {
                         {hasMultipleSources && (
                             <>
                                 <Separator className="my-6" />
-                                <Card>
+                                <Card className="border-2 border-secondary/20 bg-linear-to-br from-secondary/5 via-transparent to-transparent">
                                     <CardHeader>
                                         <CardTitle className="flex items-center gap-2">
-                                            <Info className="h-5 w-5" />
+                                            <Info className="h-5 w-5 text-secondary" />
                                             Event Information Sources
                                         </CardTitle>
                                     </CardHeader>
@@ -289,7 +312,11 @@ export default async function EventPage({ params }: EventPageProps) {
                                         </p>
                                         <div className="flex flex-wrap gap-2">
                                             {event.sources.map((source: string) => (
-                                                <Badge key={source} variant="outline">
+                                                <Badge
+                                                    key={source}
+                                                    variant="outline"
+                                                    className="bg-muted/50 border-border/60 text-foreground transition-all hover:shadow-[0_0_8px_rgba(var(--foreground-rgb),0.3)] hover:scale-105"
+                                                >
                                                     {source.charAt(0).toUpperCase() + source.slice(1)}
                                                 </Badge>
                                             ))}
@@ -302,11 +329,11 @@ export default async function EventPage({ params }: EventPageProps) {
 
                     {/* Sidebar */}
                     <div className="lg:col-span-1">
-                        <Card className="sticky top-20">
+                        <Card className="sticky top-20 border-2 border-border/50">
                             <CardContent className="p-6">
                                 <div className="mb-6">
                                     <div className="flex items-start gap-3 mb-2">
-                                        <Calendar className="h-5 w-5 text-muted-foreground mt-0.5" />
+                                        <Calendar className="h-5 w-5 text-primary mt-0.5" />
                                         <div>
                                             <p className="font-semibold mb-1">Date & Time</p>
                                             <p className="text-sm text-muted-foreground">{formatDate()}</p>
@@ -323,7 +350,7 @@ export default async function EventPage({ params }: EventPageProps) {
                                     <>
                                         <div className="mb-6">
                                             <div className="flex items-start gap-3">
-                                                <Clock className="h-5 w-5 text-muted-foreground mt-0.5" />
+                                                <Clock className="h-5 w-5 text-secondary mt-0.5" />
                                                 <div>
                                                     <p className="font-semibold mb-1">Duration</p>
                                                     <p className="text-sm text-muted-foreground">{event.duration}</p>
@@ -336,7 +363,7 @@ export default async function EventPage({ params }: EventPageProps) {
 
                                 <div className="mb-6">
                                     <div className="flex items-start gap-3">
-                                        <MapPin className="h-5 w-5 text-muted-foreground mt-0.5" />
+                                        <MapPin className="h-5 w-5 text-primary mt-0.5" />
                                         <div>
                                             <p className="font-semibold mb-1">Location</p>
                                             <p className="text-sm text-muted-foreground">
@@ -353,7 +380,7 @@ export default async function EventPage({ params }: EventPageProps) {
 
                                 <div className="mb-6">
                                     <div className="flex items-start gap-3">
-                                        <DollarSign className="h-5 w-5 text-muted-foreground mt-0.5" />
+                                        <DollarSign className="h-5 w-5 text-secondary mt-0.5" />
                                         <div className="w-full">
                                             <p className="font-semibold mb-1">Price</p>
                                             <p className="text-sm text-muted-foreground mb-2">{formatPrice()}</p>

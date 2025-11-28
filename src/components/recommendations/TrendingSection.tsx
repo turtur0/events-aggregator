@@ -115,7 +115,7 @@ export function TrendingSection({ userFavourites }: TrendingSectionProps) {
 
     if (isLoading) {
         return (
-            <Card className={`border-2 ${config.borderClass} bg-gradient-to-br ${config.gradientClass} via-transparent to-transparent shadow-sm transition-all`}>
+            <Card className={`border-2 ${config.borderClass} bg-linear-to-br{config.gradientClass} via-transparent to-transparent shadow-sm transition-all`}>
                 <CardHeader>
                     <CardTitle className="flex items-center gap-2 text-2xl">
                         <Icon className={`h-6 w-6 ${config.iconColor}`} />
@@ -133,7 +133,7 @@ export function TrendingSection({ userFavourites }: TrendingSectionProps) {
 
     if (!events || events.length === 0) {
         return (
-            <Card className={`border-2 ${config.borderClass} bg-gradient-to-br ${config.gradientClass} via-transparent to-transparent shadow-sm transition-all`}>
+            <Card className={`border-2 ${config.borderClass} bg-linear-to-br ${config.gradientClass} via-transparent to-transparent shadow-sm transition-all`}>
                 <CardHeader>
                     <div className="flex items-center justify-between mb-4">
                         <div>
@@ -164,7 +164,7 @@ export function TrendingSection({ userFavourites }: TrendingSectionProps) {
     }
 
     return (
-        <Card className={`relative overflow-hidden border-2 ${config.borderClass} bg-gradient-to-br ${config.gradientClass} via-transparent to-transparent shadow-sm transition-all`}>
+        <Card className={`relative overflow-hidden border-2 ${config.borderClass} bg-linear-to-br ${config.gradientClass} via-transparent to-transparent shadow-sm transition-all`}>
             <CardHeader>
                 <div className="flex items-center justify-between mb-4">
                     <div>

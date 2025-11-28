@@ -1,17 +1,18 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft } from "lucide-react";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { EventCard } from '@/components/events/EventCard';
 import { EventCardSkeleton } from '@/components/events/EventCardSkeleton';
 import { EmptyState } from '@/components/other/EmptyState';
 import { Pagination } from '@/components/other/Pagination';
+import { BackButton } from '@/components/navigation/BackButton';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
 import { Suspense } from "react";
 import { CATEGORIES } from "@/lib/constants/categories";
 import { getUserFavourites } from "@/lib/actions/interactions";
+import { Music, Theater, Trophy, Palette, Users, Sparkles } from "lucide-react";
 
 interface CategoryPageProps {
   params: Promise<{ slug: string }>;
@@ -23,7 +24,6 @@ interface CategoryPageProps {
   }>;
 }
 
-// Map URL slugs to actual category values in your database
 const SLUG_TO_CATEGORY: Record<string, string> = {
   'music': 'music',
   'theatre': 'theatre',
@@ -33,30 +33,42 @@ const SLUG_TO_CATEGORY: Record<string, string> = {
   'other': 'other',
 };
 
-const CATEGORY_INFO: Record<string, { title: string; description: string }> = {
+const CATEGORY_INFO: Record<string, { title: string; description: string; icon: any; color: string }> = {
   'music': {
     title: 'Live Music & Concerts',
     description: 'From intimate gigs to stadium shows, find your next musical experience',
+    icon: Music,
+    color: 'text-orange-600 dark:text-orange-400',
   },
   'theatre': {
     title: 'Theatre & Performing Arts',
     description: 'Plays, musicals, ballet, opera and more on Melbourne\'s stages',
+    icon: Theater,
+    color: 'text-rose-600 dark:text-rose-400',
   },
   'sports': {
     title: 'Sports & Games',
     description: 'AFL, cricket, tennis and all the sporting action in Melbourne',
+    icon: Trophy,
+    color: 'text-teal-600 dark:text-teal-400',
   },
   'arts': {
     title: 'Arts & Culture',
     description: 'Exhibitions, festivals, film screenings and cultural events',
+    icon: Palette,
+    color: 'text-purple-600 dark:text-purple-400',
   },
   'family': {
     title: 'Family Events',
     description: 'Fun for the whole family - kids shows, educational events and more',
+    icon: Users,
+    color: 'text-emerald-600 dark:text-emerald-400',
   },
   'other': {
     title: 'Other Events',
     description: 'Workshops, networking, wellness and community events',
+    icon: Sparkles,
+    color: 'text-sky-600 dark:text-sky-400',
   },
 };
 
@@ -108,8 +120,10 @@ async function CategoryEventsGrid({
 
   return (
     <>
-      <div className="mb-4 text-sm text-muted-foreground">
-        Found <strong>{totalEvents}</strong> event{totalEvents !== 1 ? 's' : ''}
+      <div className="mb-6 flex items-center justify-between">
+        <p className="text-sm text-muted-foreground">
+          Found <strong className="text-foreground">{totalEvents.toLocaleString()}</strong> event{totalEvents !== 1 ? 's' : ''}
+        </p>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
@@ -170,7 +184,6 @@ export default async function CategoryPage({ params, searchParams }: CategoryPag
   const dateFilter = searchParamsResolved.date || '';
   const freeOnly = searchParamsResolved.free === 'true';
 
-  // Get user's favourites if logged in
   const session = await getServerSession(authOptions);
   let userFavourites = new Set<string>();
 
@@ -179,56 +192,64 @@ export default async function CategoryPage({ params, searchParams }: CategoryPag
     userFavourites = new Set(favouriteIds);
   }
 
-  // Find category config for subcategories from your CATEGORIES array
   const categoryConfig = CATEGORIES.find(c => c.value === categoryValue);
+  const Icon = categoryInfo.icon;
 
   const suspenseKey = `${slug}-${currentPage}-${subcategory}-${dateFilter}-${freeOnly}`;
 
   return (
     <div className="w-full">
       {/* Header Section */}
-      <section className="bg-linear-to-b from-primary/5 to-background">
+      <section className="bg-gradient-to-b from-primary/5 via-background to-background">
         <div className="container max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16">
-          <Button variant="ghost" asChild className="mb-6">
-            <Link href="/">
-              <ArrowLeft className="h-4 w-4 mr-2" />
-              Back to Home
-            </Link>
-          </Button>
+          <BackButton fallbackUrl="/" className="mb-8" />
 
-          <h1 className="text-4xl sm:text-5xl font-bold mb-3">{categoryInfo.title}</h1>
-          <p className="text-lg text-muted-foreground">{categoryInfo.description}</p>
+          <div className="flex items-start gap-4 mb-4">
+            <div className="rounded-2xl bg-primary/10 p-3 ring-1 ring-primary/20">
+              <Icon className={`h-8 w-8 ${categoryInfo.color}`} />
+            </div>
+            <div>
+              <h1 className="text-4xl sm:text-5xl font-bold tracking-tight mb-2">
+                {categoryInfo.title}
+              </h1>
+              <p className="text-lg text-muted-foreground">
+                {categoryInfo.description}
+              </p>
+            </div>
+          </div>
         </div>
       </section>
 
-      {/* Subcategories */}
+      {/* Subcategories Filter */}
       {categoryConfig?.subcategories && categoryConfig.subcategories.length > 0 && (
-        <section className="container max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-          <div className="flex flex-wrap gap-3">
-            <Link href={`/category/${slug}`}>
-              <Badge
-                variant={!subcategory ? "default" : "outline"}
-                className="cursor-pointer text-sm px-4 py-2"
-              >
-                All
-              </Badge>
-            </Link>
-            {categoryConfig.subcategories.map((sub) => (
-              <Link key={sub} href={`/category/${slug}?subcategory=${encodeURIComponent(sub)}`}>
+        <section className="border-b bg-background/95 backdrop-blur supports-backdrop-filter:bg-background/60">
+          <div className="container max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+            <div className="flex flex-wrap gap-2">
+              <Link href={`/category/${slug}`}>
                 <Badge
-                  variant={subcategory === sub ? "default" : "outline"}
-                  className="cursor-pointer text-sm px-4 py-2"
+                  variant={!subcategory ? "default" : "outline"}
+                  className="cursor-pointer text-sm px-4 py-2 transition-all hover:scale-105"
                 >
-                  {sub}
+                  All
                 </Badge>
               </Link>
-            ))}
+              {categoryConfig.subcategories.map((sub) => (
+                <Link key={sub} href={`/category/${slug}?subcategory=${encodeURIComponent(sub)}`}>
+                  <Badge
+                    variant={subcategory === sub ? "default" : "outline"}
+                    className="cursor-pointer text-sm px-4 py-2 transition-all hover:scale-105 hover:shadow-sm"
+                  >
+                    {sub}
+                  </Badge>
+                </Link>
+              ))}
+            </div>
           </div>
         </section>
       )}
 
       {/* Events Grid */}
-      <section className="container max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pb-16">
+      <section className="container max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16">
         <Suspense fallback={<EventsGridSkeleton />} key={suspenseKey}>
           <CategoryEventsGrid
             categoryValue={categoryValue}

@@ -79,7 +79,7 @@ export function SimilarEvents({ eventId, userFavourites }: SimilarEventsProps) {
 
     if (isLoading) {
         return (
-            <Card className="border-2 border-secondary/20 bg-gradient-to-br from-secondary/5 via-transparent to-transparent shadow-sm hover:shadow-md hover:border-secondary/30 transition-all">
+            <Card className="border-2 border-secondary/20 bg-linear-to-br from-secondary/5 via-transparent to-transparent shadow-sm hover:shadow-md hover:border-secondary/30 transition-all">
                 <CardHeader>
                     <CardTitle className="flex items-center gap-2 text-2xl">
                         <Sparkles className="h-6 w-6 text-secondary" />
@@ -114,7 +114,7 @@ export function SimilarEvents({ eventId, userFavourites }: SimilarEventsProps) {
     }
 
     return (
-        <Card className="relative overflow-hidden border-2 border-secondary/20 bg-gradient-to-br from-secondary/5 via-transparent to-transparent shadow-sm hover:shadow-md hover:border-secondary/30 transition-all">
+        <Card className="relative overflow-hidden border-2 border-secondary/20 bg-linear-to-br from-secondary/5 via-transparent to-transparent shadow-sm hover:shadow-md hover:border-secondary/30 transition-all">
             <CardHeader>
                 <div className="flex items-center justify-between">
                     <div>

@@ -98,7 +98,7 @@ export function ForYouSection({ userFavourites }: ForYouSectionProps) {
 
     if (isLoading) {
         return (
-            <Card className="border-2 border-primary/20 bg-gradient-to-br from-primary/5 via-transparent to-transparent shadow-sm hover:shadow-md hover:border-primary/30 transition-all">
+            <Card className="border-2 border-primary/20 bg-linear-to-brrom-primary/5 via-transparent to-transparent shadow-sm hover:shadow-md hover:border-primary/30 transition-all">
                 <CardHeader>
                     <CardTitle className="flex items-center gap-2 text-2xl">
                         <Heart className="h-6 w-6 text-primary" />
@@ -116,7 +116,7 @@ export function ForYouSection({ userFavourites }: ForYouSectionProps) {
 
     if (!events || events.length === 0) {
         return (
-            <Card className="border-2 border-primary/20 bg-gradient-to-br from-primary/5 via-transparent to-transparent shadow-sm hover:shadow-md hover:border-primary/30 transition-all">
+            <Card className="border-2 border-primary/20 bg-linear-to-br from-primary/5 via-transparent to-transparent shadow-sm hover:shadow-md hover:border-primary/30 transition-all">
                 <CardHeader>
                     <CardTitle className="flex items-center gap-2 text-2xl mb-2">
                         <Heart className="h-6 w-6 text-primary" />
@@ -146,7 +146,7 @@ export function ForYouSection({ userFavourites }: ForYouSectionProps) {
     }
 
     return (
-        <Card className="relative overflow-hidden border-2 border-primary/20 bg-gradient-to-br from-primary/5 via-transparent to-transparent shadow-sm hover:shadow-md hover:border-primary/30 transition-all">
+        <Card className="relative overflow-hidden border-2 border-primary/20 bg-linear-to-br from-primary/5 via-transparent to-transparent shadow-sm hover:shadow-md hover:border-primary/30 transition-all">
             <CardHeader>
                 <div className="flex items-center justify-between">
                     <div>

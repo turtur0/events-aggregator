@@ -2,14 +2,14 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { redirect } from 'next/navigation';
 import { connectDB } from '@/lib/db';
-;
 import { EventCard } from '@/components/events/EventCard';
 import { EmptyState } from '@/components/other/EmptyState';
+import { BackButton } from '@/components/navigation/BackButton';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
 import Link from 'next/link';
 import mongoose from 'mongoose';
-import { Heart, ArrowLeft, Sparkles } from 'lucide-react';
+import { Heart, Sparkles } from 'lucide-react';
 import { UserFavourite } from '@/lib/models';
 
 export default async function FavouritesPage() {
@@ -54,27 +54,29 @@ export default async function FavouritesPage() {
     return (
         <div className="w-full">
             {/* Header Section */}
-            <section className="bg-linear-to-b from-red-500/5 to-background">
+            <section className="bg-linear-to-b from-red-500/5 via-background to-background">
                 <div className="container max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16">
-                    <Button variant="ghost" asChild className="mb-6">
-                        <Link href="/">
-                            <ArrowLeft className="h-4 w-4 mr-2" />
-                            Back to Home
-                        </Link>
-                    </Button>
+                    <BackButton fallbackUrl="/" className="mb-8" />
 
-                    <div className="flex items-start justify-between flex-wrap gap-4">
-                        <div>
-                            <h1 className="text-4xl sm:text-5xl font-bold mb-3 flex items-center gap-3">
-                                <Heart className="h-10 w-10 text-red-500 fill-red-500" />
-                                My Favourites
-                            </h1>
-                            <p className="text-lg text-muted-foreground">
-                                Events you've saved for later
-                            </p>
+                    <div className="flex items-start justify-between flex-wrap gap-6">
+                        <div className="flex items-start gap-4">
+                            <div className="rounded-2xl bg-red-500/10 p-3 ring-1 ring-red-500/20">
+                                <Heart className="h-8 w-8 text-red-500 fill-red-500" />
+                            </div>
+                            <div>
+                                <h1 className="text-4xl sm:text-5xl font-bold tracking-tight mb-2">
+                                    My Favourites
+                                </h1>
+                                <p className="text-lg text-muted-foreground">
+                                    Events you've saved for later
+                                </p>
+                            </div>
                         </div>
                         {events.length > 0 && (
-                            <Badge variant="secondary" className="text-base px-4 py-2">
+                            <Badge
+                                variant="secondary"
+                                className="text-base px-4 py-2 bg-red-500/10 text-red-700 dark:text-red-400 border border-red-500/30"
+                            >
                                 {events.length} saved event{events.length !== 1 ? 's' : ''}
                             </Badge>
                         )}
@@ -91,13 +93,18 @@ export default async function FavouritesPage() {
                             description="Start exploring events and tap the heart icon to save them here for easy access later."
                         />
                         <div className="flex flex-col sm:flex-row gap-4 justify-center mt-8">
-                            <Button asChild size="lg">
-                                <Link href="/events">
-                                    <Sparkles className="mr-2 h-5 w-5" />
+                            <Button asChild size="lg" className="border-2 transition-all group">
+                                <Link href="/events" className="flex items-center">
+                                    <Sparkles className="mr-2 h-5 w-5 group-hover:rotate-12 transition-transform" />
                                     Discover Events
                                 </Link>
                             </Button>
-                            <Button variant="outline" size="lg" asChild>
+                            <Button
+                                variant="outline"
+                                size="lg"
+                                asChild
+                                className="border-2 hover:border-primary/40 hover:bg-primary/5 transition-all"
+                            >
                                 <Link href="/category/music">
                                     Browse Music
                                 </Link>
