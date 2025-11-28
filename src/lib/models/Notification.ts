@@ -1,4 +1,3 @@
-// lib/models/Notification.ts
 import mongoose, { Schema, Model } from 'mongoose';
 
 export interface INotification {

@@ -1,4 +1,3 @@
-// lib/models/User.ts - UPDATED SCHEMA
 import mongoose, { Schema, Model } from 'mongoose';
 
 export interface IUser {

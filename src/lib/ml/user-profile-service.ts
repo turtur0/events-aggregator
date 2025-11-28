@@ -187,9 +187,7 @@ export function buildUserVectorFromPreferences(user: IUser): number[] {
  * @returns Complete user profile with vector and metadata
  */
 export async function computeUserProfile(
-    userId: mongoose.Types.ObjectId,
-    user: IUser
-): Promise<UserProfile> {
+    userId: mongoose.Types.ObjectId, user: IUser): Promise<UserProfile> {
     const learntData = await buildUserVectorFromInteractions(userId);
     const priorVector = buildUserVectorFromPreferences(user);
 
