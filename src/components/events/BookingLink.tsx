@@ -26,10 +26,21 @@ export function BookingLink({
     };
 
     return (
-        <Button asChild className={className} size={size} variant={variant} onClick={handleClick}>
-            <a href={href} target="_blank" rel="noopener noreferrer">
+        <Button
+            asChild
+            className={`${className} group transition-all duration-200`}
+            size={size}
+            variant={variant}
+            onClick={handleClick}
+        >
+            <a
+                href={href}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center"
+            >
                 {children || 'Get Tickets'}
-                <ExternalLink className="h-4 w-4 ml-2" />
+                <ExternalLink className="h-4 w-4 ml-2 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
             </a>
         </Button>
     );

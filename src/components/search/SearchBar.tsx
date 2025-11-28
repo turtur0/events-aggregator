@@ -10,7 +10,7 @@ export function SearchBar() {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  
+
   const [searchTerm, setSearchTerm] = useState(searchParams.get('q') || '');
   const [isSearching, setIsSearching] = useState(false);
 
@@ -35,7 +35,7 @@ export function SearchBar() {
     }
 
     const urlQuery = searchParams.get('q') || '';
-    
+
     // Don't update if it matches what's already in URL
     if (searchTerm === urlQuery) {
       setIsSearching(false);
@@ -46,15 +46,15 @@ export function SearchBar() {
 
     const timer = setTimeout(() => {
       const params = new URLSearchParams(searchParams.toString());
-      
+
       if (searchTerm.trim()) {
         params.set('q', searchTerm.trim());
       } else {
         params.delete('q');
       }
-      
+
       params.set('page', '1');
-      
+
       router.push(`${pathname}?${params.toString()}`, { scroll: false });
       setIsSearching(false);
     }, 500);
@@ -65,7 +65,7 @@ export function SearchBar() {
   // Handle form submit (for homepage redirect and Enter key)
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!searchTerm.trim()) return;
 
     const params = new URLSearchParams();
@@ -82,7 +82,7 @@ export function SearchBar() {
 
   const handleClear = () => {
     setSearchTerm('');
-    
+
     // If not on homepage, also clear the URL
     if (!isHomePage) {
       const params = new URLSearchParams(searchParams.toString());

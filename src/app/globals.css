@@ -47,72 +47,97 @@
 }
 
 :root {
-  --radius: 0.625rem;
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
+  --radius: 0.75rem;
+  
+  /* Base colors */
+  --background: oklch(0.99 0 0);
+  --foreground: oklch(0.12 0 0);
+  
+  /* Card & UI surfaces */
   --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
+  --card-foreground: oklch(0.12 0 0);
   --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
+  --popover-foreground: oklch(0.12 0 0);
+  
+  /* Primary: Vibrant Orange */
+  --primary: oklch(0.62 0.17 42);
+  --primary-foreground: oklch(0.99 0 0);
+  
+  /* Secondary: Sophisticated Teal */
+  --secondary: oklch(0.58 0.10 200);
+  --secondary-foreground: oklch(0.99 0 0);
+  
+  /* Muted & Accents */
+  --muted: oklch(0.96 0 0);
+  --muted-foreground: oklch(0.48 0 0);
+  --accent: oklch(0.96 0.005 42);
+  --accent-foreground: oklch(0.12 0 0);
+  
+  /* Utility colors */
   --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
-  --chart-1: oklch(0.646 0.222 41.116);
-  --chart-2: oklch(0.6 0.118 184.704);
-  --chart-3: oklch(0.398 0.07 227.392);
-  --chart-4: oklch(0.828 0.189 84.429);
-  --chart-5: oklch(0.769 0.188 70.08);
+  --border: oklch(0.89 0 0);
+  --input: oklch(0.94 0 0);
+  --ring: oklch(0.62 0.17 42);
+  
+  /* Chart colors - cohesive palette */
+  --chart-1: oklch(0.62 0.17 42);   /* Orange */
+  --chart-2: oklch(0.58 0.10 200);  /* Teal */
+  --chart-3: oklch(0.60 0.14 290);  /* Purple */
+  --chart-4: oklch(0.65 0.13 145);  /* Green */
+  --chart-5: oklch(0.68 0.16 25);   /* Coral */
+  
+  /* Sidebar */
   --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.205 0 0);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
+  --sidebar-foreground: oklch(0.12 0 0);
+  --sidebar-primary: oklch(0.62 0.17 42);
+  --sidebar-primary-foreground: oklch(0.99 0 0);
+  --sidebar-accent: oklch(0.96 0.005 42);
+  --sidebar-accent-foreground: oklch(0.12 0 0);
+  --sidebar-border: oklch(0.89 0 0);
+  --sidebar-ring: oklch(0.62 0.17 42);
 }
 
 .dark {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.205 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.922 0 0);
-  --primary-foreground: oklch(0.205 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
+  --background: oklch(0.11 0 0);
+  --foreground: oklch(0.97 0 0);
+  
+  --card: oklch(0.15 0 0);
+  --card-foreground: oklch(0.97 0 0);
+  --popover: oklch(0.15 0 0);
+  --popover-foreground: oklch(0.97 0 0);
+  
+  /* Primary: Brighter orange for dark mode */
+  --primary: oklch(0.70 0.16 42);
+  --primary-foreground: oklch(0.11 0 0);
+  
+  /* Secondary: Brighter teal */
+  --secondary: oklch(0.65 0.11 200);
+  --secondary-foreground: oklch(0.11 0 0);
+  
+  --muted: oklch(0.20 0 0);
+  --muted-foreground: oklch(0.62 0 0);
+  --accent: oklch(0.20 0.01 42);
+  --accent-foreground: oklch(0.97 0 0);
+  
   --destructive: oklch(0.704 0.191 22.216);
   --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.556 0 0);
-  --chart-1: oklch(0.488 0.243 264.376);
-  --chart-2: oklch(0.696 0.17 162.48);
-  --chart-3: oklch(0.769 0.188 70.08);
-  --chart-4: oklch(0.627 0.265 303.9);
-  --chart-5: oklch(0.645 0.246 16.439);
-  --sidebar: oklch(0.205 0 0);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.269 0 0);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
+  --input: oklch(1 0 0 / 12%);
+  --ring: oklch(0.70 0.16 42);
+  
+  --chart-1: oklch(0.70 0.16 42);
+  --chart-2: oklch(0.65 0.11 200);
+  --chart-3: oklch(0.68 0.13 290);
+  --chart-4: oklch(0.70 0.12 145);
+  --chart-5: oklch(0.72 0.15 25);
+  
+  --sidebar: oklch(0.15 0 0);
+  --sidebar-foreground: oklch(0.97 0 0);
+  --sidebar-primary: oklch(0.70 0.16 42);
+  --sidebar-primary-foreground: oklch(0.11 0 0);
+  --sidebar-accent: oklch(0.20 0.01 42);
+  --sidebar-accent-foreground: oklch(0.97 0 0);
   --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.556 0 0);
+  --sidebar-ring: oklch(0.70 0.16 42);
 }
 
 @layer base {
@@ -122,5 +147,65 @@
 
   body {
     @apply bg-background text-foreground;
+  }
+}
+
+/* Custom utility classes */
+@layer utilities {
+  /* Hover lift effect */
+  .hover-lift {
+    @apply transition-all duration-300 ease-out;
+  }
+  
+  .hover-lift:hover {
+    @apply -translate-y-0.5 shadow-md;
+  }
+
+  /* Glass effect for cards */
+  .glass-card {
+    @apply bg-card/80 backdrop-blur-sm border border-border/50;
+  }
+
+  /* Modern button styles */
+  .btn-outline-primary {
+    @apply border-2 border-primary/30 bg-primary/5 text-primary hover:bg-primary/10 hover:border-primary/50 transition-all duration-200;
+  }
+
+  .btn-outline-secondary {
+    @apply border-2 border-secondary/30 bg-secondary/5 text-secondary hover:bg-secondary/10 hover:border-secondary/50 transition-all duration-200;
+  }
+
+  /* Section backgrounds */
+  .section-bg-orange {
+    @apply bg-linear-to-br from-orange-50/50 to-transparent dark:from-orange-950/10 dark:to-transparent;
+  }
+
+  .section-bg-teal {
+    @apply bg-linear-to-br from-teal-50/50 to-transparent dark:from-teal-950/10 dark:to-transparent;
+  }
+
+  /* Category color utilities - cohesive palette */
+  .category-music {
+    @apply bg-orange-500/8 text-orange-600 hover:bg-orange-500/15 dark:text-orange-400 dark:bg-orange-400/10 dark:hover:bg-orange-400/15 border-2 border-orange-500/20 dark:border-orange-400/20;
+  }
+
+  .category-theatre {
+    @apply bg-rose-500/8 text-rose-600 hover:bg-rose-500/15 dark:text-rose-400 dark:bg-rose-400/10 dark:hover:bg-rose-400/15 border-2 border-rose-500/20 dark:border-rose-400/20;
+  }
+
+  .category-sports {
+    @apply bg-teal-500/8 text-teal-600 hover:bg-teal-500/15 dark:text-teal-400 dark:bg-teal-400/10 dark:hover:bg-teal-400/15 border-2 border-teal-500/20 dark:border-teal-400/20;
+  }
+
+  .category-arts {
+    @apply bg-purple-500/8 text-purple-600 hover:bg-purple-500/15 dark:text-purple-400 dark:bg-purple-400/10 dark:hover:bg-purple-400/15 border-2 border-purple-500/20 dark:border-purple-400/20;
+  }
+
+  .category-family {
+    @apply bg-emerald-500/8 text-emerald-600 hover:bg-emerald-500/15 dark:text-emerald-400 dark:bg-emerald-400/10 dark:hover:bg-emerald-400/15 border-2 border-emerald-500/20 dark:border-emerald-400/20;
+  }
+
+  .category-other {
+    @apply bg-sky-500/8 text-sky-600 hover:bg-sky-500/15 dark:text-sky-400 dark:bg-sky-400/10 dark:hover:bg-sky-400/15 border-2 border-sky-500/20 dark:border-sky-400/20;
   }
 }

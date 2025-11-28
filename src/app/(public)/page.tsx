@@ -9,19 +9,18 @@ import { ForYouSection } from '@/components/recommendations/ForYouSection';
 import { TrendingSection } from '@/components/recommendations/TrendingSection';
 import { UpcomingEvents } from '@/components/events/UpcomingEvents';
 import { connectDB } from "@/lib/db";
-;
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { getUserFavourites } from "@/lib/actions/interactions";
 import { Event } from '@/lib/models';
 
 const CATEGORIES = [
-  { label: "Music", slug: "music", icon: Music, color: "bg-purple-500/10 text-purple-500 hover:bg-purple-500/20" },
-  { label: "Theatre", slug: "theatre", icon: Theater, color: "bg-red-500/10 text-red-500 hover:bg-red-500/20" },
-  { label: "Sports", slug: "sports", icon: Trophy, color: "bg-green-500/10 text-green-500 hover:bg-green-500/20" },
-  { label: "Arts & Culture", slug: "arts", icon: Palette, color: "bg-yellow-500/10 text-yellow-500 hover:bg-yellow-500/20" },
-  { label: "Family", slug: "family", icon: Users, color: "bg-pink-500/10 text-pink-500 hover:bg-pink-500/20" },
-  { label: "Other", slug: "other", icon: Sparkles, color: "bg-blue-500/10 text-blue-500 hover:bg-blue-500/20" },
+  { label: "Music", slug: "music", icon: Music, className: "category-music" },
+  { label: "Theatre", slug: "theatre", icon: Theater, className: "category-theatre" },
+  { label: "Sports", slug: "sports", icon: Trophy, className: "category-sports" },
+  { label: "Arts & Culture", slug: "arts", icon: Palette, className: "category-arts" },
+  { label: "Family", slug: "family", icon: Users, className: "category-family" },
+  { label: "Other", slug: "other", icon: Sparkles, className: "category-other" },
 ];
 
 async function getStats() {
@@ -63,14 +62,19 @@ export default async function HomePage() {
 
   return (
     <div className="w-full">
-      {/* Hero Section - Full width background */}
-      <section className="relative overflow-hidden bg-linear-to-b from-primary/5 via-background to-background">
+      {/* Hero Section */}
+      <section className="relative overflow-hidden bg-gradient-to-b from-background via-orange-50/30 to-background dark:from-background dark:via-orange-950/5 dark:to-background">
         <div className="container max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 sm:py-20 md:py-28">
           <div className="max-w-3xl mx-auto text-center">
-            <Badge variant="secondary" className="mb-6">
-              <Zap className="h-3 w-3 mr-1" />
+            {/* Updated Badge with modern outline style */}
+            <Badge
+              variant="secondary"
+              className="mb-6 border-2 border-primary/20 bg-primary/5 text-foreground hover:bg-primary/10 transition-colors"
+            >
+              <Zap className="h-3 w-3 mr-1 text-primary" />
               Updated daily from {sourceCount} sources
             </Badge>
+
             <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold tracking-tight mb-6">
               Discover What's On in{" "}
               <span className="text-primary">Melbourne</span>
@@ -86,14 +90,24 @@ export default async function HomePage() {
               </Suspense>
             </div>
 
+            {/* Updated button styles */}
             <div className="flex flex-col sm:flex-row justify-center gap-4">
-              <Button asChild size="lg" className="text-base">
+              <Button
+                asChild
+                size="lg"
+                className="text-base border-2 border-primary/30 bg-primary/10 text-primary hover:bg-primary/20 hover:border-primary/50 transition-all group"
+              >
                 <Link href="/events">
                   Browse All Events
-                  <ArrowRight className="ml-2 h-5 w-5" />
+                  <ArrowRight className="ml-2 h-5 w-5 group-hover:translate-x-0.5 transition-transform" />
                 </Link>
               </Button>
-              <Button variant="outline" size="lg" asChild className="text-base">
+              <Button
+                variant="outline"
+                size="lg"
+                asChild
+                className="text-base border-2 border-secondary/30 bg-secondary/5 text-secondary hover:bg-secondary/10 hover:border-secondary/50 transition-all"
+              >
                 <Link href="/category/music">
                   <Music className="mr-2 h-5 w-5" />
                   Live Music
@@ -118,7 +132,7 @@ export default async function HomePage() {
               <Link
                 key={cat.slug}
                 href={`/category/${cat.slug}`}
-                className={`flex flex-col items-center justify-center p-6 rounded-xl border-2 transition-all hover:scale-105 hover:shadow-md ${cat.color}`}
+                className={`flex flex-col items-center justify-center p-6 rounded-xl transition-all hover:scale-105 hover:shadow-md ${cat.className}`}
               >
                 <Icon className="h-8 w-8 mb-3" />
                 <span className="font-medium text-center text-sm">{cat.label}</span>
@@ -128,20 +142,24 @@ export default async function HomePage() {
         </div>
       </section>
 
-      {/* For You Section (Logged in users only) */}
+      {/* For You Section (Logged in users only) - Orange theme */}
       {isLoggedIn && (
-        <section className="container max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16">
-          <Suspense fallback={<CarouselSkeleton />}>
-            <ForYouSection userFavourites={userFavourites} />
-          </Suspense>
+        <section className="section-bg-orange">
+          <div className="container max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16">
+            <Suspense fallback={<CarouselSkeleton />}>
+              <ForYouSection userFavourites={userFavourites} />
+            </Suspense>
+          </div>
         </section>
       )}
 
-      {/* Trending Section (Always shown) */}
-      <section className="container max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16">
-        <Suspense fallback={<CarouselSkeleton />}>
-          <TrendingSection userFavourites={userFavourites} />
-        </Suspense>
+      {/* Trending Section - Teal theme */}
+      <section className="section-bg-teal">
+        <div className="container max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16">
+          <Suspense fallback={<CarouselSkeleton />}>
+            <TrendingSection userFavourites={userFavourites} />
+          </Suspense>
+        </div>
       </section>
 
       {/* Upcoming Events Section */}
@@ -150,33 +168,6 @@ export default async function HomePage() {
           <UpcomingEvents userFavourites={userFavourites} />
         </Suspense>
       </section>
-
-      {/* Stats Section */}
-      <section className="container max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16 pb-20">
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
-          <Card className="text-center border">
-            <CardContent className="pt-8 pb-8">
-              <p className="text-5xl font-bold mb-2">{totalEvents.toLocaleString()}+</p>
-              <p className="text-muted-foreground">Events Listed</p>
-            </CardContent>
-          </Card>
-
-          <Card className="text-center border">
-            <CardContent className="pt-8 pb-8">
-              <p className="text-5xl font-bold mb-2">{sourceCount}</p>
-              <p className="text-muted-foreground">Data Sources</p>
-            </CardContent>
-          </Card>
-
-          <Card className="text-center border">
-            <CardContent className="pt-8 pb-8">
-              <p className="text-5xl font-bold mb-2">Daily</p>
-              <p className="text-muted-foreground">Auto Updates</p>
-            </CardContent>
-          </Card>
-        </div>
-      </section>
-
     </div>
   );
 }

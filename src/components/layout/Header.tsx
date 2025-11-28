@@ -20,12 +20,12 @@ import {
 import { cn } from '@/lib/utils';
 
 const CATEGORY_LINKS = [
-  { label: "Music", slug: "music", icon: Music, description: "Concerts, gigs & live music" },
-  { label: "Theatre", slug: "theatre", icon: Theater, description: "Plays, musicals & performances" },
-  { label: "Sports", slug: "sports", icon: Trophy, description: "Games, matches & competitions" },
-  { label: "Arts & Culture", slug: "arts", icon: Palette, description: "Exhibitions, film & festivals" },
-  { label: "Family", slug: "family", icon: Users, description: "Kids shows & family fun" },
-  { label: "Other", slug: "other", icon: Sparkles, description: "Workshops, networking & more" },
+  { label: "Music", slug: "music", icon: Music, description: "Concerts, gigs & live music", color: "text-orange-600 dark:text-orange-400" },
+  { label: "Theatre", slug: "theatre", icon: Theater, description: "Plays, musicals & performances", color: "text-rose-600 dark:text-rose-400" },
+  { label: "Sports", slug: "sports", icon: Trophy, description: "Games, matches & competitions", color: "text-teal-600 dark:text-teal-400" },
+  { label: "Arts & Culture", slug: "arts", icon: Palette, description: "Exhibitions, film & festivals", color: "text-purple-600 dark:text-purple-400" },
+  { label: "Family", slug: "family", icon: Users, description: "Kids shows & family fun", color: "text-emerald-600 dark:text-emerald-400" },
+  { label: "Other", slug: "other", icon: Sparkles, description: "Workshops, networking & more", color: "text-sky-600 dark:text-sky-400" },
 ];
 
 export function Header() {
@@ -55,8 +55,6 @@ export function Header() {
   const isOnBrowsePage = isOnCategoryPage || isOnEventsPage;
   const isOnInsightsPage = pathname === '/insights';
   const isOnNotificationsPage = pathname === '/notifications';
-  const isOnSignInPage = pathname === '/signin';
-  const isOnSignUpPage = pathname === '/signup';
   const isOnProfilePages = pathname === '/favourites' || pathname === '/profile' || pathname === '/settings';
 
   const openSignIn = () => {
@@ -74,11 +72,14 @@ export function Header() {
   }
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-backdrop-filter:bg-background/60">
+    <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-backdrop-filter:bg-background/60 transition-all">
       <div className="container mx-auto flex h-14 sm:h-16 items-center justify-between px-4 sm:px-6 lg:px-8">
         {/* Logo */}
-        <Link href="/" className="flex items-center gap-2 font-bold text-lg sm:text-xl">
-          <span className="xs:inline">Melbourne Events</span>
+        <Link href="/" className="flex items-center gap-2 font-bold text-lg sm:text-xl group">
+          <span className="bg-primary text-primary-foreground px-2 py-1 rounded text-sm group-hover:scale-105 transition-transform">
+            ME
+          </span>
+          <span className="hidden xs:inline">Melbourne Events</span>
         </Link>
 
         {/* Navigation */}
@@ -88,7 +89,10 @@ export function Header() {
             <Button
               variant={isOnInsightsPage ? 'default' : 'outline'}
               size="sm"
-              className="gap-2"
+              className={cn(
+                "gap-2 transition-all",
+                !isOnInsightsPage && "border-2 border-secondary/30 bg-secondary/5 text-secondary hover:bg-secondary/10 hover:border-secondary/50"
+              )}
             >
               <BarChart3 className="h-4 w-4" />
               <span className="hidden lg:inline">Insights</span>
@@ -101,10 +105,13 @@ export function Header() {
               <Button
                 variant={isOnBrowsePage ? 'default' : 'outline'}
                 size="sm"
-                className="hidden sm:flex gap-1"
+                className={cn(
+                  "hidden sm:flex gap-1 transition-all",
+                  !isOnBrowsePage && "border-2 border-primary/30 bg-primary/5 text-primary hover:bg-primary/10 hover:border-primary/50"
+                )}
               >
                 Browse Events
-                <ChevronDown className="h-4 w-4" />
+                <ChevronDown className="h-4 w-4 transition-transform group-data-[state=open]:rotate-180" />
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-64">
@@ -118,18 +125,18 @@ export function Header() {
                     <Link
                       href={`/category/${cat.slug}`}
                       className={cn(
-                        "flex items-start gap-3 py-2",
+                        "flex items-start gap-3 py-2 transition-colors",
                         isActive && "bg-accent"
                       )}
                     >
                       <Icon className={cn(
-                        "h-5 w-5 mt-0.5",
-                        isActive ? "text-primary" : "text-muted-foreground"
+                        "h-5 w-5 mt-0.5 transition-transform hover:scale-110",
+                        isActive ? cat.color : "text-muted-foreground"
                       )} />
                       <div>
                         <p className={cn(
                           "font-medium",
-                          isActive && "text-primary"
+                          isActive && cat.color
                         )}>
                           {cat.label}
                         </p>
@@ -144,12 +151,12 @@ export function Header() {
                 <Link
                   href="/events"
                   className={cn(
-                    "flex items-center gap-3 py-2",
+                    "flex items-center gap-3 py-2 transition-colors",
                     isOnEventsPage && "bg-accent"
                   )}
                 >
                   <Search className={cn(
-                    "h-5 w-5",
+                    "h-5 w-5 transition-transform hover:scale-110",
                     isOnEventsPage ? "text-primary" : "text-muted-foreground"
                   )} />
                   <div>
@@ -195,7 +202,7 @@ export function Header() {
                   href="/insights"
                   className={cn(
                     "flex items-center gap-2",
-                    isOnInsightsPage && "bg-accent text-primary"
+                    isOnInsightsPage && "bg-accent text-secondary"
                   )}
                 >
                   <BarChart3 className="h-4 w-4" />
@@ -216,7 +223,7 @@ export function Header() {
                       href={`/category/${cat.slug}`}
                       className={cn(
                         "flex items-center gap-2",
-                        isActive && "bg-accent text-primary"
+                        isActive && cn("bg-accent", cat.color)
                       )}
                     >
                       <Icon className="h-4 w-4" />
@@ -272,7 +279,7 @@ export function Header() {
                       Settings
                     </Link>
                   </DropdownMenuItem>
-                  <DropdownMenuItem onClick={handleSignOut} className="text-red-600">
+                  <DropdownMenuItem onClick={handleSignOut} className="text-destructive hover:text-destructive">
                     <LogOut className="h-4 w-4 mr-2" />
                     Sign Out
                   </DropdownMenuItem>
@@ -296,11 +303,14 @@ export function Header() {
                 <Button
                   variant={isOnProfilePages ? 'default' : 'outline'}
                   size="sm"
-                  className="hidden sm:flex gap-2"
+                  className={cn(
+                    "hidden sm:flex gap-2 transition-all",
+                    !isOnProfilePages && "border-2 border-border/50 hover:border-primary/30"
+                  )}
                 >
                   <User className="h-4 w-4" />
                   <span className="hidden md:inline">{session.user.name}</span>
-                  <ChevronDown className="h-4 w-4" />
+                  <ChevronDown className="h-4 w-4 transition-transform group-data-[state=open]:rotate-180" />
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-56">
@@ -313,7 +323,7 @@ export function Header() {
                   <Link
                     href="/favourites"
                     className={cn(
-                      "flex items-center gap-2 cursor-pointer",
+                      "flex items-center gap-2 cursor-pointer transition-colors",
                       pathname === '/favourites' && "bg-accent text-primary"
                     )}
                   >
@@ -325,7 +335,7 @@ export function Header() {
                   <Link
                     href="/profile"
                     className={cn(
-                      "flex items-center gap-2 cursor-pointer",
+                      "flex items-center gap-2 cursor-pointer transition-colors",
                       pathname === '/profile' && "bg-accent text-primary"
                     )}
                   >
@@ -337,7 +347,7 @@ export function Header() {
                   <Link
                     href="/settings"
                     className={cn(
-                      "flex items-center gap-2 cursor-pointer",
+                      "flex items-center gap-2 cursor-pointer transition-colors",
                       pathname === '/settings' && "bg-accent text-primary"
                     )}
                   >
@@ -348,7 +358,7 @@ export function Header() {
                 <DropdownMenuSeparator />
                 <DropdownMenuItem
                   onClick={handleSignOut}
-                  className="text-red-600 focus:text-red-600 focus:bg-red-50 dark:focus:bg-red-950 cursor-pointer"
+                  className="text-destructive focus:text-destructive focus:bg-destructive/10 cursor-pointer transition-colors"
                 >
                   <LogOut className="h-4 w-4 mr-2" />
                   Sign Out
@@ -357,10 +367,20 @@ export function Header() {
             </DropdownMenu>
           ) : (
             <div className="hidden sm:flex gap-2">
-              <Button variant="outline" size="sm" onClick={openSignIn}>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={openSignIn}
+                className="border-2 border-primary/30 bg-primary/5 text-primary hover:bg-primary/10 hover:border-primary/50 transition-all"
+              >
                 Sign In
               </Button>
-              <Button variant="outline" size="sm" onClick={openSignUp}>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={openSignUp}
+                className="border-2 border-secondary/30 bg-secondary/5 text-secondary hover:bg-secondary/10 hover:border-secondary/50 transition-all"
+              >
                 Sign Up
               </Button>
             </div>

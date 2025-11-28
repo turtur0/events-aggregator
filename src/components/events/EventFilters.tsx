@@ -31,32 +31,32 @@ export function EventFilters() {
 
   const updateURL = (key: string, value: string | boolean) => {
     const params = new URLSearchParams(searchParams.toString());
-    
+
     if (value === 'all' || value === false) {
       params.delete(key);
     } else {
       params.set(key, value.toString());
     }
-    
+
     // Reset to page 1 when filters change
     params.set('page', '1');
-    
+
     router.push(`${pathname}?${params.toString()}`, { scroll: false });
   };
 
   const handleCategoryChange = (value: string) => {
     const params = new URLSearchParams(searchParams.toString());
-    
+
     if (value === 'all') {
       params.delete('category');
     } else {
       params.set('category', value);
     }
-    
+
     // Clear subcategory when category changes
     params.delete('subcategory');
     params.set('page', '1');
-    
+
     router.push(`${pathname}?${params.toString()}`, { scroll: false });
   };
 
@@ -73,10 +73,10 @@ export function EventFilters() {
   };
 
   const hasActiveFilters =
-    category !== 'all' || 
-    subcategory !== 'all' || 
-    dateFilter !== 'all' || 
-    freeOnly || 
+    category !== 'all' ||
+    subcategory !== 'all' ||
+    dateFilter !== 'all' ||
+    freeOnly ||
     accessibleOnly;
 
   const selectedCategory = CATEGORIES.find(cat => cat.value === category);
@@ -93,13 +93,13 @@ export function EventFilters() {
   return (
     <div className="space-y-3">
       {/* Filter Header */}
-      <div className="bg-card border rounded-lg p-4">
+      <div className="bg-card border-2 border-border/50 rounded-lg p-4 hover:border-primary/30 transition-all">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <Filter className="h-4 w-4 text-muted-foreground" />
+            <Filter className="h-4 w-4 text-primary" />
             <h3 className="font-semibold">Filters</h3>
             {activeFilterCount > 0 && (
-              <span className="text-xs bg-primary text-primary-foreground rounded-full px-2 py-0.5">
+              <span className="text-xs bg-primary text-primary-foreground rounded-full px-2 py-0.5 font-medium animate-in fade-in zoom-in duration-200">
                 {activeFilterCount}
               </span>
             )}
@@ -110,9 +110,13 @@ export function EventFilters() {
               variant="ghost"
               size="icon"
               onClick={() => setShowFilters(!showFilters)}
-              className="h-8 w-8"
+              className="h-8 w-8 hover:bg-primary/10 hover:text-primary transition-all"
             >
-              {showFilters ? <Minus className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
+              {showFilters ? (
+                <Minus className="h-4 w-4 transition-transform rotate-0" />
+              ) : (
+                <Plus className="h-4 w-4 transition-transform rotate-0" />
+              )}
             </Button>
 
             {hasActiveFilters && (
@@ -120,7 +124,7 @@ export function EventFilters() {
                 variant="ghost"
                 size="sm"
                 onClick={clearAllFilters}
-                className="h-8 px-2"
+                className="h-8 px-2 hover:bg-destructive/10 hover:text-destructive transition-all animate-in fade-in slide-in-from-right-2 duration-200"
               >
                 <X className="h-4 w-4 mr-1" />
                 Clear all
@@ -131,58 +135,58 @@ export function EventFilters() {
 
         {/* Active Filter Badges */}
         {hasActiveFilters && (
-          <div className="flex flex-wrap gap-2 mt-3 pt-3 border-t">
+          <div className="flex flex-wrap gap-2 mt-3 pt-3 border-t animate-in fade-in slide-in-from-top-2 duration-300">
             {category !== 'all' && (
-              <Badge variant="secondary" className="gap-1">
+              <Badge variant="secondary" className="gap-1 bg-primary/10 text-primary border-primary/20 hover:bg-primary/20 transition-colors">
                 Category: {selectedCategory?.label}
                 <button
                   onClick={() => handleCategoryChange('all')}
-                  className="ml-1 hover:text-destructive"
+                  className="ml-1 hover:text-destructive transition-colors"
                 >
                   <X className="h-3 w-3" />
                 </button>
               </Badge>
             )}
             {subcategory !== 'all' && (
-              <Badge variant="secondary" className="gap-1">
+              <Badge variant="secondary" className="gap-1 bg-primary/10 text-primary border-primary/20 hover:bg-primary/20 transition-colors">
                 Type: {subcategory}
                 <button
                   onClick={() => updateURL('subcategory', 'all')}
-                  className="ml-1 hover:text-destructive"
+                  className="ml-1 hover:text-destructive transition-colors"
                 >
                   <X className="h-3 w-3" />
                 </button>
               </Badge>
             )}
             {dateFilter !== 'all' && (
-              <Badge variant="secondary" className="gap-1">
+              <Badge variant="secondary" className="gap-1 bg-secondary/10 text-secondary border-secondary/20 hover:bg-secondary/20 transition-colors">
                 Date: {dateFilter.replace('-', ' ')}
                 <button
                   onClick={() => updateURL('date', 'all')}
-                  className="ml-1 hover:text-destructive"
+                  className="ml-1 hover:text-destructive transition-colors"
                 >
                   <X className="h-3 w-3" />
                 </button>
               </Badge>
             )}
             {freeOnly && (
-              <Badge variant="secondary" className="gap-1">
+              <Badge variant="secondary" className="gap-1 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20 hover:bg-emerald-500/20 transition-colors">
                 Free only
                 <button
                   onClick={() => updateURL('free', false)}
-                  className="ml-1 hover:text-destructive"
+                  className="ml-1 hover:text-destructive transition-colors"
                 >
                   <X className="h-3 w-3" />
                 </button>
               </Badge>
             )}
             {accessibleOnly && (
-              <Badge variant="secondary" className="gap-1 bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100">
+              <Badge variant="secondary" className="gap-1 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20 hover:bg-emerald-500/20 transition-colors">
                 <Users className="h-3 w-3" />
                 Accessible only
                 <button
                   onClick={() => updateURL('accessible', false)}
-                  className="ml-1 hover:text-destructive"
+                  className="ml-1 hover:text-destructive transition-colors"
                 >
                   <X className="h-3 w-3" />
                 </button>
@@ -194,13 +198,13 @@ export function EventFilters() {
 
       {/* Filter Controls */}
       {showFilters && (
-        <div className="bg-card border rounded-lg p-4">
+        <div className="bg-card border-2 border-border/50 rounded-lg p-4 animate-in fade-in slide-in-from-top-4 duration-300">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
             {/* Category */}
             <div className="space-y-2">
-              <Label>Category</Label>
+              <Label className="text-sm font-medium">Category</Label>
               <Select value={category} onValueChange={handleCategoryChange}>
-                <SelectTrigger>
+                <SelectTrigger className="border-2 hover:border-primary/30 transition-colors">
                   <SelectValue placeholder="All categories" />
                 </SelectTrigger>
                 <SelectContent>
@@ -216,13 +220,13 @@ export function EventFilters() {
 
             {/* Subcategory */}
             <div className="space-y-2">
-              <Label>Subcategory</Label>
+              <Label className="text-sm font-medium">Subcategory</Label>
               <Select
                 value={subcategory}
                 onValueChange={(value) => updateURL('subcategory', value)}
                 disabled={category === 'all' || !selectedCategory?.subcategories?.length}
               >
-                <SelectTrigger>
+                <SelectTrigger className="border-2 hover:border-primary/30 transition-colors disabled:opacity-50">
                   <SelectValue placeholder="All types" />
                 </SelectTrigger>
                 <SelectContent>
@@ -238,9 +242,9 @@ export function EventFilters() {
 
             {/* Date */}
             <div className="space-y-2">
-              <Label>Date</Label>
+              <Label className="text-sm font-medium">Date</Label>
               <Select value={dateFilter} onValueChange={(value) => updateURL('date', value)}>
-                <SelectTrigger>
+                <SelectTrigger className="border-2 hover:border-secondary/30 transition-colors">
                   <SelectValue placeholder="Any time" />
                 </SelectTrigger>
                 <SelectContent>
@@ -255,14 +259,15 @@ export function EventFilters() {
 
             {/* Price Filter */}
             <div className="space-y-2">
-              <Label>Price</Label>
-              <div className="flex items-center space-x-2 h-10">
+              <Label className="text-sm font-medium">Price</Label>
+              <div className="flex items-center space-x-2 h-10 px-3 border-2 border-border/50 rounded-md hover:border-emerald-500/30 transition-colors">
                 <Switch
                   id="free-only"
                   checked={freeOnly}
                   onCheckedChange={(checked) => updateURL('free', checked)}
+                  className="data-[state=checked]:bg-emerald-600"
                 />
-                <Label htmlFor="free-only" className="cursor-pointer text-sm">
+                <Label htmlFor="free-only" className="cursor-pointer text-sm font-normal">
                   Free only
                 </Label>
               </div>
@@ -270,14 +275,15 @@ export function EventFilters() {
 
             {/* Accessibility Filter */}
             <div className="space-y-2">
-              <Label>Accessibility</Label>
-              <div className="flex items-center space-x-2 h-10">
+              <Label className="text-sm font-medium">Accessibility</Label>
+              <div className="flex items-center space-x-2 h-10 px-3 border-2 border-border/50 rounded-md hover:border-emerald-500/30 transition-colors">
                 <Switch
                   id="accessible-only"
                   checked={accessibleOnly}
                   onCheckedChange={(checked) => updateURL('accessible', checked)}
+                  className="data-[state=checked]:bg-emerald-600"
                 />
-                <Label htmlFor="accessible-only" className="cursor-pointer text-sm flex items-center gap-1">
+                <Label htmlFor="accessible-only" className="cursor-pointer text-sm font-normal flex items-center gap-1">
                   <Users className="h-3 w-3" />
                   Accessible
                 </Label>

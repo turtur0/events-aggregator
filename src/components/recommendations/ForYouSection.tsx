@@ -24,7 +24,6 @@ export function ForYouSection({ userFavourites }: ForYouSectionProps) {
     useEffect(() => {
         async function fetchRecommendations() {
             try {
-                // Add cache-busting timestamp and headers
                 const timestamp = Date.now();
                 const res = await fetch(`/api/recommendations?limit=12&t=${timestamp}`, {
                     method: 'GET',
@@ -33,7 +32,7 @@ export function ForYouSection({ userFavourites }: ForYouSectionProps) {
                         'Pragma': 'no-cache',
                         'Expires': '0',
                     },
-                    cache: 'no-store', // Prevent fetch cache
+                    cache: 'no-store',
                 });
 
                 const data = await res.json();
@@ -62,9 +61,8 @@ export function ForYouSection({ userFavourites }: ForYouSectionProps) {
         }
 
         fetchRecommendations();
-    }, []); // Only fetch once on mount
+    }, []);
 
-    // Auto-scroll effect
     useEffect(() => {
         if (!events || events.length === 0 || isHovered) return;
 
@@ -75,7 +73,6 @@ export function ForYouSection({ userFavourites }: ForYouSectionProps) {
         return () => clearInterval(interval);
     }, [events, isHovered]);
 
-    // Smooth scroll to current index
     useEffect(() => {
         if (!scrollContainerRef.current || !events) return;
 
@@ -101,7 +98,7 @@ export function ForYouSection({ userFavourites }: ForYouSectionProps) {
 
     if (isLoading) {
         return (
-            <Card className="border-primary/20 bg-linear-to-br from-primary/5 to-transparent">
+            <Card className="border-2 border-primary/20 bg-gradient-to-br from-primary/5 via-transparent to-transparent shadow-sm hover:shadow-md hover:border-primary/30 transition-all">
                 <CardHeader>
                     <CardTitle className="flex items-center gap-2 text-2xl">
                         <Heart className="h-6 w-6 text-primary" />
@@ -117,10 +114,9 @@ export function ForYouSection({ userFavourites }: ForYouSectionProps) {
         );
     }
 
-    // Show empty state with call-to-action
     if (!events || events.length === 0) {
         return (
-            <Card className="border-primary/20 bg-linear-to-br from-primary/5 to-transparent">
+            <Card className="border-2 border-primary/20 bg-gradient-to-br from-primary/5 via-transparent to-transparent shadow-sm hover:shadow-md hover:border-primary/30 transition-all">
                 <CardHeader>
                     <CardTitle className="flex items-center gap-2 text-2xl mb-2">
                         <Heart className="h-6 w-6 text-primary" />
@@ -150,7 +146,7 @@ export function ForYouSection({ userFavourites }: ForYouSectionProps) {
     }
 
     return (
-        <Card className="relative overflow-hidden border-primary/20 bg-linear-to-br from-primary/5 to-transparent">
+        <Card className="relative overflow-hidden border-2 border-primary/20 bg-gradient-to-br from-primary/5 via-transparent to-transparent shadow-sm hover:shadow-md hover:border-primary/30 transition-all">
             <CardHeader>
                 <div className="flex items-center justify-between">
                     <div>
@@ -164,7 +160,6 @@ export function ForYouSection({ userFavourites }: ForYouSectionProps) {
                                 : "Discover great events happening in Melbourne"
                             }
                         </p>
-                        {/* Debug info - remove in production */}
                         {process.env.NODE_ENV === 'development' && (
                             <p className="text-xs text-muted-foreground/50 mt-1">
                                 Last fetched: {new Date(lastFetch).toLocaleTimeString()} |
@@ -177,7 +172,7 @@ export function ForYouSection({ userFavourites }: ForYouSectionProps) {
                             variant="outline"
                             size="icon"
                             onClick={handlePrevious}
-                            className="h-9 w-9"
+                            className="h-9 w-9 border-primary/30 hover:border-primary/50 hover:bg-primary/10 transition-all"
                             aria-label="Previous recommendation"
                         >
                             <ChevronLeft className="h-4 w-4" />
@@ -186,7 +181,7 @@ export function ForYouSection({ userFavourites }: ForYouSectionProps) {
                             variant="outline"
                             size="icon"
                             onClick={handleNext}
-                            className="h-9 w-9"
+                            className="h-9 w-9 border-primary/30 hover:border-primary/50 hover:bg-primary/10 transition-all"
                             aria-label="Next recommendation"
                         >
                             <ChevronRight className="h-4 w-4" />
@@ -216,16 +211,16 @@ export function ForYouSection({ userFavourites }: ForYouSectionProps) {
                     ))}
                 </div>
 
-                {/* Progress indicators */}
                 <div className="flex justify-center gap-2 mt-6">
                     {events.map((_, index) => (
                         <button
                             key={index}
                             onClick={() => setCurrentIndex(index)}
-                            className={`h-1.5 rounded-full transition-all duration-300 ${index === currentIndex
-                                    ? 'w-8 bg-primary'
+                            className={`h-1.5 rounded-full transition-all duration-300 ${
+                                index === currentIndex
+                                    ? 'w-8 bg-primary shadow-sm'
                                     : 'w-1.5 bg-muted-foreground/30 hover:bg-muted-foreground/50'
-                                }`}
+                            }`}
                             aria-label={`Go to event ${index + 1}`}
                         />
                     ))}

@@ -6,8 +6,6 @@ import { EventCard } from '@/components/events/EventCard';
 import { connectDB } from "@/lib/db";
 import { Event } from '@/lib/models';
 
-;
-
 interface UpcomingEventsProps {
     userFavourites: Set<string>;
 }
@@ -31,7 +29,6 @@ export async function UpcomingEvents({ userFavourites }: UpcomingEventsProps) {
     const endOfWeek = new Date(now);
     endOfWeek.setDate(now.getDate() + 7);
 
-    // Get events happening this week for the compact list
     const thisWeekEvents = await Event.find({
         startDate: { $gte: now, $lte: endOfWeek },
         imageUrl: { $exists: true, $ne: null },
@@ -40,7 +37,6 @@ export async function UpcomingEvents({ userFavourites }: UpcomingEventsProps) {
         .limit(6)
         .lean();
 
-    // Get upcoming events beyond this week for the grid
     const upcomingEvents = await Event.find({
         startDate: { $gt: endOfWeek },
         imageUrl: { $exists: true, $ne: null },
@@ -78,10 +74,10 @@ export async function UpcomingEvents({ userFavourites }: UpcomingEventsProps) {
 
     if (serializedThisWeek.length === 0 && serializedUpcoming.length === 0) {
         return (
-            <Card className="border-blue-500/20 bg-linear-to-br from-blue-500/5 to-transparent">
+            <Card className="border-2 border-primary/20 shadow-sm hover:shadow-md hover:border-primary/30 transition-all">
                 <CardHeader>
                     <CardTitle className="flex items-center gap-2 text-2xl">
-                        <Calendar className="h-6 w-6 text-blue-500" />
+                        <Calendar className="h-6 w-6 text-primary" />
                         Upcoming Events
                     </CardTitle>
                 </CardHeader>
@@ -95,36 +91,45 @@ export async function UpcomingEvents({ userFavourites }: UpcomingEventsProps) {
     }
 
     return (
-        <Card className="border-blue-500/20 bg-linear-to-br from-blue-500/5 to-transparent">
+        <Card className="border-2 border-primary/20 shadow-sm hover:shadow-md hover:border-primary/30 transition-all">
             <CardHeader>
                 <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                     <div>
                         <CardTitle className="flex items-center gap-2 text-2xl mb-2">
-                            <Calendar className="h-6 w-6 text-blue-500" />
+                            <Calendar className="h-6 w-6 text-primary" />
                             Upcoming Events
                         </CardTitle>
                         <p className="text-sm text-muted-foreground">
                             Don't miss what's happening in Melbourne
                         </p>
                     </div>
-                    <Button variant="ghost" asChild>
-                        <Link href="/events">
+                    <Button
+                        variant="outline"
+                        asChild
+                        className="border-2 border-primary/30 hover:border-primary/50 hover:bg-primary/10 transition-all group"
+                    >
+                        <Link href="/events" className="flex items-center">
                             View all
-                            <ArrowRight className="ml-2 h-4 w-4" />
+                            <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-0.5 transition-transform" />
                         </Link>
                     </Button>
                 </div>
             </CardHeader>
             <CardContent className="space-y-8">
-                {/* This Week - Compact List */}
+               {/* This Week - Compact List */}
                 {serializedThisWeek.length > 0 && (
                     <div>
                         <div className="flex items-center justify-between mb-4">
                             <h3 className="text-lg font-semibold">This Week</h3>
-                            <Button variant="ghost" size="sm" asChild>
-                                <Link href="/events?date=this-week">
+                            <Button
+                                variant="ghost"
+                                size="sm"
+                                asChild
+                                className="text-foreground hover:text-secondary hover:bg-accent transition-all group"
+                            >
+                                <Link href="/events?date=this-week" className="flex items-center">
                                     View all
-                                    <ArrowRight className="ml-2 h-3 w-3" />
+                                    <ArrowRight className="ml-2 h-3 w-3 group-hover:translate-x-0.5 transition-transform" />
                                 </Link>
                             </Button>
                         </div>
@@ -144,13 +149,13 @@ export async function UpcomingEvents({ userFavourites }: UpcomingEventsProps) {
                                     <Link
                                         key={event._id}
                                         href={`/events/${event._id}`}
-                                        className="group flex gap-4 p-4 rounded-lg border bg-card hover:bg-accent/50 hover:border-blue-500/50 transition-all duration-200 hover:shadow-md"
+                                        className="group flex gap-4 p-4 rounded-lg border-2 border-border/50 bg-card hover:bg-accent/30 hover:border-secondary/50 hover:shadow-md transition-all duration-200"
                                     >
-                                        <div className="shrink-0 w-16 h-16 rounded-lg bg-blue-500/10 flex flex-col items-center justify-center group-hover:bg-blue-500/20 transition-colors">
+                                        <div className="shrink-0 w-16 h-16 rounded-lg border-2 border-secondary/20 bg-secondary/5 flex flex-col items-center justify-center group-hover:bg-secondary/10 group-hover:border-secondary/40 group-hover:scale-105 transition-all">
                                             <span className="text-xs font-medium text-muted-foreground uppercase">
                                                 {dayName}
                                             </span>
-                                            <span className="text-2xl font-bold text-blue-500">
+                                            <span className="text-2xl font-bold text-secondary">
                                                 {day}
                                             </span>
                                             <span className="text-[10px] text-muted-foreground uppercase">
@@ -158,7 +163,7 @@ export async function UpcomingEvents({ userFavourites }: UpcomingEventsProps) {
                                             </span>
                                         </div>
                                         <div className="min-w-0 flex-1">
-                                            <h4 className="font-semibold line-clamp-2 mb-1 group-hover:text-blue-500 transition-colors">
+                                            <h4 className="font-semibold line-clamp-2 mb-1 group-hover:text-secondary transition-colors">
                                                 {event.title}
                                             </h4>
                                             <p className="text-sm text-muted-foreground truncate flex items-center gap-1.5 mb-1">
@@ -182,10 +187,15 @@ export async function UpcomingEvents({ userFavourites }: UpcomingEventsProps) {
                     <div>
                         <div className="flex items-center justify-between mb-4">
                             <h3 className="text-lg font-semibold">Coming Soon</h3>
-                            <Button variant="ghost" size="sm" asChild>
-                                <Link href="/events">
+                            <Button
+                                variant="ghost"
+                                size="sm"
+                                asChild
+                                className="text-foreground hover:text-primary hover:bg-accent transition-all group"
+                            >
+                                <Link href="/events" className="flex items-center">
                                     View all
-                                    <ArrowRight className="ml-2 h-3 w-3" />
+                                    <ArrowRight className="ml-2 h-3 w-3 group-hover:translate-x-0.5 transition-transform" />
                                 </Link>
                             </Button>
                         </div>

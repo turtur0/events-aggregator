@@ -59,12 +59,19 @@ export function FavouriteButton({
                 size="sm"
                 onClick={handleClick}
                 disabled={isPending}
-                className={className}
+                className={cn(
+                    "transition-all duration-200",
+                    isFavourited
+                        ? "bg-primary border-primary hover:bg-primary/90"
+                        : "border-2 border-primary/30 bg-primary/5 text-primary hover:bg-primary/10 hover:border-primary/50",
+                    isPending && "opacity-50",
+                    className
+                )}
             >
                 <Heart
                     className={cn(
-                        'h-4 w-4 mr-2 transition-all',
-                        isFavourited && 'fill-current'
+                        'h-4 w-4 mr-2 transition-all duration-200',
+                        isFavourited && 'fill-current scale-110'
                     )}
                 />
                 {isFavourited ? 'Saved' : 'Save'}
@@ -77,17 +84,20 @@ export function FavouriteButton({
             onClick={handleClick}
             disabled={isPending}
             className={cn(
-                'p-2 rounded-full transition-all hover:scale-110',
-                'bg-black/50 hover:bg-black/70',
-                isPending && 'opacity-50',
+                'p-2 rounded-full transition-all duration-200',
+                'bg-black/50 hover:bg-black/70 backdrop-blur-sm',
+                'active:scale-95',
+                isPending && 'opacity-50 cursor-not-allowed',
                 className
             )}
             aria-label={isFavourited ? 'Remove from favourites' : 'Add to favourites'}
         >
             <Heart
                 className={cn(
-                    'h-5 w-5 transition-all',
-                    isFavourited ? 'fill-red-500 text-red-500' : 'text-white'
+                    'h-5 w-5 transition-all duration-200',
+                    isFavourited
+                        ? 'fill-red-500 text-red-500 scale-110'
+                        : 'text-white hover:scale-110'
                 )}
             />
         </button>

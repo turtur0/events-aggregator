@@ -51,7 +51,6 @@ export function SimilarEvents({ eventId, userFavourites }: SimilarEventsProps) {
         }
     }, [eventId]);
 
-    // Smooth scroll to current index
     useEffect(() => {
         if (!scrollContainerRef.current || !events) return;
 
@@ -80,16 +79,16 @@ export function SimilarEvents({ eventId, userFavourites }: SimilarEventsProps) {
 
     if (isLoading) {
         return (
-            <Card className="border-purple-500/20 bg-linear-to-br from-purple-500/5 to-transparent">
+            <Card className="border-2 border-secondary/20 bg-gradient-to-br from-secondary/5 via-transparent to-transparent shadow-sm hover:shadow-md hover:border-secondary/30 transition-all">
                 <CardHeader>
                     <CardTitle className="flex items-center gap-2 text-2xl">
-                        <Sparkles className="h-6 w-6 text-purple-500" />
+                        <Sparkles className="h-6 w-6 text-secondary" />
                         You Might Also Like
                     </CardTitle>
                 </CardHeader>
                 <CardContent>
                     <div className="flex flex-col items-center justify-center py-16">
-                        <Loader2 className="h-10 w-10 animate-spin text-purple-500 mb-4" />
+                        <Loader2 className="h-10 w-10 animate-spin text-secondary mb-4" />
                         <p className="text-sm text-muted-foreground">Finding similar events...</p>
                     </div>
                 </CardContent>
@@ -115,12 +114,12 @@ export function SimilarEvents({ eventId, userFavourites }: SimilarEventsProps) {
     }
 
     return (
-        <Card className="relative overflow-hidden border-purple-500/20 bg-linear-to-br from-purple-500/5 to-transparent">
+        <Card className="relative overflow-hidden border-2 border-secondary/20 bg-gradient-to-br from-secondary/5 via-transparent to-transparent shadow-sm hover:shadow-md hover:border-secondary/30 transition-all">
             <CardHeader>
                 <div className="flex items-center justify-between">
                     <div>
                         <CardTitle className="flex items-center gap-2 text-2xl mb-2">
-                            <Sparkles className="h-6 w-6 text-purple-500" />
+                            <Sparkles className="h-6 w-6 text-secondary" />
                             You Might Also Like
                         </CardTitle>
                         <p className="text-sm text-muted-foreground">
@@ -133,7 +132,7 @@ export function SimilarEvents({ eventId, userFavourites }: SimilarEventsProps) {
                             size="icon"
                             onClick={handlePrevious}
                             disabled={!canScrollLeft}
-                            className="h-9 w-9"
+                            className="h-9 w-9 border-secondary/30 hover:border-secondary/50 hover:bg-secondary/10 transition-all disabled:opacity-50"
                         >
                             <ChevronLeft className="h-4 w-4" />
                         </Button>
@@ -142,7 +141,7 @@ export function SimilarEvents({ eventId, userFavourites }: SimilarEventsProps) {
                             size="icon"
                             onClick={handleNext}
                             disabled={!canScrollRight}
-                            className="h-9 w-9"
+                            className="h-9 w-9 border-secondary/30 hover:border-secondary/50 hover:bg-secondary/10 transition-all disabled:opacity-50"
                         >
                             <ChevronRight className="h-4 w-4" />
                         </Button>
