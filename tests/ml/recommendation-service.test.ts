@@ -5,52 +5,12 @@ import {
     getUndiscoveredGems,
     getSimilarEvents,
 } from '@/lib/ml/recommendation-service';
-import { IEvent, Event } from '@/lib/models';
+import { IEvent, Event } from '@/lib/models'; 
+import { createMockEvent, createMockQueryChain } from '../helpers/factories';
 
 jest.mock('@/lib/models/Event');
 
 describe('Recommendation Service - Discovery Algorithms', () => {
-    // ============================================================================
-    // Test Data Factories
-    // ============================================================================
-    const createMockEvent = (overrides: Partial<IEvent> = {}): IEvent => ({
-        _id: new mongoose.Types.ObjectId(),
-        title: 'Test Event',
-        description: 'Test description',
-        category: 'music',
-        subcategories: ['rock'],
-        startDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
-        venue: {
-            name: 'Test Venue',
-            address: 'Test Address',
-            suburb: 'Melbourne',
-        },
-        priceMin: 50,
-        isFree: false,
-        bookingUrl: 'https://example.com',
-        sources: ['ticketmaster'],
-        primarySource: 'ticketmaster',
-        sourceIds: { ticketmaster: 'test-123' },
-        scrapedAt: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000),
-        lastUpdated: new Date(),
-        stats: {
-            viewCount: 10,
-            favouriteCount: 5,
-            clickthroughCount: 3,
-            categoryPopularityPercentile: 0.7,
-            rawPopularityScore: 7,
-        },
-        ...overrides,
-    });
-
-    const createMockQueryChain = (resolvedValue: any) => ({
-        limit: jest.fn().mockReturnThis(),
-        lean: jest.fn().mockResolvedValue(resolvedValue),
-    });
-
-    beforeEach(() => {
-        jest.clearAllMocks();
-    });
 
     // ============================================================================
     // getTrendingEvents Tests

@@ -8,93 +8,11 @@ import { IUser } from '@/lib/models/User';
 import { IUserInteraction } from '@/lib/models/UserInteraction';
 import { IEvent } from '@/lib/models/Event';
 import UserInteraction from '@/lib/models/UserInteraction';
+import { createMockEvent, createMockInteraction, createMockUser, createMockQueryChain } from '../helpers/factories';
 
 jest.mock('@/lib/models/UserInteraction');
 
 describe('User Profile Service', () => {
-    // ============================================================================
-    // Test Data Factories
-    // ============================================================================
-    const createMockEvent = (
-        category: string,
-        subcategories: string[] = [],
-        priceMin?: number,
-        overrides: Partial<IEvent> = {}
-    ): IEvent => ({
-        _id: new mongoose.Types.ObjectId(),
-        title: 'Test Event',
-        description: 'Test description',
-        category,
-        subcategories,
-        startDate: new Date('2025-06-01'),
-        venue: {
-            name: 'Test Venue',
-            address: 'Test Address',
-            suburb: 'Melbourne',
-        },
-        priceMin,
-        isFree: priceMin === undefined,
-        bookingUrl: 'https://example.com',
-        sources: ['ticketmaster'],
-        primarySource: 'ticketmaster',
-        sourceIds: { ticketmaster: 'test-123' },
-        scrapedAt: new Date(),
-        lastUpdated: new Date(),
-        stats: {
-            viewCount: 10,
-            favouriteCount: 5,
-            clickthroughCount: 3,
-            categoryPopularityPercentile: 0.7,
-        },
-        ...overrides,
-    });
-
-    const createMockInteraction = (
-        eventId: mongoose.Types.ObjectId,
-        type: 'view' | 'favourite' | 'unfavourite' | 'clickthrough',
-        daysAgo: number,
-        event: IEvent
-    ): IUserInteraction & { eventId: IEvent } => ({
-        userId: new mongoose.Types.ObjectId(),
-        eventId: event,
-        interactionType: type,
-        source: 'homepage',
-        timestamp: new Date(Date.now() - daysAgo * 24 * 60 * 60 * 1000),
-    } as any);
-
-    const createMockUser = (overrides: Partial<IUser> = {}): IUser => ({
-        email: 'test@example.com',
-        name: 'Test User',
-        favorites: [],
-        preferences: {
-            selectedCategories: ['music'],
-            selectedSubcategories: ['rock', 'indie'],
-            categoryWeights: { music: 1.0, sports: 0.5 },
-            priceRange: { min: 0, max: 200 },
-            popularityPreference: 0.5,
-            locations: ['Melbourne'],
-            notifications: {
-                inApp: true,
-                email: false,
-                emailFrequency: 'weekly',
-                keywords: [],
-                smartFiltering: {
-                    enabled: true,
-                    minRecommendationScore: 0.6,
-                },
-            },
-        },
-        createdAt: new Date(),
-        updatedAt: new Date(),
-        ...overrides,
-    });
-
-    const createMockQueryChain = (resolvedValue: any) => ({
-        populate: jest.fn().mockReturnThis(),
-        sort: jest.fn().mockReturnThis(),
-        limit: jest.fn().mockReturnThis(),
-        lean: jest.fn().mockResolvedValue(resolvedValue),
-    });
 
     // ============================================================================
     // buildUserVectorFromInteractions Tests
@@ -111,7 +29,7 @@ describe('User Profile Service', () => {
 
         it('should weight favourites higher than views', async () => {
             const userId = new mongoose.Types.ObjectId();
-            const event = createMockEvent('music', ['rock']);
+            const event = createMockEvent({ category: 'music', subcategories: ['rock'] })
             const interactions = [
                 createMockInteraction(event._id, 'favourite', 1, event),
                 createMockInteraction(event._id, 'view', 1, event),
@@ -128,7 +46,7 @@ describe('User Profile Service', () => {
 
         it('should apply exponential time decay to older interactions', async () => {
             const userId = new mongoose.Types.ObjectId();
-            const event = createMockEvent('music', ['rock']);
+            const event = createMockEvent({ category: 'music', subcategories: ['rock'] })
             const interactions = [
                 createMockInteraction(event._id, 'favourite', 1, event),
                 createMockInteraction(event._id, 'favourite', 180, event),
@@ -144,7 +62,7 @@ describe('User Profile Service', () => {
 
         it('should handle negative signals from unfavourites', async () => {
             const userId = new mongoose.Types.ObjectId();
-            const event = createMockEvent('music', ['rock']);
+            const event = createMockEvent({ category: 'music', subcategories: ['rock'] })
             const interactions = [createMockInteraction(event._id, 'unfavourite', 1, event)];
 
             (UserInteraction.find as jest.Mock) = jest.fn().mockReturnValue(createMockQueryChain(interactions));
@@ -156,7 +74,7 @@ describe('User Profile Service', () => {
 
         it('should cap confidence at 1.0 for 20+ interactions', async () => {
             const userId = new mongoose.Types.ObjectId();
-            const event = createMockEvent('music', ['rock']);
+            const event = createMockEvent({ category: 'music', subcategories: ['rock'] })
             const interactions = Array.from({ length: 25 }, (_, i) =>
                 createMockInteraction(event._id, 'view', i, event)
             );
@@ -203,7 +121,7 @@ describe('User Profile Service', () => {
 
         it('should calculate confidence based on interaction count', async () => {
             const userId = new mongoose.Types.ObjectId();
-            const event = createMockEvent('music', ['rock']);
+            const event = createMockEvent({ category: 'music', subcategories: ['rock'] })
             const interactions = Array.from({ length: 10 }, (_, i) =>
                 createMockInteraction(event._id, 'favourite', i, event)
             );
@@ -218,8 +136,8 @@ describe('User Profile Service', () => {
 
         it('should accumulate weighted vectors correctly', async () => {
             const userId = new mongoose.Types.ObjectId();
-            const musicEvent = createMockEvent('music', ['rock']);
-            const sportsEvent = createMockEvent('sports', ['football']);
+            const musicEvent = createMockEvent({ category: 'music', subcategories: ['rock'] })
+            const sportsEvent = createMockEvent({ category: 'sports', subcategories: ['football'] })
             const interactions = [
                 createMockInteraction(musicEvent._id, 'favourite', 1, musicEvent),
                 createMockInteraction(sportsEvent._id, 'view', 1, sportsEvent),
@@ -391,7 +309,7 @@ describe('User Profile Service', () => {
         it('should blend preferences and interactions for warm start users', async () => {
             const userId = new mongoose.Types.ObjectId();
             const user = createMockUser();
-            const event = createMockEvent('music', ['rock']);
+            const event = createMockEvent({ category: 'music', subcategories: ['rock'] })
             const interactions = [createMockInteraction(event._id, 'favourite', 1, event)];
 
             (UserInteraction.find as jest.Mock) = jest.fn().mockReturnValue(createMockQueryChain(interactions));
@@ -464,7 +382,7 @@ describe('User Profile Service', () => {
         it('should use learnt confidence when interactions exist', async () => {
             const userId = new mongoose.Types.ObjectId();
             const user = createMockUser();
-            const event = createMockEvent('music', ['rock']);
+            const event = createMockEvent({ category: 'music', subcategories: ['rock'] })
             const interactions = Array.from({ length: 15 }, (_, i) =>
                 createMockInteraction(event._id, 'favourite', i, event)
             );
@@ -510,8 +428,8 @@ describe('User Profile Service', () => {
                     selectedSubcategories: ['rock', 'indie', 'football'],
                 },
             });
-            const musicEvent = createMockEvent('music', ['rock']);
-            const sportsEvent = createMockEvent('sports', ['football']);
+            const musicEvent = createMockEvent({ category: 'music', subcategories: ['rock'] })
+            const sportsEvent = createMockEvent({ category: 'sports', subcategories: ['football'] })
             const interactions = [
                 createMockInteraction(musicEvent._id, 'favourite', 1, musicEvent),
                 createMockInteraction(musicEvent._id, 'clickthrough', 2, musicEvent),
@@ -541,7 +459,7 @@ describe('User Profile Service', () => {
         it('should evolve profile as user interactions increase', async () => {
             const userId = new mongoose.Types.ObjectId();
             const user = createMockUser();
-            const event = createMockEvent('music', ['rock']);
+            const event = createMockEvent({ category: 'music', subcategories: ['rock'] })
 
             // Profile with few interactions
             const fewInteractions = [createMockInteraction(event._id, 'view', 1, event)];

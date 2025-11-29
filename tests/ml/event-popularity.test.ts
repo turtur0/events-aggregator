@@ -3,38 +3,9 @@ import {
     getColdStartPopularityScore,
     type IEvent
 } from '@/lib/ml/popularity-service';
+import { createMockEvent } from '../helpers/factories';
 
 describe('Event Popularity Service', () => {
-    // ============================================================================
-    // Test Data Helpers
-    // ============================================================================
-
-    const createMockEvent = (overrides: Partial<IEvent> = {}): IEvent => ({
-        _id: 'test-id',
-        title: 'Test Event',
-        description: 'Test description',
-        category: 'music',
-        subcategories: [],
-        startDate: new Date('2025-01-01'),
-        venue: {
-            name: 'Test Venue',
-            address: '123 Test St',
-            suburb: 'Melbourne',
-        },
-        isFree: false,
-        bookingUrl: 'https://example.com',
-        sources: ['ticketmaster'],
-        primarySource: 'ticketmaster',
-        sourceIds: { ticketmaster: 'tm-123' },
-        scrapedAt: new Date(),
-        lastUpdated: new Date(),
-        stats: {
-            viewCount: 0,
-            favouriteCount: 0,
-            clickthroughCount: 0,
-        },
-        ...overrides,
-    });
 
     // ============================================================================
     // Raw Popularity Score Calculation Tests
