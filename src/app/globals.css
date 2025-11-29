@@ -303,91 +303,107 @@
     border: var(--border-width-thin) solid color-mix(in oklch, var(--border) 50%, transparent);
   }
 
-  /* Page header pattern */
-  .page-header {
-    @apply bg-gradient-to-b from-primary/5 via-background to-background;
-    padding-top: var(--section-padding-y-mobile);
-    padding-bottom: var(--section-padding-y-mobile);
-  }
-
-  @media (min-width: 640px) {
-    .page-header {
-      padding-top: var(--section-padding-y-tablet);
-      padding-bottom: var(--section-padding-y-tablet);
-    }
-  }
-
-  /* Section backgrounds */
-  .section-bg-orange {
-    @apply bg-gradient-to-br from-orange-50/50 to-transparent dark:from-orange-950/10 dark:to-transparent;
-  }
-
-  .section-bg-teal {
-    @apply bg-gradient-to-br from-teal-50/50 to-transparent dark:from-teal-950/10 dark:to-transparent;
-  }
-
-  /* Icon container pattern */
-  .icon-container {
-    @apply rounded-2xl bg-primary/10 p-3 ring-1 ring-primary/20;
-  }
-
-  /* Category color utilities */
-  .category-music {
-    @apply bg-orange-500/8 text-orange-600 hover:bg-orange-500/15 dark:text-orange-400 dark:bg-orange-400/10 dark:hover:bg-orange-400/15 border-2 border-orange-500/20 dark:border-orange-400/20 transition-all duration-[var(--transition-base)];
-  }
-
-  .category-theatre {
-    @apply bg-rose-500/8 text-rose-600 hover:bg-rose-500/15 dark:text-rose-400 dark:bg-rose-400/10 dark:hover:bg-rose-400/15 border-2 border-rose-500/20 dark:border-rose-400/20 transition-all duration-[var(--transition-base)];
-  }
-
-  .category-sports {
-    @apply bg-teal-500/8 text-teal-600 hover:bg-teal-500/15 dark:text-teal-400 dark:bg-teal-400/10 dark:hover:bg-teal-400/15 border-2 border-teal-500/20 dark:border-teal-400/20 transition-all duration-[var(--transition-base)];
-  }
-
-  .category-arts {
-    @apply bg-purple-500/8 text-purple-600 hover:bg-purple-500/15 dark:text-purple-400 dark:bg-purple-400/10 dark:hover:bg-purple-400/15 border-2 border-purple-500/20 dark:border-purple-400/20 transition-all duration-[var(--transition-base)];
-  }
-
-  .category-family {
-    @apply bg-emerald-500/8 text-emerald-600 hover:bg-emerald-500/15 dark:text-emerald-400 dark:bg-emerald-400/10 dark:hover:bg-emerald-400/15 border-2 border-emerald-500/20 dark:border-emerald-400/20 transition-all duration-(--transition-base);
-  }
-
-  .category-other {
-    @apply bg-sky-500/8 text-sky-600 hover:bg-sky-500/15 dark:text-sky-400 dark:bg-sky-400/10 dark:hover:bg-sky-400/15 border-2 border-sky-500/20 dark:border-sky-400/20 transition-all duration-(--transition-base);
-  }
-
-  /* Badge patterns */
-  .badge-outline-hover {
-    @apply border-2 border-border bg-background hover:bg-muted transition-all duration-(--transition-base) hover:scale-105;
-  }
-
-  /* Card patterns */
-  .card-interactive {
-    @apply border-2 border-border/50 hover:border-primary/30 transition-all duration-(--transition-slow);
-  }
-
-  /* Container pattern */
+  /* Consistent page containers */
   .container-page {
     @apply container max-w-7xl mx-auto px-4 sm:px-6 lg:px-8;
   }
 
-  /* Section spacing pattern */
+  /* Section spacing */
   .section-spacing {
-    padding-top: var(--section-padding-y-mobile);
-    padding-bottom: var(--section-padding-y-mobile);
+    @apply py-12 sm:py-16;
   }
 
-  @media (min-width: 640px) {
-    .section-spacing {
-      padding-top: var(--section-padding-y-tablet);
-      padding-bottom: var(--section-padding-y-tablet);
-    }
+  /* Page header styling */
+  .page-header {
+    @apply bg-linear-to-b from-primary/5 via-background to-background py-12 sm:py-16;
   }
 
-  @media (min-width: 1024px) {
-    .section-spacing {
-      padding-top: var(--section-padding-y-desktop);
-      padding-bottom: var(--section-padding-y-desktop);
-    }
+  /* Icon container */
+  .icon-container {
+    @apply rounded-2xl bg-primary/10 p-3 ring-1 ring-primary/20;
+  }
+
+  /* Interactive card */
+  .card-interactive {
+    @apply border-2 shadow-sm hover:shadow-md hover:border-primary/30 transition-all;
+  }
+
+  /* Badge outline hover */
+  .badge-outline-hover {
+    @apply hover:bg-primary/10 hover:border-primary/40 hover:text-primary transition-colors;
+  }
+}
+
+/* Section backgrounds */
+.section-bg-orange {
+  @apply bg-linear-to-br from-orange-50/50 to-transparent dark:from-orange-950/10 dark:to-transparent;
+}
+
+.section-bg-teal {
+  @apply bg-linear-to-br from-teal-50/50 to-transparent dark:from-teal-950/10 dark:to-transparent;
+}
+
+/* Icon container pattern */
+.icon-container {
+  @apply rounded-2xl bg-primary/10 p-3 ring-1 ring-primary/20;
+}
+
+/* Category color utilities */
+.category-music {
+  @apply bg-orange-500/8 text-orange-600 hover:bg-orange-500/15 dark:text-orange-400 dark:bg-orange-400/10 dark:hover:bg-orange-400/15 border-2 border-orange-500/20 dark:border-orange-400/20 transition-all duration-(--transition-base);
+}
+
+.category-theatre {
+  @apply bg-rose-500/8 text-rose-600 hover:bg-rose-500/15 dark:text-rose-400 dark:bg-rose-400/10 dark:hover:bg-rose-400/15 border-2 border-rose-500/20 dark:border-rose-400/20 transition-all duration-(--transition-base);
+}
+
+.category-sports {
+  @apply bg-teal-500/8 text-teal-600 hover:bg-teal-500/15 dark:text-teal-400 dark:bg-teal-400/10 dark:hover:bg-teal-400/15 border-2 border-teal-500/20 dark:border-teal-400/20 transition-all duration-(--transition-base);
+}
+
+.category-arts {
+  @apply bg-purple-500/8 text-purple-600 hover:bg-purple-500/15 dark:text-purple-400 dark:bg-purple-400/10 dark:hover:bg-purple-400/15 border-2 border-purple-500/20 dark:border-purple-400/20 transition-all duration-(--transition-base);
+}
+
+.category-family {
+  @apply bg-emerald-500/8 text-emerald-600 hover:bg-emerald-500/15 dark:text-emerald-400 dark:bg-emerald-400/10 dark:hover:bg-emerald-400/15 border-2 border-emerald-500/20 dark:border-emerald-400/20 transition-all duration-(--transition-base);
+}
+
+.category-other {
+  @apply bg-sky-500/8 text-sky-600 hover:bg-sky-500/15 dark:text-sky-400 dark:bg-sky-400/10 dark:hover:bg-sky-400/15 border-2 border-sky-500/20 dark:border-sky-400/20 transition-all duration-(--transition-base);
+}
+
+/* Badge patterns */
+.badge-outline-hover {
+  @apply border-2 border-border bg-background hover:bg-muted transition-all duration-(--transition-base) hover:scale-105;
+}
+
+/* Card patterns */
+.card-interactive {
+  @apply border-2 border-border/50 hover:border-primary/30 transition-all duration-(--transition-slow);
+}
+
+/* Container pattern */
+.container-page {
+  @apply container max-w-7xl mx-auto px-4 sm:px-6 lg:px-8;
+}
+
+/* Section spacing pattern */
+.section-spacing {
+  padding-top: var(--section-padding-y-mobile);
+  padding-bottom: var(--section-padding-y-mobile);
+}
+
+@media (min-width: 640px) {
+  .section-spacing {
+    padding-top: var(--section-padding-y-tablet);
+    padding-bottom: var(--section-padding-y-tablet);
+  }
+}
+
+@media (min-width: 1024px) {
+  .section-spacing {
+    padding-top: var(--section-padding-y-desktop);
+    padding-bottom: var(--section-padding-y-desktop);
   }
 }

@@ -1,14 +1,29 @@
+// app/(protected)/profile/page.tsx
 'use client';
 
 import { signOut, useSession } from 'next-auth/react';
 import Link from 'next/link';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/Button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
 import { Separator } from '@/components/ui/Separator';
-import { LogOut, Settings, Loader2, User, Search, Target, TrendingUp, Bell, Mail, Sparkles, DollarSign, Zap, Filter } from 'lucide-react';
-import { useState, useEffect } from 'react';
-import { BackButton } from '@/components/navigation/BackButton';
+import { PageLayout } from '@/components/layout/PageLayout';
+import {
+  LogOut,
+  Settings,
+  Loader2,
+  User,
+  Search,
+  Target,
+  TrendingUp,
+  Bell,
+  Mail,
+  Sparkles,
+  DollarSign,
+  Zap,
+  Filter
+} from 'lucide-react';
 
 interface NotificationSettings {
   inApp: boolean;
@@ -19,7 +34,6 @@ interface NotificationSettings {
     enabled: boolean;
     minRecommendationScore: number;
   };
-  popularityFilter?: 'all' | 'mainstream' | 'niche' | 'personalized';
 }
 
 interface UserPreferences {
@@ -36,17 +50,19 @@ const POPULARITY_CONFIG = {
   1: { label: 'Mainstream', icon: TrendingUp, description: 'Popular and trending events' },
 };
 
-export default function Profile() {
+export default function ProfilePage() {
   const { data: session, status } = useSession();
   const [preferences, setPreferences] = useState<UserPreferences | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
+  // Redirect if unauthenticated
   useEffect(() => {
     if (status === 'unauthenticated') {
       window.location.href = '/auth/signin?callbackUrl=/profile';
     }
   }, [status]);
 
+  // Fetch preferences
   useEffect(() => {
     async function fetchPreferences() {
       try {
@@ -75,6 +91,7 @@ export default function Profile() {
     return POPULARITY_CONFIG[0.5];
   };
 
+  // Loading state
   if (status === 'loading' || isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -87,230 +104,226 @@ export default function Profile() {
   const PopularityIcon = popularityConfig?.icon;
 
   return (
-    <div className="w-full min-h-screen bg-linear-to-b from-background via-orange-50/30 to-background dark:from-background dark:via-orange-950/5 dark:to-background">
-      {/* Header Section */}
-      <section className="border-b bg-background/95 backdrop-blur supports-backdrop-filter:bg-background/60">
-        <div className="container max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
-          <BackButton fallbackUrl="/" className="mb-6" />
-
-          <div className="flex items-center gap-4">
-            <div className="icon-container">
-              <User className="h-8 w-8 text-primary" />
-            </div>
-            <div className="flex-1 min-w-0">
-              <h1 className="text-3xl sm:text-4xl font-bold tracking-tight">My Profile</h1>
-              <p className="text-muted-foreground text-lg mt-1">
-                Manage your account and preferences
-              </p>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Content Section */}
-      <section className="container max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
-        <div className="space-y-6 animate-in fade-in-0 slide-in-from-bottom-4 duration-500">
-          {/* Account Info Card */}
-          <Card className="card-interactive shadow-sm">
-            <CardHeader className="flex flex-row items-start justify-between space-y-0">
-              <div className="space-y-2">
-                <CardTitle className="text-2xl">{session?.user?.name}</CardTitle>
-                <CardDescription className="space-y-1">
-                  <div className="flex items-center gap-2 text-base">
-                    <Mail className="h-4 w-4" />
-                    {session?.user?.email}
+    <PageLayout
+      icon={User}
+      iconColor="text-primary"
+      iconBgColor="bg-primary/10 ring-1 ring-primary/20"
+      title="My Profile"
+      description="Manage your account and preferences"
+      maxWidth="4xl"
+    >
+      <div className="space-y-6">
+        {/* Account Info Card */}
+        <Card className="border-2 shadow-sm hover-lift">
+          <CardHeader className="flex flex-row items-start justify-between space-y-0">
+            <div className="space-y-2">
+              <CardTitle className="text-2xl">{session?.user?.name}</CardTitle>
+              <CardDescription className="space-y-1">
+                <div className="flex items-center gap-2 text-base">
+                  <Mail className="h-4 w-4" />
+                  {session?.user?.email}
+                </div>
+                {session?.user?.username && (
+                  <div className="text-sm text-muted-foreground/80">
+                    @{session.user.username}
                   </div>
-                  {session?.user?.username && (
-                    <div className="text-sm text-muted-foreground/80">
-                      @{session.user.username}
-                    </div>
-                  )}
-                </CardDescription>
-              </div>
-              <Link href="/settings">
-                <Button variant="outline" size="default" className="gap-2 border-2 hover:border-primary/40 hover:bg-primary/5 transition-all duration-(--transition-base)">
-                  <Settings className="h-4 w-4" />
-                  Edit Profile
-                </Button>
-              </Link>
-            </CardHeader>
-          </Card>
+                )}
+              </CardDescription>
+            </div>
+            <Link href="/settings">
+              <Button
+                variant="outline"
+                size="default"
+                className="gap-2 border-2 hover:border-primary/50 hover:bg-primary/10 transition-all hover-lift"
+              >
+                <Settings className="h-4 w-4" />
+                Edit Profile
+              </Button>
+            </Link>
+          </CardHeader>
+        </Card>
 
-          {/* Preferences Overview Card */}
-          {preferences && (
-            <Card className="card-interactive shadow-sm">
-              <CardHeader>
-                <CardTitle className="text-xl flex items-center gap-2">
-                  <Sparkles className="h-5 w-5 text-primary" />
-                  Your Preferences
-                </CardTitle>
-                <CardDescription>
-                  Customize your event discovery experience
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                {/* Categories */}
-                {preferences.selectedCategories.length > 0 && (
+        {/* Preferences Overview Card */}
+        {preferences && (
+          <Card className="border-2 shadow-sm hover-lift">
+            <CardHeader>
+              <CardTitle className="text-xl flex items-center gap-2">
+                <Sparkles className="h-5 w-5 text-primary" />
+                Your Preferences
+              </CardTitle>
+              <CardDescription>
+                Customize your event discovery experience
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              {/* Categories */}
+              {preferences.selectedCategories.length > 0 && (
+                <div className="space-y-3">
+                  <h3 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide">
+                    Interested Categories
+                  </h3>
+                  <div className="flex flex-wrap gap-2">
+                    {preferences.selectedCategories.map((cat) => (
+                      <Badge
+                        key={cat}
+                        className="px-4 py-2 text-sm capitalize bg-primary/10 text-primary border-2 border-primary/20 hover:bg-primary/15 transition-colors"
+                      >
+                        {cat}
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Subcategories */}
+              {preferences.selectedSubcategories.length > 0 && (
+                <>
+                  <Separator />
                   <div className="space-y-3">
                     <h3 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide">
-                      Interested Categories
+                      Specific Interests
                     </h3>
                     <div className="flex flex-wrap gap-2">
-                      {preferences.selectedCategories.map((cat) => (
-                        <Badge key={cat} className="px-4 py-2 text-sm capitalize bg-primary/10 text-primary border-2 border-primary/20 hover:bg-primary/15 transition-colors duration-(--transition-base)">
-                          {cat}
+                      {preferences.selectedSubcategories.map((sub) => (
+                        <Badge key={sub} variant="secondary" className="px-3 py-1.5 text-sm border-2">
+                          {sub}
                         </Badge>
                       ))}
                     </div>
                   </div>
-                )}
+                </>
+              )}
 
-                {/* Subcategories */}
-                {preferences.selectedSubcategories.length > 0 && (
-                  <>
-                    <Separator />
-                    <div className="space-y-3">
-                      <h3 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide">
-                        Specific Interests
-                      </h3>
-                      <div className="flex flex-wrap gap-2">
-                        {preferences.selectedSubcategories.map((sub) => (
-                          <Badge key={sub} variant="secondary" className="px-3 py-1.5 text-sm border-2">
-                            {sub}
-                          </Badge>
-                        ))}
+              <Separator />
+
+              {/* Popularity Preference */}
+              <div className="space-y-3">
+                <h3 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide">
+                  Event Type Preference
+                </h3>
+                {popularityConfig && PopularityIcon && (
+                  <div className="flex items-center gap-3 p-4 bg-muted/50 rounded-lg border-2 hover-lift">
+                    <div className="rounded-lg bg-primary/10 p-2">
+                      <PopularityIcon className="h-5 w-5 text-primary" />
+                    </div>
+                    <div>
+                      <div className="font-medium">{popularityConfig.label}</div>
+                      <div className="text-sm text-muted-foreground">
+                        {popularityConfig.description}
                       </div>
                     </div>
-                  </>
+                  </div>
                 )}
+              </div>
 
-                <Separator />
-
-                {/* Popularity Preference */}
-                <div className="space-y-3">
-                  <h3 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide">
-                    Event Type Preference
-                  </h3>
-                  {popularityConfig && PopularityIcon && (
-                    <div className="flex items-center gap-3 p-4 bg-muted/50 rounded-lg border-2 transition-all duration-(--transition-base)r:shadow-sm">
-                      <div className="rounded-lg bg-primary/10 p-2">
-                        <PopularityIcon className="h-5 w-5 text-primary" />
+              {/* Price Range */}
+              {preferences.priceRange && (
+                <>
+                  <Separator />
+                  <div className="space-y-3">
+                    <h3 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide flex items-center gap-2">
+                      <DollarSign className="h-4 w-4" />
+                      Price Range
+                    </h3>
+                    <div className="flex items-center gap-3 p-4 bg-muted/50 rounded-lg border-2 hover-lift">
+                      <div className="text-base font-medium">
+                        ${preferences.priceRange.min} - ${preferences.priceRange.max}
                       </div>
-                      <div>
-                        <div className="font-medium">{popularityConfig.label}</div>
-                        <div className="text-sm text-muted-foreground">
-                          {popularityConfig.description}
+                      <span className="text-sm text-muted-foreground">
+                        (Free events always included)
+                      </span>
+                    </div>
+                  </div>
+                </>
+              )}
+
+              <Separator />
+
+              {/* Notifications */}
+              <div className="space-y-3">
+                <h3 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide flex items-center gap-2">
+                  <Bell className="h-4 w-4" />
+                  Notifications
+                </h3>
+                <div className="space-y-2">
+                  {/* In-App Notifications */}
+                  <div className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg border-2 transition-all hover:border-primary/30">
+                    <div className={`rounded-md p-1.5 ${preferences.notifications.inApp ? 'bg-primary/10' : 'bg-muted'}`}>
+                      <Bell className={`h-4 w-4 ${preferences.notifications.inApp ? 'text-primary' : 'text-muted-foreground'}`} />
+                    </div>
+                    <div className="flex-1">
+                      <div className="text-sm font-medium">In-App Notifications</div>
+                      <div className="text-xs text-muted-foreground">
+                        {preferences.notifications.inApp ? 'Enabled' : 'Disabled'}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Email Notifications */}
+                  <div className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg border-2 transition-all hover:border-primary/30">
+                    <div className={`rounded-md p-1.5 ${preferences.notifications.email ? 'bg-primary/10' : 'bg-muted'}`}>
+                      <Mail className={`h-4 w-4 ${preferences.notifications.email ? 'text-primary' : 'text-muted-foreground'}`} />
+                    </div>
+                    <div className="flex-1">
+                      <div className="text-sm font-medium">Email Notifications</div>
+                      <div className="text-xs text-muted-foreground">
+                        {preferences.notifications.email
+                          ? `${preferences.notifications.emailFrequency} digest`
+                          : 'Disabled'}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Smart Filtering */}
+                  {preferences.notifications.smartFiltering?.enabled && (
+                    <div className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg border-2 transition-all hover:border-primary/30">
+                      <div className="rounded-md p-1.5 bg-primary/10">
+                        <Zap className="h-4 w-4 text-primary" />
+                      </div>
+                      <div className="flex-1">
+                        <div className="text-sm font-medium">Smart Filtering</div>
+                        <div className="text-xs text-muted-foreground">
+                          Minimum {Math.round((preferences.notifications.smartFiltering.minRecommendationScore || 0.6) * 100)}% match score
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Keywords */}
+                  {preferences.notifications.keywords && preferences.notifications.keywords.length > 0 && (
+                    <div className="flex items-start gap-3 p-3 bg-muted/50 rounded-lg border-2 transition-all hover:border-primary/30">
+                      <div className="rounded-md p-1.5 bg-primary/10 mt-0.5">
+                        <Filter className="h-4 w-4 text-primary" />
+                      </div>
+                      <div className="flex-1">
+                        <div className="text-sm font-medium mb-1">Keywords</div>
+                        <div className="flex flex-wrap gap-1.5">
+                          {preferences.notifications.keywords.map((keyword, idx) => (
+                            <Badge key={idx} variant="outline" className="text-xs border-2">
+                              {keyword}
+                            </Badge>
+                          ))}
                         </div>
                       </div>
                     </div>
                   )}
                 </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
-                {/* Price Range */}
-                {preferences.priceRange && (
-                  <>
-                    <Separator />
-                    <div className="space-y-3">
-                      <h3 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide flex items-center gap-2">
-                        <DollarSign className="h-4 w-4" />
-                        Price Range
-                      </h3>
-                      <div className="flex items-center gap-3 p-4 bg-muted/50 rounded-lg border-2 transition-all duration-(--transition-base) hover:shadow-sm">
-                        <div className="text-base font-medium">
-                          ${preferences.priceRange.min} - ${preferences.priceRange.max}
-                        </div>
-                        <span className="text-sm text-muted-foreground">
-                          (Free events always included)
-                        </span>
-                      </div>
-                    </div>
-                  </>
-                )}
-
-                <Separator />
-
-                {/* Notifications */}
-                <div className="space-y-3">
-                  <h3 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide flex items-center gap-2">
-                    <Bell className="h-4 w-4" />
-                    Notifications
-                  </h3>
-                  <div className="space-y-2">
-                    <div className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg border-2 transition-all duration-(--transition-base)r:border-primary/30">
-                      <div className={`rounded-md p-1.5 ${preferences.notifications.inApp ? 'bg-primary/10' : 'bg-muted'}`}>
-                        <Bell className={`h-4 w-4 ${preferences.notifications.inApp ? 'text-primary' : 'text-muted-foreground'}`} />
-                      </div>
-                      <div className="flex-1">
-                        <div className="text-sm font-medium">In-App Notifications</div>
-                        <div className="text-xs text-muted-foreground">
-                          {preferences.notifications.inApp ? 'Enabled' : 'Disabled'}
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg border-2 transition-all duration-(--transition-base) hover:border-primary/30">
-                      <div className={`rounded-md p-1.5 ${preferences.notifications.email ? 'bg-primary/10' : 'bg-muted'}`}>
-                        <Mail className={`h-4 w-4 ${preferences.notifications.email ? 'text-primary' : 'text-muted-foreground'}`} />
-                      </div>
-                      <div className="flex-1">
-                        <div className="text-sm font-medium">Email Notifications</div>
-                        <div className="text-xs text-muted-foreground">
-                          {preferences.notifications.email
-                            ? `${preferences.notifications.emailFrequency} digest`
-                            : 'Disabled'}
-                        </div>
-                      </div>
-                    </div>
-
-                    {preferences.notifications.smartFiltering?.enabled && (
-                      <div className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg border-2 transition-all duration-(--transition-base) hover:border-primary/30">
-                        <div className="rounded-md p-1.5 bg-primary/10">
-                          <Zap className="h-4 w-4 text-primary" />
-                        </div>
-                        <div className="flex-1">
-                          <div className="text-sm font-medium">Smart Filtering</div>
-                          <div className="text-xs text-muted-foreground">
-                            Minimum {Math.round((preferences.notifications.smartFiltering.minRecommendationScore || 0.6) * 100)}% match score
-                          </div>
-                        </div>
-                      </div>
-                    )}
-
-                    {preferences.notifications.keywords && preferences.notifications.keywords.length > 0 && (
-                      <div className="flex items-start gap-3 p-3 bg-muted/50 rounded-lg border-2 transition-all duration-(--transition-base) hover:border-primary/30">
-                        <div className="rounded-md p-1.5 bg-primary/10 mt-0.5">
-                          <Filter className="h-4 w-4 text-primary" />
-                        </div>
-                        <div className="flex-1">
-                          <div className="text-sm font-medium mb-1">Keywords</div>
-                          <div className="flex flex-wrap gap-1.5">
-                            {preferences.notifications.keywords.map((keyword, idx) => (
-                              <Badge key={idx} variant="outline" className="text-xs border-2">
-                                {keyword}
-                              </Badge>
-                            ))}
-                          </div>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          )}
-
-          {/* Sign Out Button */}
-          <Button
-            variant="destructive"
-            size="lg"
-            className="w-full gap-2 transition-all duration-(--transition-base) hover:scale-[1.02] active:scale-[0.98]"
-            onClick={handleSignOut}
-          >
-            <LogOut className="h-5 w-5" />
-            Sign Out
-          </Button>
-        </div>
-      </section>
-    </div>
+        {/* Sign Out Button */}
+        <Button
+          variant="destructive"
+          size="lg"
+          className="w-full gap-2 hover-lift"
+          onClick={handleSignOut}
+        >
+          <LogOut className="h-5 w-5" />
+          Sign Out
+        </Button>
+      </div>
+    </PageLayout>
   );
 }

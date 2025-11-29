@@ -1,3 +1,4 @@
+// app/(protected)/notifications/page.tsx
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -7,7 +8,7 @@ import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/Tabs';
-import { BackButton } from '@/components/navigation/BackButton';
+import { PageLayout } from '@/components/layout/PageLayout';
 import { Bell, Search, Sparkles, Heart, Loader2, Check, CheckCheck } from 'lucide-react';
 
 interface Notification {
@@ -71,9 +72,9 @@ function NotificationCard({
 
     return (
         <Card
-            className={`p-4 border-2 transition-all duration-(--transition-base) hover:shadow-md ${!notification.read
-                ? 'bg-primary/5 border-primary/30 hover:border-primary/40'
-                : 'border-border/50 hover:border-border'
+            className={`p-4 border-2 transition-all hover:shadow-md ${!notification.read
+                    ? 'bg-primary/5 border-primary/30 hover:border-primary/40'
+                    : 'border-border/50 hover:border-border'
                 }`}
         >
             <div className="flex gap-4">
@@ -110,7 +111,7 @@ function NotificationCard({
                             <Button
                                 variant="outline"
                                 size="sm"
-                                className="border-2 hover:border-primary/40 hover:bg-primary/5 transition-all duration-[var(--transition-base)]"
+                                className="border-2 hover:border-primary/50 hover:bg-primary/10 transition-all hover-lift"
                             >
                                 View Event
                             </Button>
@@ -120,7 +121,7 @@ function NotificationCard({
                                 variant="ghost"
                                 size="sm"
                                 onClick={() => onMarkAsRead(notification._id)}
-                                className="gap-2 hover:bg-accent transition-all duration-[var(--transition-base)]"
+                                className="gap-2 hover:bg-accent transition-all"
                             >
                                 <Check className="h-3 w-3" />
                                 Mark read
@@ -141,6 +142,7 @@ export default function NotificationsPage() {
     const [isLoading, setIsLoading] = useState(true);
     const [isLoadingMore, setIsLoadingMore] = useState(false);
 
+    // Redirect if unauthenticated
     useEffect(() => {
         if (status === 'unauthenticated') {
             window.location.href = '/auth/signin?callbackUrl=/notifications';
@@ -228,6 +230,7 @@ export default function NotificationsPage() {
         }
     }
 
+    // Loading state
     if (status === 'loading' || isLoading) {
         return (
             <div className="min-h-screen flex items-center justify-center">
@@ -241,168 +244,150 @@ export default function NotificationsPage() {
     const hasMoreAll = displayedAll.length < allNotifications.length;
 
     return (
-        <div className="w-full min-h-screen bg-gradient-to-b from-background to-muted/20">
-            {/* Header */}
-            <section className="border-b bg-background/95 backdrop-blur supports-backdrop-filter:bg-background/60">
-                <div className="container max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
-                    <BackButton fallbackUrl="/" className="mb-8" />
-
-                    <div className="flex items-center justify-between flex-wrap gap-4">
-                        <div className="flex items-center gap-4">
-                            <div className="icon-container">
-                                <Bell className="h-8 w-8 text-primary" />
-                            </div>
-                            <div>
-                                <h1 className="text-3xl sm:text-4xl font-bold tracking-tight">
-                                    Notifications
-                                </h1>
-                                <p className="text-muted-foreground mt-1">
-                                    Stay updated on events you care about
-                                </p>
-                            </div>
-                        </div>
-
+        <PageLayout
+            icon={Bell}
+            iconColor="text-primary"
+            iconBgColor="bg-primary/10 ring-1 ring-primary/20"
+            title="Notifications"
+            description="Stay updated on events you care about"
+            maxWidth="4xl"
+            actions={
+                unreadNotifications.length > 0 && (
+                    <Button
+                        onClick={markAllAsRead}
+                        variant="outline"
+                        className="gap-2 border-2 hover:border-primary/50 hover:bg-primary/10 transition-all hover-lift"
+                    >
+                        <CheckCheck className="h-4 w-4" />
+                        Mark all read
+                    </Button>
+                )
+            }
+        >
+            <Tabs defaultValue="unread" className="space-y-6">
+                <TabsList className="grid w-full max-w-md grid-cols-2">
+                    <TabsTrigger value="unread" className="gap-2">
+                        Unread
                         {unreadNotifications.length > 0 && (
-                            <Button
-                                onClick={markAllAsRead}
-                                variant="outline"
-                                className="gap-2 border-2 hover:border-primary/40 hover:bg-primary/5 transition-all duration-[var(--transition-base)]"
-                            >
-                                <CheckCheck className="h-4 w-4" />
-                                Mark all read
-                            </Button>
-                        )}
-                    </div>
-                </div>
-            </section>
-
-            {/* Content */}
-            <section className="container max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 animate-in fade-in-0 slide-in-from-bottom-4 duration-500">
-                <Tabs defaultValue="unread" className="space-y-6">
-                    <TabsList className="grid w-full max-w-md grid-cols-2">
-                        <TabsTrigger value="unread" className="gap-2">
-                            Unread
-                            {unreadNotifications.length > 0 && (
-                                <Badge variant="secondary" className="ml-1 bg-primary/10 text-primary border border-primary/20">
-                                    {unreadNotifications.length}
-                                </Badge>
-                            )}
-                        </TabsTrigger>
-                        <TabsTrigger value="all">
-                            All
-                            <Badge variant="secondary" className="ml-1 bg-muted text-foreground border border-border">
-                                {allNotifications.length}
+                            <Badge variant="secondary" className="ml-1 bg-primary/10 text-primary border border-primary/20">
+                                {unreadNotifications.length}
                             </Badge>
-                        </TabsTrigger>
-                    </TabsList>
-
-                    {/* Unread Tab */}
-                    <TabsContent value="unread" className="space-y-4">
-                        {unreadNotifications.length === 0 ? (
-                            <Card className="p-12 text-center border-2 border-border/50">
-                                <div className="rounded-full bg-muted/50 p-6 w-fit mx-auto mb-4">
-                                    <Bell className="h-12 w-12 text-muted-foreground/40" />
-                                </div>
-                                <h3 className="text-lg font-semibold mb-2">All caught up!</h3>
-                                <p className="text-sm text-muted-foreground">
-                                    No new notifications at the moment
-                                </p>
-                            </Card>
-                        ) : (
-                            <>
-                                <div className="space-y-3">
-                                    {displayedUnread.map((notification) => (
-                                        <NotificationCard
-                                            key={notification._id}
-                                            notification={notification}
-                                            onMarkAsRead={markAsRead}
-                                        />
-                                    ))}
-                                </div>
-
-                                {hasMoreUnread && (
-                                    <div className="flex justify-center pt-2">
-                                        <Button
-                                            onClick={loadMoreUnread}
-                                            disabled={isLoadingMore}
-                                            variant="outline"
-                                            size="lg"
-                                            className="gap-2 border-2 hover:border-primary/40 hover:bg-primary/5 transition-all duration-[var(--transition-base)]"
-                                        >
-                                            {isLoadingMore ? (
-                                                <>
-                                                    <Loader2 className="h-4 w-4 animate-spin" />
-                                                    Loading...
-                                                </>
-                                            ) : (
-                                                <>
-                                                    Load More
-                                                    <span className="text-xs text-muted-foreground">
-                                                        ({unreadNotifications.length - displayedUnread.length} remaining)
-                                                    </span>
-                                                </>
-                                            )}
-                                        </Button>
-                                    </div>
-                                )}
-                            </>
                         )}
-                    </TabsContent>
+                    </TabsTrigger>
+                    <TabsTrigger value="all">
+                        All
+                        <Badge variant="secondary" className="ml-1 bg-muted text-foreground border border-border">
+                            {allNotifications.length}
+                        </Badge>
+                    </TabsTrigger>
+                </TabsList>
 
-                    {/* All Tab */}
-                    <TabsContent value="all" className="space-y-4">
-                        {allNotifications.length === 0 ? (
-                            <Card className="p-12 text-center border-2 border-border/50">
-                                <div className="rounded-full bg-muted/50 p-6 w-fit mx-auto mb-4">
-                                    <Bell className="h-12 w-12 text-muted-foreground/40" />
-                                </div>
-                                <h3 className="text-lg font-semibold mb-2">No notifications yet</h3>
-                                <p className="text-sm text-muted-foreground">
-                                    We'll notify you when we find events you might like
-                                </p>
-                            </Card>
-                        ) : (
-                            <>
-                                <div className="space-y-3">
-                                    {displayedAll.map((notification) => (
-                                        <NotificationCard
-                                            key={notification._id}
-                                            notification={notification}
-                                            onMarkAsRead={markAsRead}
-                                        />
-                                    ))}
-                                </div>
+                {/* Unread Tab */}
+                <TabsContent value="unread" className="space-y-4">
+                    {unreadNotifications.length === 0 ? (
+                        <Card className="p-12 text-center border-2 border-border/50">
+                            <div className="rounded-full bg-muted/50 p-6 w-fit mx-auto mb-4">
+                                <Bell className="h-12 w-12 text-muted-foreground/40" />
+                            </div>
+                            <h3 className="text-lg font-semibold mb-2">All caught up!</h3>
+                            <p className="text-sm text-muted-foreground">
+                                No new notifications at the moment
+                            </p>
+                        </Card>
+                    ) : (
+                        <>
+                            <div className="space-y-3">
+                                {displayedUnread.map((notification) => (
+                                    <NotificationCard
+                                        key={notification._id}
+                                        notification={notification}
+                                        onMarkAsRead={markAsRead}
+                                    />
+                                ))}
+                            </div>
 
-                                {hasMoreAll && (
-                                    <div className="flex justify-center pt-2">
-                                        <Button
-                                            onClick={loadMoreAll}
-                                            disabled={isLoadingMore}
-                                            variant="outline"
-                                            size="lg"
-                                            className="gap-2 border-2 hover:border-primary/40 hover:bg-primary/5 transition-all duration-[var(--transition-base)]"
-                                        >
-                                            {isLoadingMore ? (
-                                                <>
-                                                    <Loader2 className="h-4 w-4 animate-spin" />
-                                                    Loading...
-                                                </>
-                                            ) : (
-                                                <>
-                                                    Load More
-                                                    <span className="text-xs text-muted-foreground">
-                                                        ({allNotifications.length - displayedAll.length} remaining)
-                                                    </span>
-                                                </>
-                                            )}
-                                        </Button>
-                                    </div>
-                                )}
-                            </>
-                        )}
-                    </TabsContent>
-                </Tabs>
-            </section>
-        </div>
+                            {hasMoreUnread && (
+                                <div className="flex justify-center pt-2">
+                                    <Button
+                                        onClick={loadMoreUnread}
+                                        disabled={isLoadingMore}
+                                        variant="outline"
+                                        size="lg"
+                                        className="gap-2 border-2 hover:border-primary/50 hover:bg-primary/10 transition-all hover-lift"
+                                    >
+                                        {isLoadingMore ? (
+                                            <>
+                                                <Loader2 className="h-4 w-4 animate-spin" />
+                                                Loading...
+                                            </>
+                                        ) : (
+                                            <>
+                                                Load More
+                                                <span className="text-xs text-muted-foreground">
+                                                    ({unreadNotifications.length - displayedUnread.length} remaining)
+                                                </span>
+                                            </>
+                                        )}
+                                    </Button>
+                                </div>
+                            )}
+                        </>
+                    )}
+                </TabsContent>
+
+                {/* All Tab */}
+                <TabsContent value="all" className="space-y-4">
+                    {allNotifications.length === 0 ? (
+                        <Card className="p-12 text-center border-2 border-border/50">
+                            <div className="rounded-full bg-muted/50 p-6 w-fit mx-auto mb-4">
+                                <Bell className="h-12 w-12 text-muted-foreground/40" />
+                            </div>
+                            <h3 className="text-lg font-semibold mb-2">No notifications yet</h3>
+                            <p className="text-sm text-muted-foreground">
+                                We'll notify you when we find events you might like
+                            </p>
+                        </Card>
+                    ) : (
+                        <>
+                            <div className="space-y-3">
+                                {displayedAll.map((notification) => (
+                                    <NotificationCard
+                                        key={notification._id}
+                                        notification={notification}
+                                        onMarkAsRead={markAsRead}
+                                    />
+                                ))}
+                            </div>
+
+                            {hasMoreAll && (
+                                <div className="flex justify-center pt-2">
+                                    <Button
+                                        onClick={loadMoreAll}
+                                        disabled={isLoadingMore}
+                                        variant="outline"
+                                        size="lg"
+                                        className="gap-2 border-2 hover:border-primary/50 hover:bg-primary/10 transition-all hover-lift"
+                                    >
+                                        {isLoadingMore ? (
+                                            <>
+                                                <Loader2 className="h-4 w-4 animate-spin" />
+                                                Loading...
+                                            </>
+                                        ) : (
+                                            <>
+                                                Load More
+                                                <span className="text-xs text-muted-foreground">
+                                                    ({allNotifications.length - displayedAll.length} remaining)
+                                                </span>
+                                            </>
+                                        )}
+                                    </Button>
+                                </div>
+                            )}
+                        </>
+                    )}
+                </TabsContent>
+            </Tabs>
+        </PageLayout>
     );
 }

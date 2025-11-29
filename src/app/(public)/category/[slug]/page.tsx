@@ -1,3 +1,4 @@
+// app/category/[slug]/page.tsx
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { getServerSession } from "next-auth";
@@ -28,6 +29,7 @@ interface CategoryInfo {
   description: string;
   icon: LucideIcon;
   color: string;
+  bgColor: string;
   badgeClass: string;
 }
 
@@ -37,6 +39,7 @@ const CATEGORY_CONFIG: Record<string, CategoryInfo> = {
     description: 'From intimate gigs to stadium shows, find your next musical experience',
     icon: Music,
     color: 'text-orange-600 dark:text-orange-400',
+    bgColor: 'bg-orange-500/10 ring-1 ring-orange-500/20',
     badgeClass: 'category-music',
   },
   theatre: {
@@ -44,6 +47,7 @@ const CATEGORY_CONFIG: Record<string, CategoryInfo> = {
     description: 'Plays, musicals, ballet, opera and more on Melbourne\'s stages',
     icon: Theater,
     color: 'text-rose-600 dark:text-rose-400',
+    bgColor: 'bg-rose-500/10 ring-1 ring-rose-500/20',
     badgeClass: 'category-theatre',
   },
   sports: {
@@ -51,6 +55,7 @@ const CATEGORY_CONFIG: Record<string, CategoryInfo> = {
     description: 'AFL, cricket, tennis and all the sporting action in Melbourne',
     icon: Trophy,
     color: 'text-teal-600 dark:text-teal-400',
+    bgColor: 'bg-teal-500/10 ring-1 ring-teal-500/20',
     badgeClass: 'category-sports',
   },
   arts: {
@@ -58,6 +63,7 @@ const CATEGORY_CONFIG: Record<string, CategoryInfo> = {
     description: 'Exhibitions, festivals, film screenings and cultural events',
     icon: Palette,
     color: 'text-purple-600 dark:text-purple-400',
+    bgColor: 'bg-purple-500/10 ring-1 ring-purple-500/20',
     badgeClass: 'category-arts',
   },
   family: {
@@ -65,6 +71,7 @@ const CATEGORY_CONFIG: Record<string, CategoryInfo> = {
     description: 'Fun for the whole family - kids shows, educational events and more',
     icon: Users,
     color: 'text-emerald-600 dark:text-emerald-400',
+    bgColor: 'bg-emerald-500/10 ring-1 ring-emerald-500/20',
     badgeClass: 'category-family',
   },
   other: {
@@ -72,6 +79,7 @@ const CATEGORY_CONFIG: Record<string, CategoryInfo> = {
     description: 'Workshops, networking, wellness and community events',
     icon: Sparkles,
     color: 'text-sky-600 dark:text-sky-400',
+    bgColor: 'bg-sky-500/10 ring-1 ring-sky-500/20',
     badgeClass: 'category-other',
   },
 };
@@ -172,6 +180,7 @@ export default async function CategoryPage({ params, searchParams }: CategoryPag
     <EventsPageLayout
       icon={categoryInfo.icon}
       iconColor={categoryInfo.color}
+      iconBgColor={categoryInfo.bgColor}
       title={categoryInfo.title}
       description={categoryInfo.description}
       filters={
@@ -184,7 +193,7 @@ export default async function CategoryPage({ params, searchParams }: CategoryPag
               <Link href={`/category/${slug}`}>
                 <Badge
                   variant="outline"
-                  className={`cursor-pointer text-sm px-4 py-2 ${!subcategory ? categoryInfo.badgeClass : 'badge-outline-hover'
+                  className={`cursor-pointer text-sm px-4 py-2 border-2 transition-all hover-lift ${!subcategory ? categoryInfo.badgeClass : 'badge-outline-hover'
                     }`}
                 >
                   All
@@ -197,7 +206,7 @@ export default async function CategoryPage({ params, searchParams }: CategoryPag
                 >
                   <Badge
                     variant="outline"
-                    className={`cursor-pointer text-sm px-4 py-2 ${subcategory === sub ? categoryInfo.badgeClass : 'badge-outline-hover'
+                    className={`cursor-pointer text-sm px-4 py-2 border-2 transition-all hover-lift ${subcategory === sub ? categoryInfo.badgeClass : 'badge-outline-hover'
                       }`}
                   >
                     {sub}

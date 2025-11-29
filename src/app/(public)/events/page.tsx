@@ -1,3 +1,4 @@
+// app/events/page.tsx
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { EventsPageLayout } from '@/components/layout/EventsPageLayout';
@@ -8,6 +9,18 @@ import { Suspense } from "react";
 import { SerializedEvent } from "@/lib/models/Event";
 import { getUserFavourites } from "@/lib/actions/interactions";
 import { Search } from "lucide-react";
+
+interface EventsPageProps {
+  searchParams: Promise<{
+    page?: string;
+    q?: string;
+    category?: string;
+    subcategory?: string;
+    date?: string;
+    free?: string;
+    accessible?: string;
+  }>;
+}
 
 async function fetchEvents(params: URLSearchParams) {
   const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
@@ -75,19 +88,7 @@ async function EventsGridWrapper({
   );
 }
 
-export default async function EventsPage({
-  searchParams,
-}: {
-  searchParams: Promise<{
-    page?: string;
-    q?: string;
-    category?: string;
-    subcategory?: string;
-    date?: string;
-    free?: string;
-    accessible?: string;
-  }>;
-}) {
+export default async function EventsPage({ searchParams }: EventsPageProps) {
   const params = await searchParams;
   const currentPage = Number(params.page) || 1;
   const searchQuery = params.q || '';
@@ -110,6 +111,8 @@ export default async function EventsPage({
   return (
     <EventsPageLayout
       icon={Search}
+      iconColor="text-primary"
+      iconBgColor="bg-primary/10 ring-1 ring-primary/20"
       title={searchQuery ? `Search: "${searchQuery}"` : 'All Events'}
       description="Discover concerts, shows, festivals, and events across Melbourne"
       filters={
