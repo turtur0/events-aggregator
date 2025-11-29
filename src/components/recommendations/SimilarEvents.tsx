@@ -1,11 +1,13 @@
+// components/recommendations/SimilarEvents.tsx
 'use client';
 
 import { useEffect, useState, useRef } from 'react';
 import { EventCard } from '@/components/events/EventCard';
-import { Loader2, Sparkles, AlertCircle, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Sparkles, AlertCircle, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import { Alert, AlertDescription } from '@/components/ui/Alert';
 import { Button } from '@/components/ui/Button';
+import { CarouselSkeleton } from '@/components/skeletons/CarouselSkeleton';
 
 interface SimilarEventsProps {
     eventId: string;
@@ -19,6 +21,7 @@ export function SimilarEvents({ eventId, userFavourites }: SimilarEventsProps) {
     const [currentIndex, setCurrentIndex] = useState(0);
     const scrollContainerRef = useRef<HTMLDivElement>(null);
 
+    // Fetch similar events on mount
     useEffect(() => {
         async function fetchSimilar() {
             try {
@@ -51,6 +54,7 @@ export function SimilarEvents({ eventId, userFavourites }: SimilarEventsProps) {
         }
     }, [eventId]);
 
+    // Smooth scroll to current index
     useEffect(() => {
         if (!scrollContainerRef.current || !events) return;
 
@@ -64,6 +68,7 @@ export function SimilarEvents({ eventId, userFavourites }: SimilarEventsProps) {
         });
     }, [currentIndex, events]);
 
+    // Navigation handlers
     const handlePrevious = () => {
         if (!events) return;
         setCurrentIndex((prev) => Math.max(0, prev - 1));
@@ -77,28 +82,21 @@ export function SimilarEvents({ eventId, userFavourites }: SimilarEventsProps) {
     const canScrollLeft = currentIndex > 0;
     const canScrollRight = events && currentIndex < events.length - 1;
 
+    // Loading state
     if (isLoading) {
         return (
-            <Card className="border-2 border-secondary/20 bg-linear-to-br from-secondary/5 via-transparent to-transparent shadow-sm hover:shadow-md hover:border-secondary/30 transition-all">
-                <CardHeader>
-                    <CardTitle className="flex items-center gap-2 text-2xl">
-                        <Sparkles className="h-6 w-6 text-secondary" />
-                        You Might Also Like
-                    </CardTitle>
-                </CardHeader>
-                <CardContent>
-                    <div className="flex flex-col items-center justify-center py-16">
-                        <Loader2 className="h-10 w-10 animate-spin text-secondary mb-4" />
-                        <p className="text-sm text-muted-foreground">Finding similar events...</p>
-                    </div>
-                </CardContent>
-            </Card>
+            <CarouselSkeleton
+                icon={<Sparkles className="h-6 w-6 text-secondary" />}
+                borderClass="border-secondary/20"
+                gradientClass="from-secondary/5"
+            />
         );
     }
 
+    // Error state
     if (error) {
         return (
-            <Card>
+            <Card className="border-2">
                 <CardContent className="pt-6">
                     <Alert variant="destructive">
                         <AlertCircle className="h-4 w-4" />
@@ -109,6 +107,7 @@ export function SimilarEvents({ eventId, userFavourites }: SimilarEventsProps) {
         );
     }
 
+    // Hide if no similar events
     if (!events || events.length === 0) {
         return null;
     }
@@ -117,7 +116,7 @@ export function SimilarEvents({ eventId, userFavourites }: SimilarEventsProps) {
         <Card className="relative overflow-hidden border-2 border-secondary/20 bg-linear-to-br from-secondary/5 via-transparent to-transparent shadow-sm hover:shadow-md hover:border-secondary/30 transition-all">
             <CardHeader>
                 <div className="flex items-center justify-between">
-                    <div>
+                    <div className="flex-1 min-w-0">
                         <CardTitle className="flex items-center gap-2 text-2xl mb-2">
                             <Sparkles className="h-6 w-6 text-secondary" />
                             You Might Also Like
@@ -126,13 +125,14 @@ export function SimilarEvents({ eventId, userFavourites }: SimilarEventsProps) {
                             {events.length} similar {events.length === 1 ? 'event' : 'events'} in the same category
                         </p>
                     </div>
-                    <div className="flex gap-2">
+                    <div className="flex gap-2 ml-4">
                         <Button
                             variant="outline"
                             size="icon"
                             onClick={handlePrevious}
                             disabled={!canScrollLeft}
-                            className="h-9 w-9 border-secondary/30 hover:border-secondary/50 hover:bg-secondary/10 transition-all disabled:opacity-50"
+                            className="h-9 w-9 border-2 border-secondary/30 hover:border-secondary/50 hover:bg-secondary/10 transition-all hover-lift disabled:opacity-50"
+                            aria-label="Previous event"
                         >
                             <ChevronLeft className="h-4 w-4" />
                         </Button>
@@ -141,7 +141,8 @@ export function SimilarEvents({ eventId, userFavourites }: SimilarEventsProps) {
                             size="icon"
                             onClick={handleNext}
                             disabled={!canScrollRight}
-                            className="h-9 w-9 border-secondary/30 hover:border-secondary/50 hover:bg-secondary/10 transition-all disabled:opacity-50"
+                            className="h-9 w-9 border-2 border-secondary/30 hover:border-secondary/50 hover:bg-secondary/10 transition-all hover-lift disabled:opacity-50"
+                            aria-label="Next event"
                         >
                             <ChevronRight className="h-4 w-4" />
                         </Button>
@@ -149,6 +150,7 @@ export function SimilarEvents({ eventId, userFavourites }: SimilarEventsProps) {
                 </div>
             </CardHeader>
             <CardContent>
+                {/* Event carousel */}
                 <div
                     ref={scrollContainerRef}
                     className="flex gap-6 overflow-x-auto scrollbar-hide snap-x snap-mandatory scroll-smooth"

@@ -11,7 +11,7 @@ import { Badge } from '@/components/ui/Badge';
 import { Suspense } from "react";
 import { CATEGORIES } from "@/lib/constants/categories";
 import { getUserFavourites } from "@/lib/actions/interactions";
-import { Music, Theater, Trophy, Palette, Users, Sparkles } from "lucide-react";
+import { Music, Theater, Trophy, Palette, Users, Sparkles, LucideIcon } from "lucide-react";
 
 interface CategoryPageProps {
   params: Promise<{ slug: string }>;
@@ -23,57 +23,56 @@ interface CategoryPageProps {
   }>;
 }
 
-const SLUG_TO_CATEGORY: Record<string, string> = {
-  'music': 'music',
-  'theatre': 'theatre',
-  'sports': 'sports',
-  'arts': 'arts',
-  'family': 'family',
-  'other': 'other',
-};
+interface CategoryInfo {
+  title: string;
+  description: string;
+  icon: LucideIcon;
+  color: string;
+  badgeClass: string;
+}
 
-const CATEGORY_INFO: Record<string, { title: string; description: string; icon: any; color: string; badgeClass: string }> = {
-  'music': {
+const CATEGORY_CONFIG: Record<string, CategoryInfo> = {
+  music: {
     title: 'Live Music & Concerts',
     description: 'From intimate gigs to stadium shows, find your next musical experience',
     icon: Music,
     color: 'text-orange-600 dark:text-orange-400',
-    badgeClass: 'border-2 border-orange-500/30 bg-orange-500/5 text-orange-600 hover:bg-orange-500/10 hover:border-orange-500/50 dark:text-orange-400 dark:bg-orange-400/10 dark:hover:bg-orange-400/15 dark:border-orange-400/20',
+    badgeClass: 'category-music',
   },
-  'theatre': {
+  theatre: {
     title: 'Theatre & Performing Arts',
     description: 'Plays, musicals, ballet, opera and more on Melbourne\'s stages',
     icon: Theater,
     color: 'text-rose-600 dark:text-rose-400',
-    badgeClass: 'border-2 border-rose-500/30 bg-rose-500/5 text-rose-600 hover:bg-rose-500/10 hover:border-rose-500/50 dark:text-rose-400 dark:bg-rose-400/10 dark:hover:bg-rose-400/15 dark:border-rose-400/20',
+    badgeClass: 'category-theatre',
   },
-  'sports': {
+  sports: {
     title: 'Sports & Games',
     description: 'AFL, cricket, tennis and all the sporting action in Melbourne',
     icon: Trophy,
     color: 'text-teal-600 dark:text-teal-400',
-    badgeClass: 'border-2 border-teal-500/30 bg-teal-500/5 text-teal-600 hover:bg-teal-500/10 hover:border-teal-500/50 dark:text-teal-400 dark:bg-teal-400/10 dark:hover:bg-teal-400/15 dark:border-teal-400/20',
+    badgeClass: 'category-sports',
   },
-  'arts': {
+  arts: {
     title: 'Arts & Culture',
     description: 'Exhibitions, festivals, film screenings and cultural events',
     icon: Palette,
     color: 'text-purple-600 dark:text-purple-400',
-    badgeClass: 'border-2 border-purple-500/30 bg-purple-500/5 text-purple-600 hover:bg-purple-500/10 hover:border-purple-500/50 dark:text-purple-400 dark:bg-purple-400/10 dark:hover:bg-purple-400/15 dark:border-purple-400/20',
+    badgeClass: 'category-arts',
   },
-  'family': {
+  family: {
     title: 'Family Events',
     description: 'Fun for the whole family - kids shows, educational events and more',
     icon: Users,
     color: 'text-emerald-600 dark:text-emerald-400',
-    badgeClass: 'border-2 border-emerald-500/30 bg-emerald-500/5 text-emerald-600 hover:bg-emerald-500/10 hover:border-emerald-500/50 dark:text-emerald-400 dark:bg-emerald-400/10 dark:hover:bg-emerald-400/15 dark:border-emerald-400/20',
+    badgeClass: 'category-family',
   },
-  'other': {
+  other: {
     title: 'Other Events',
     description: 'Workshops, networking, wellness and community events',
     icon: Sparkles,
     color: 'text-sky-600 dark:text-sky-400',
-    badgeClass: 'border-2 border-sky-500/30 bg-sky-500/5 text-sky-600 hover:bg-sky-500/10 hover:border-sky-500/50 dark:text-sky-400 dark:bg-sky-400/10 dark:hover:bg-sky-400/15 dark:border-sky-400/20',
+    badgeClass: 'category-other',
   },
 };
 
@@ -110,11 +109,10 @@ async function CategoryEventsGrid({
     throw new Error('Failed to fetch events');
   }
 
-  const data = await response.json();
-  const eventsData = data.events;
-  const { totalEvents, totalPages } = data.pagination;
+  const { events, pagination } = await response.json();
+  const { totalEvents, totalPages } = pagination;
 
-  if (eventsData.length === 0) {
+  if (events.length === 0) {
     return (
       <EmptyState
         title="No events found"
@@ -132,7 +130,7 @@ async function CategoryEventsGrid({
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
-        {eventsData.map((event: any) => (
+        {events.map((event: any) => (
           <EventCard
             key={event._id}
             event={event}
@@ -161,7 +159,7 @@ function EventsGridSkeleton() {
 
 export async function generateMetadata({ params }: CategoryPageProps) {
   const { slug } = await params;
-  const info = CATEGORY_INFO[slug];
+  const info = CATEGORY_CONFIG[slug];
 
   if (!info) {
     return { title: 'Category Not Found' };
@@ -176,11 +174,9 @@ export async function generateMetadata({ params }: CategoryPageProps) {
 export default async function CategoryPage({ params, searchParams }: CategoryPageProps) {
   const { slug } = await params;
   const searchParamsResolved = await searchParams;
+  const categoryInfo = CATEGORY_CONFIG[slug];
 
-  const categoryValue = SLUG_TO_CATEGORY[slug];
-  const categoryInfo = CATEGORY_INFO[slug];
-
-  if (!categoryValue || !categoryInfo) {
+  if (!categoryInfo) {
     notFound();
   }
 
@@ -197,9 +193,8 @@ export default async function CategoryPage({ params, searchParams }: CategoryPag
     userFavourites = new Set(favouriteIds);
   }
 
-  const categoryConfig = CATEGORIES.find(c => c.value === categoryValue);
+  const categoryConfig = CATEGORIES.find(c => c.value === slug);
   const Icon = categoryInfo.icon;
-
   const suspenseKey = `${slug}-${currentPage}-${subcategory}-${dateFilter}-${freeOnly}`;
 
   return (
@@ -233,17 +228,24 @@ export default async function CategoryPage({ params, searchParams }: CategoryPag
               <Link href={`/category/${slug}`}>
                 <Badge
                   variant="outline"
-                  className={`cursor-pointer text-sm px-4 py-2 transition-all hover:scale-105 ${!subcategory ? categoryInfo.badgeClass : 'border-2 border-border/50 bg-background hover:bg-muted'
+                  className={`cursor-pointer text-sm px-4 py-2 transition-all duration-200 hover:scale-105 ${!subcategory
+                    ? categoryInfo.badgeClass
+                    : 'border-2 border-border bg-background hover:bg-muted'
                     }`}
                 >
                   All
                 </Badge>
               </Link>
               {categoryConfig.subcategories.map((sub) => (
-                <Link key={sub} href={`/category/${slug}?subcategory=${encodeURIComponent(sub)}`}>
+                <Link
+                  key={sub}
+                  href={`/category/${slug}?subcategory=${encodeURIComponent(sub)}`}
+                >
                   <Badge
                     variant="outline"
-                    className={`cursor-pointer text-sm px-4 py-2 transition-all hover:scale-105 ${subcategory === sub ? categoryInfo.badgeClass : 'border-2 border-border/50 bg-background hover:bg-muted'
+                    className={`cursor-pointer text-sm px-4 py-2 transition-all duration-200 hover:scale-105 ${subcategory === sub
+                      ? categoryInfo.badgeClass
+                      : 'border-2 border-border bg-background hover:bg-muted'
                       }`}
                   >
                     {sub}
@@ -259,7 +261,7 @@ export default async function CategoryPage({ params, searchParams }: CategoryPag
       <section className="container max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16 animate-in fade-in-0 slide-in-from-bottom-4 duration-500">
         <Suspense fallback={<EventsGridSkeleton />} key={suspenseKey}>
           <CategoryEventsGrid
-            categoryValue={categoryValue}
+            categoryValue={slug}
             page={currentPage}
             subcategory={subcategory}
             dateFilter={dateFilter}

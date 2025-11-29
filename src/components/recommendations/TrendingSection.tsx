@@ -3,10 +3,11 @@
 
 import { useEffect, useState, useRef } from 'react';
 import { EventCard } from '@/components/events/EventCard';
-import { Loader2, TrendingUp, Sparkles, Rocket, ChevronLeft, ChevronRight } from 'lucide-react';
+import { TrendingUp, Sparkles, Rocket, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/Tabs';
+import { CarouselSkeleton } from '@/components/skeletons/CarouselSkeleton';
 
 interface TrendingSectionProps {
     userFavourites: Set<string>;
@@ -14,33 +15,22 @@ interface TrendingSectionProps {
 
 type TrendingType = 'trending' | 'rising' | 'undiscovered';
 
+// Configuration for each trending type - all use orange/primary theme
 const TRENDING_CONFIG = {
     trending: {
         title: 'Trending Now',
         description: "Popular events everyone's talking about",
         icon: TrendingUp,
-        borderClass: 'border-secondary/20 hover:border-secondary/30',
-        gradientClass: 'from-secondary/5',
-        iconColor: 'text-secondary',
-        progressColor: 'bg-secondary',
     },
     rising: {
         title: 'Rising Stars',
         description: 'Fast-growing events gaining momentum',
         icon: Rocket,
-        borderClass: 'border-secondary/20 hover:border-secondary/30',
-        gradientClass: 'from-secondary/5',
-        iconColor: 'text-secondary',
-        progressColor: 'bg-secondary',
     },
     undiscovered: {
         title: 'Hidden Gems',
         description: 'Quality events waiting to be discovered',
         icon: Sparkles,
-        borderClass: 'border-secondary/20 hover:border-secondary/30',
-        gradientClass: 'from-secondary/5',
-        iconColor: 'text-secondary',
-        progressColor: 'bg-secondary',
     },
 };
 
@@ -55,6 +45,7 @@ export function TrendingSection({ userFavourites }: TrendingSectionProps) {
     const config = TRENDING_CONFIG[type];
     const Icon = config.icon;
 
+    // Fetch events when type changes
     useEffect(() => {
         async function fetchEvents() {
             setIsLoading(true);
@@ -70,7 +61,7 @@ export function TrendingSection({ userFavourites }: TrendingSectionProps) {
                 setEvents(data.events || []);
                 setCurrentIndex(0);
             } catch (error) {
-                console.error('Error fetching events:', error);
+                console.error('Error fetching trending events:', error);
                 setEvents([]);
             } finally {
                 setIsLoading(false);
@@ -80,6 +71,7 @@ export function TrendingSection({ userFavourites }: TrendingSectionProps) {
         fetchEvents();
     }, [type]);
 
+    // Auto-scroll carousel every 5 seconds
     useEffect(() => {
         if (!events || events.length === 0 || isHovered) return;
 
@@ -90,6 +82,7 @@ export function TrendingSection({ userFavourites }: TrendingSectionProps) {
         return () => clearInterval(interval);
     }, [events, isHovered]);
 
+    // Smooth scroll to current index
     useEffect(() => {
         if (!scrollContainerRef.current || !events) return;
 
@@ -103,6 +96,7 @@ export function TrendingSection({ userFavourites }: TrendingSectionProps) {
         });
     }, [currentIndex, events]);
 
+    // Navigation handlers
     const handlePrevious = () => {
         if (!events) return;
         setCurrentIndex((prev) => (prev - 1 + events.length) % events.length);
@@ -113,46 +107,40 @@ export function TrendingSection({ userFavourites }: TrendingSectionProps) {
         setCurrentIndex((prev) => (prev + 1) % events.length);
     };
 
+    // Loading state
     if (isLoading) {
         return (
-            <Card className={`border-2 ${config.borderClass} bg-linear-to-br{config.gradientClass} via-transparent to-transparent shadow-sm transition-all`}>
-                <CardHeader>
-                    <CardTitle className="flex items-center gap-2 text-2xl">
-                        <Icon className={`h-6 w-6 ${config.iconColor}`} />
-                        {config.title}
-                    </CardTitle>
-                </CardHeader>
-                <CardContent>
-                    <div className="flex justify-center py-16">
-                        <Loader2 className={`h-10 w-10 animate-spin ${config.iconColor}`} />
-                    </div>
-                </CardContent>
-            </Card>
+            <CarouselSkeleton 
+                icon={<Icon className="h-6 w-6 text-primary" />}
+                borderClass="border-primary/20"
+                gradientClass="from-primary/5"
+            />
         );
     }
 
+    // Empty state
     if (!events || events.length === 0) {
         return (
-            <Card className={`border-2 ${config.borderClass} bg-linear-to-br ${config.gradientClass} via-transparent to-transparent shadow-sm transition-all`}>
+            <Card className="border-2 border-primary/20 bg-linear-to-br from-primary/5 via-transparent to-transparent shadow-sm transition-all">
                 <CardHeader>
-                    <div className="flex items-center justify-between mb-4">
+                    <div className="space-y-4">
                         <div>
                             <CardTitle className="flex items-center gap-2 text-2xl mb-2">
-                                <Icon className={`h-6 w-6 ${config.iconColor}`} />
+                                <Icon className="h-6 w-6 text-primary" />
                                 {config.title}
                             </CardTitle>
                             <p className="text-sm text-muted-foreground">
                                 {config.description}
                             </p>
                         </div>
+                        <Tabs value={type} onValueChange={(v) => setType(v as TrendingType)}>
+                            <TabsList>
+                                <TabsTrigger value="trending">Trending</TabsTrigger>
+                                <TabsTrigger value="rising">Rising</TabsTrigger>
+                                <TabsTrigger value="undiscovered">Hidden Gems</TabsTrigger>
+                            </TabsList>
+                        </Tabs>
                     </div>
-                    <Tabs value={type} onValueChange={(v) => setType(v as TrendingType)}>
-                        <TabsList>
-                            <TabsTrigger value="trending">Trending</TabsTrigger>
-                            <TabsTrigger value="rising">Rising</TabsTrigger>
-                            <TabsTrigger value="undiscovered">Hidden Gems</TabsTrigger>
-                        </TabsList>
-                    </Tabs>
                 </CardHeader>
                 <CardContent>
                     <p className="text-muted-foreground text-center py-8">
@@ -164,24 +152,24 @@ export function TrendingSection({ userFavourites }: TrendingSectionProps) {
     }
 
     return (
-        <Card className={`relative overflow-hidden border-2 ${config.borderClass} bg-linear-to-br ${config.gradientClass} via-transparent to-transparent shadow-sm transition-all`}>
+        <Card className="relative overflow-hidden border-2 border-primary/20 bg-linear-to-br from-primary/5 via-transparent to-transparent shadow-sm hover:shadow-md hover:border-primary/30 transition-all">
             <CardHeader>
                 <div className="flex items-center justify-between mb-4">
-                    <div>
+                    <div className="flex-1 min-w-0">
                         <CardTitle className="flex items-center gap-2 text-2xl mb-2">
-                            <Icon className={`h-6 w-6 ${config.iconColor}`} />
+                            <Icon className="h-6 w-6 text-primary" />
                             {config.title}
                         </CardTitle>
                         <p className="text-sm text-muted-foreground">
                             {config.description}
                         </p>
                     </div>
-                    <div className="flex gap-2">
+                    <div className="flex gap-2 ml-4">
                         <Button
                             variant="outline"
                             size="icon"
                             onClick={handlePrevious}
-                            className="h-9 w-9 border-secondary/30 hover:border-secondary/50 hover:bg-secondary/10 transition-all"
+                            className="h-9 w-9 border-2 border-primary/30 hover:border-primary/50 hover:bg-primary/10 transition-all hover-lift"
                             aria-label="Previous event"
                         >
                             <ChevronLeft className="h-4 w-4" />
@@ -190,7 +178,7 @@ export function TrendingSection({ userFavourites }: TrendingSectionProps) {
                             variant="outline"
                             size="icon"
                             onClick={handleNext}
-                            className="h-9 w-9 border-secondary/30 hover:border-secondary/50 hover:bg-secondary/10 transition-all"
+                            className="h-9 w-9 border-2 border-primary/30 hover:border-primary/50 hover:bg-primary/10 transition-all hover-lift"
                             aria-label="Next event"
                         >
                             <ChevronRight className="h-4 w-4" />
@@ -198,6 +186,7 @@ export function TrendingSection({ userFavourites }: TrendingSectionProps) {
                     </div>
                 </div>
 
+                {/* Tab navigation */}
                 <Tabs value={type} onValueChange={(v) => setType(v as TrendingType)}>
                     <TabsList>
                         <TabsTrigger value="trending">Trending</TabsTrigger>
@@ -207,6 +196,7 @@ export function TrendingSection({ userFavourites }: TrendingSectionProps) {
                 </Tabs>
             </CardHeader>
             <CardContent>
+                {/* Event carousel */}
                 <div
                     ref={scrollContainerRef}
                     className="flex gap-6 overflow-x-auto scrollbar-hide snap-x snap-mandatory scroll-smooth"
@@ -227,6 +217,7 @@ export function TrendingSection({ userFavourites }: TrendingSectionProps) {
                     ))}
                 </div>
 
+                {/* Progress indicators */}
                 <div className="flex justify-center gap-2 mt-6">
                     {events.map((_, index) => (
                         <button
@@ -234,7 +225,7 @@ export function TrendingSection({ userFavourites }: TrendingSectionProps) {
                             onClick={() => setCurrentIndex(index)}
                             className={`h-1.5 rounded-full transition-all duration-300 ${
                                 index === currentIndex
-                                    ? `w-8 ${config.progressColor} shadow-sm`
+                                    ? 'w-8 bg-primary shadow-sm'
                                     : 'w-1.5 bg-muted-foreground/30 hover:bg-muted-foreground/50'
                             }`}
                             aria-label={`Go to event ${index + 1}`}

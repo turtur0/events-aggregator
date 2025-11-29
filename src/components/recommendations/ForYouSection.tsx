@@ -3,9 +3,10 @@
 
 import { useEffect, useState, useRef } from 'react';
 import { EventCard } from '@/components/events/EventCard';
-import { Loader2, Heart, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Heart, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
+import { CarouselSkeleton } from '@/components/skeletons/CarouselSkeleton';
 import Link from 'next/link';
 
 interface ForYouSectionProps {
@@ -18,9 +19,9 @@ export function ForYouSection({ userFavourites }: ForYouSectionProps) {
     const [isPersonalized, setIsPersonalized] = useState(false);
     const [currentIndex, setCurrentIndex] = useState(0);
     const [isHovered, setIsHovered] = useState(false);
-    const [lastFetch, setLastFetch] = useState<string>('');
     const scrollContainerRef = useRef<HTMLDivElement>(null);
 
+    // Fetch recommendations on mount
     useEffect(() => {
         async function fetchRecommendations() {
             try {
@@ -37,13 +38,6 @@ export function ForYouSection({ userFavourites }: ForYouSectionProps) {
 
                 const data = await res.json();
 
-                console.log('[ForYou] API Response:', {
-                    isPersonalized: data.isPersonalized,
-                    count: data.count,
-                    timestamp: data.timestamp,
-                    firstEvent: data.recommendations?.[0]?.title
-                });
-
                 if (!res.ok || !data.recommendations) {
                     setEvents([]);
                     return;
@@ -51,7 +45,6 @@ export function ForYouSection({ userFavourites }: ForYouSectionProps) {
 
                 setEvents(data.recommendations || []);
                 setIsPersonalized(data.isPersonalized || false);
-                setLastFetch(data.timestamp || new Date().toISOString());
             } catch (error) {
                 console.error('[ForYou] Error fetching recommendations:', error);
                 setEvents([]);
@@ -63,6 +56,7 @@ export function ForYouSection({ userFavourites }: ForYouSectionProps) {
         fetchRecommendations();
     }, []);
 
+    // Auto-scroll carousel every 5 seconds
     useEffect(() => {
         if (!events || events.length === 0 || isHovered) return;
 
@@ -73,6 +67,7 @@ export function ForYouSection({ userFavourites }: ForYouSectionProps) {
         return () => clearInterval(interval);
     }, [events, isHovered]);
 
+    // Smooth scroll to current index
     useEffect(() => {
         if (!scrollContainerRef.current || !events) return;
 
@@ -86,6 +81,7 @@ export function ForYouSection({ userFavourites }: ForYouSectionProps) {
         });
     }, [currentIndex, events]);
 
+    // Navigation handlers
     const handlePrevious = () => {
         if (!events) return;
         setCurrentIndex((prev) => (prev - 1 + events.length) % events.length);
@@ -96,24 +92,18 @@ export function ForYouSection({ userFavourites }: ForYouSectionProps) {
         setCurrentIndex((prev) => (prev + 1) % events.length);
     };
 
+    // Loading state
     if (isLoading) {
         return (
-            <Card className="border-2 border-primary/20 bg-linear-to-brrom-primary/5 via-transparent to-transparent shadow-sm hover:shadow-md hover:border-primary/30 transition-all">
-                <CardHeader>
-                    <CardTitle className="flex items-center gap-2 text-2xl">
-                        <Heart className="h-6 w-6 text-primary" />
-                        For You
-                    </CardTitle>
-                </CardHeader>
-                <CardContent>
-                    <div className="flex justify-center py-16">
-                        <Loader2 className="h-10 w-10 animate-spin text-primary" />
-                    </div>
-                </CardContent>
-            </Card>
+            <CarouselSkeleton
+                icon={<Heart className="h-6 w-6 text-primary" />}
+                borderClass="border-primary/20"
+                gradientClass="from-primary/5"
+            />
         );
     }
 
+    // Empty state
     if (!events || events.length === 0) {
         return (
             <Card className="border-2 border-primary/20 bg-linear-to-br from-primary/5 via-transparent to-transparent shadow-sm hover:shadow-md hover:border-primary/30 transition-all">
@@ -134,9 +124,10 @@ export function ForYouSection({ userFavourites }: ForYouSectionProps) {
                         <p className="text-sm text-muted-foreground">
                             Start favoriting events to get personalized recommendations tailored just for you.
                         </p>
-                        <Button asChild className="mt-4">
+                        <Button asChild className="mt-4 hover-lift group">
                             <Link href="/events">
                                 Browse Events
+                                <ChevronRight className="ml-2 h-4 w-4 group-hover:translate-x-0.5 transition-transform" />
                             </Link>
                         </Button>
                     </div>
@@ -149,7 +140,7 @@ export function ForYouSection({ userFavourites }: ForYouSectionProps) {
         <Card className="relative overflow-hidden border-2 border-primary/20 bg-linear-to-br from-primary/5 via-transparent to-transparent shadow-sm hover:shadow-md hover:border-primary/30 transition-all">
             <CardHeader>
                 <div className="flex items-center justify-between">
-                    <div>
+                    <div className="flex-1 min-w-0">
                         <CardTitle className="flex items-center gap-2 text-2xl mb-2">
                             <Heart className="h-6 w-6 text-primary" />
                             For You
@@ -160,19 +151,13 @@ export function ForYouSection({ userFavourites }: ForYouSectionProps) {
                                 : "Discover great events happening in Melbourne"
                             }
                         </p>
-                        {process.env.NODE_ENV === 'development' && (
-                            <p className="text-xs text-muted-foreground/50 mt-1">
-                                Last fetched: {new Date(lastFetch).toLocaleTimeString()} |
-                                Personalized: {isPersonalized ? 'Yes' : 'No'}
-                            </p>
-                        )}
                     </div>
-                    <div className="flex gap-2">
+                    <div className="flex gap-2 ml-4">
                         <Button
                             variant="outline"
                             size="icon"
                             onClick={handlePrevious}
-                            className="h-9 w-9 border-primary/30 hover:border-primary/50 hover:bg-primary/10 transition-all"
+                            className="h-9 w-9 border-2 border-primary/30 hover:border-primary/50 hover:bg-primary/10 transition-all hover-lift"
                             aria-label="Previous recommendation"
                         >
                             <ChevronLeft className="h-4 w-4" />
@@ -181,7 +166,7 @@ export function ForYouSection({ userFavourites }: ForYouSectionProps) {
                             variant="outline"
                             size="icon"
                             onClick={handleNext}
-                            className="h-9 w-9 border-primary/30 hover:border-primary/50 hover:bg-primary/10 transition-all"
+                            className="h-9 w-9 border-2 border-primary/30 hover:border-primary/50 hover:bg-primary/10 transition-all hover-lift"
                             aria-label="Next recommendation"
                         >
                             <ChevronRight className="h-4 w-4" />
@@ -190,6 +175,7 @@ export function ForYouSection({ userFavourites }: ForYouSectionProps) {
                 </div>
             </CardHeader>
             <CardContent>
+                {/* Event carousel */}
                 <div
                     ref={scrollContainerRef}
                     className="flex gap-6 overflow-x-auto scrollbar-hide snap-x snap-mandatory scroll-smooth"
@@ -211,16 +197,16 @@ export function ForYouSection({ userFavourites }: ForYouSectionProps) {
                     ))}
                 </div>
 
+                {/* Progress indicators */}
                 <div className="flex justify-center gap-2 mt-6">
                     {events.map((_, index) => (
                         <button
                             key={index}
                             onClick={() => setCurrentIndex(index)}
-                            className={`h-1.5 rounded-full transition-all duration-300 ${
-                                index === currentIndex
+                            className={`h-1.5 rounded-full transition-all duration-300 ${index === currentIndex
                                     ? 'w-8 bg-primary shadow-sm'
                                     : 'w-1.5 bg-muted-foreground/30 hover:bg-muted-foreground/50'
-                            }`}
+                                }`}
                             aria-label={`Go to event ${index + 1}`}
                         />
                     ))}

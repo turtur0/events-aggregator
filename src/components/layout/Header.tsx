@@ -28,19 +28,17 @@ const CATEGORY_LINKS = [
   { label: "Other", slug: "other", icon: Sparkles, description: "Workshops, networking & more", color: "text-sky-600 dark:text-sky-400" },
 ];
 
-/** Auth modal handler that uses useSearchParams - must be wrapped in Suspense */
-function AuthModalHandler({
-  onOpenModal
-}: {
-  onOpenModal: (view: 'signin' | 'signup') => void
-}) {
+// Shared button styles for consistency
+const headerButtonStyles = "border-2 border-border bg-background text-foreground hover:bg-primary/10 hover:border-primary/50 hover:text-primary transition-all duration-200 hover:scale-[1.02] active:scale-[0.98]";
+const activeButtonStyles = "bg-primary/10 border-primary/50 text-primary";
+
+function AuthModalHandler({ onOpenModal }: { onOpenModal: (view: 'signin' | 'signup') => void }) {
   const searchParams = useSearchParams();
 
   useEffect(() => {
     const authParam = searchParams.get('auth');
     if (authParam === 'signin' || authParam === 'signup') {
       onOpenModal(authParam);
-      // Remove auth param from URL
       const url = new URL(window.location.href);
       url.searchParams.delete('auth');
       window.history.replaceState({}, '', url.toString());
@@ -64,13 +62,8 @@ function HeaderContent() {
   const isOnNotificationsPage = pathname === '/notifications';
   const isOnProfilePages = pathname === '/favourites' || pathname === '/profile' || pathname === '/settings';
 
-  const openSignIn = () => {
-    setAuthModalView('signin');
-    setTimeout(() => setAuthModalOpen(true), 0);
-  };
-
-  const openSignUp = () => {
-    setAuthModalView('signup');
+  const openAuthModal = (view: 'signin' | 'signup') => {
+    setAuthModalView(view);
     setTimeout(() => setAuthModalOpen(true), 0);
   };
 
@@ -89,7 +82,7 @@ function HeaderContent() {
         <div className="container mx-auto flex h-14 sm:h-16 items-center justify-between px-4 sm:px-6 lg:px-8">
           {/* Logo */}
           <Link href="/" className="flex items-center gap-2 font-bold text-lg sm:text-xl group">
-            <span className="bg-primary text-primary-foreground px-2 py-1 rounded text-sm group-hover:scale-105 transition-transform">
+            <span className="bg-primary text-primary-foreground px-2 py-1 rounded text-sm transition-transform group-hover:scale-105">
               ME
             </span>
             <span className="hidden xs:inline">Melbourne Events</span>
@@ -102,10 +95,7 @@ function HeaderContent() {
               <Button
                 variant="outline"
                 size="sm"
-                className={cn(
-                  "gap-2 transition-all",
-                  isOnInsightsPage && "bg-secondary/10 border-secondary/40 text-secondary hover:bg-secondary/15"
-                )}
+                className={cn(headerButtonStyles, isOnInsightsPage && activeButtonStyles, "gap-2")}
               >
                 <BarChart3 className="h-4 w-4" />
                 <span className="hidden lg:inline">Insights</span>
@@ -118,13 +108,10 @@ function HeaderContent() {
                 <Button
                   variant="outline"
                   size="sm"
-                  className={cn(
-                    "hidden sm:flex gap-1 transition-all",
-                    isOnBrowsePage && "bg-primary/10 border-primary/40 text-primary hover:bg-primary/15"
-                  )}
+                  className={cn("hidden sm:flex gap-1", headerButtonStyles, isOnBrowsePage && activeButtonStyles)}
                 >
                   Browse Events
-                  <ChevronDown className="h-4 w-4 transition-transform group-data-[state=open]:rotate-180" />
+                  <ChevronDown className="h-4 w-4 transition-transform duration-200 group-data-[state=open]:rotate-180" />
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-64">
@@ -138,21 +125,13 @@ function HeaderContent() {
                       <Link
                         href={`/category/${cat.slug}`}
                         className={cn(
-                          "flex items-start gap-3 py-2 transition-colors",
+                          "flex items-start gap-3 py-2 cursor-pointer transition-colors",
                           isActive && "bg-accent"
                         )}
                       >
-                        <Icon className={cn(
-                          "h-5 w-5 mt-0.5 transition-transform hover:scale-110",
-                          isActive ? cat.color : "text-muted-foreground"
-                        )} />
+                        <Icon className={cn("h-5 w-5 mt-0.5", isActive ? cat.color : "text-muted-foreground")} />
                         <div>
-                          <p className={cn(
-                            "font-medium",
-                            isActive && cat.color
-                          )}>
-                            {cat.label}
-                          </p>
+                          <p className={cn("font-medium", isActive && cat.color)}>{cat.label}</p>
                           <p className="text-xs text-muted-foreground">{cat.description}</p>
                         </div>
                       </Link>
@@ -163,22 +142,11 @@ function HeaderContent() {
                 <DropdownMenuItem asChild>
                   <Link
                     href="/events"
-                    className={cn(
-                      "flex items-center gap-3 py-2 transition-colors",
-                      isOnEventsPage && "bg-accent"
-                    )}
+                    className={cn("flex items-center gap-3 py-2 cursor-pointer transition-colors", isOnEventsPage && "bg-accent")}
                   >
-                    <Search className={cn(
-                      "h-5 w-5 transition-transform hover:scale-110",
-                      isOnEventsPage ? "text-primary" : "text-muted-foreground"
-                    )} />
+                    <Search className={cn("h-5 w-5", isOnEventsPage ? "text-primary" : "text-muted-foreground")} />
                     <div>
-                      <p className={cn(
-                        "font-medium",
-                        isOnEventsPage && "text-primary"
-                      )}>
-                        All Events
-                      </p>
+                      <p className={cn("font-medium", isOnEventsPage && "text-primary")}>All Events</p>
                       <p className="text-xs text-muted-foreground">Search & filter everything</p>
                     </div>
                   </Link>
@@ -189,110 +157,65 @@ function HeaderContent() {
             {/* Mobile Menu */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="outline" size="icon" className="sm:hidden">
+                <Button variant="outline" size="icon" className={cn("sm:hidden", headerButtonStyles)}>
                   <Menu className="h-5 w-5" />
                   <span className="sr-only">Menu</span>
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-56">
-                {/* All Events */}
                 <DropdownMenuItem asChild>
-                  <Link
-                    href="/events"
-                    className={cn(
-                      "flex items-center gap-2",
-                      isOnEventsPage && "bg-accent text-primary"
-                    )}
-                  >
+                  <Link href="/events" className={cn("flex items-center gap-2 cursor-pointer transition-colors", isOnEventsPage && "bg-accent text-primary")}>
                     <Search className="h-4 w-4" />
                     All Events
                   </Link>
                 </DropdownMenuItem>
-
-                {/* Insights */}
                 <DropdownMenuItem asChild>
-                  <Link
-                    href="/insights"
-                    className={cn(
-                      "flex items-center gap-2",
-                      isOnInsightsPage && "bg-accent text-secondary"
-                    )}
-                  >
+                  <Link href="/insights" className={cn("flex items-center gap-2 cursor-pointer transition-colors", isOnInsightsPage && "bg-accent text-primary")}>
                     <BarChart3 className="h-4 w-4" />
                     Insights
                   </Link>
                 </DropdownMenuItem>
-
                 <DropdownMenuSeparator />
                 <DropdownMenuLabel>Categories</DropdownMenuLabel>
-
-                {/* Categories */}
                 {CATEGORY_LINKS.map((cat) => {
                   const Icon = cat.icon;
                   const isActive = currentCategory === cat.slug;
                   return (
                     <DropdownMenuItem key={cat.slug} asChild>
-                      <Link
-                        href={`/category/${cat.slug}`}
-                        className={cn(
-                          "flex items-center gap-2",
-                          isActive && cn("bg-accent", cat.color)
-                        )}
-                      >
+                      <Link href={`/category/${cat.slug}`} className={cn("flex items-center gap-2 cursor-pointer transition-colors", isActive && cn("bg-accent", cat.color))}>
                         <Icon className="h-4 w-4" />
                         {cat.label}
                       </Link>
                     </DropdownMenuItem>
                   );
                 })}
-
                 <DropdownMenuSeparator />
                 <DropdownMenuItem asChild>
-                  <Link href="/about">About</Link>
+                  <Link href="/about" className="cursor-pointer transition-colors">About</Link>
                 </DropdownMenuItem>
-
-                {/* User Menu Items (Mobile) */}
                 {session?.user && (
                   <>
                     <DropdownMenuSeparator />
                     <DropdownMenuLabel>Account</DropdownMenuLabel>
                     <DropdownMenuItem asChild>
-                      <Link
-                        href="/favourites"
-                        className={cn(
-                          "flex items-center gap-2",
-                          pathname === '/favourites' && "bg-accent text-primary"
-                        )}
-                      >
+                      <Link href="/favourites" className={cn("flex items-center gap-2 cursor-pointer transition-colors", pathname === '/favourites' && "bg-accent text-primary")}>
                         <Heart className="h-4 w-4" />
                         My Favourites
                       </Link>
                     </DropdownMenuItem>
                     <DropdownMenuItem asChild>
-                      <Link
-                        href="/profile"
-                        className={cn(
-                          "flex items-center gap-2",
-                          pathname === '/profile' && "bg-accent text-primary"
-                        )}
-                      >
+                      <Link href="/profile" className={cn("flex items-center gap-2 cursor-pointer transition-colors", pathname === '/profile' && "bg-accent text-primary")}>
                         <User className="h-4 w-4" />
                         Profile
                       </Link>
                     </DropdownMenuItem>
                     <DropdownMenuItem asChild>
-                      <Link
-                        href="/settings"
-                        className={cn(
-                          "flex items-center gap-2",
-                          pathname === '/settings' && "bg-accent text-primary"
-                        )}
-                      >
+                      <Link href="/settings" className={cn("flex items-center gap-2 cursor-pointer transition-colors", pathname === '/settings' && "bg-accent text-primary")}>
                         <Settings className="h-4 w-4" />
                         Settings
                       </Link>
                     </DropdownMenuItem>
-                    <DropdownMenuItem onClick={handleSignOut} className="text-destructive hover:text-destructive">
+                    <DropdownMenuItem onClick={handleSignOut} className="text-destructive hover:text-destructive cursor-pointer transition-colors">
                       <LogOut className="h-4 w-4 mr-2" />
                       Sign Out
                     </DropdownMenuItem>
@@ -313,17 +236,10 @@ function HeaderContent() {
             ) : session?.user ? (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className={cn(
-                      "hidden sm:flex gap-2 transition-all",
-                      isOnProfilePages && "bg-primary/10 border-primary/40 text-primary hover:bg-primary/15"
-                    )}
-                  >
+                  <Button variant="outline" size="sm" className={cn("hidden sm:flex gap-2", headerButtonStyles, isOnProfilePages && activeButtonStyles)}>
                     <User className="h-4 w-4" />
                     <span className="hidden md:inline">{session.user.name}</span>
-                    <ChevronDown className="h-4 w-4 transition-transform group-data-[state=open]:rotate-180" />
+                    <ChevronDown className="h-4 w-4 transition-transform duration-200 group-data-[state=open]:rotate-180" />
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-56">
@@ -333,46 +249,25 @@ function HeaderContent() {
                   </DropdownMenuLabel>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem asChild>
-                    <Link
-                      href="/favourites"
-                      className={cn(
-                        "flex items-center gap-2 cursor-pointer transition-colors",
-                        pathname === '/favourites' && "bg-accent text-primary"
-                      )}
-                    >
+                    <Link href="/favourites" className={cn("flex items-center gap-2 cursor-pointer transition-colors", pathname === '/favourites' && "bg-accent text-primary")}>
                       <Heart className="h-4 w-4" />
                       My Favourites
                     </Link>
                   </DropdownMenuItem>
                   <DropdownMenuItem asChild>
-                    <Link
-                      href="/profile"
-                      className={cn(
-                        "flex items-center gap-2 cursor-pointer transition-colors",
-                        pathname === '/profile' && "bg-accent text-primary"
-                      )}
-                    >
+                    <Link href="/profile" className={cn("flex items-center gap-2 cursor-pointer transition-colors", pathname === '/profile' && "bg-accent text-primary")}>
                       <User className="h-4 w-4" />
                       My Profile
                     </Link>
                   </DropdownMenuItem>
                   <DropdownMenuItem asChild>
-                    <Link
-                      href="/settings"
-                      className={cn(
-                        "flex items-center gap-2 cursor-pointer transition-colors",
-                        pathname === '/settings' && "bg-accent text-primary"
-                      )}
-                    >
+                    <Link href="/settings" className={cn("flex items-center gap-2 cursor-pointer transition-colors", pathname === '/settings' && "bg-accent text-primary")}>
                       <Settings className="h-4 w-4" />
                       Settings
                     </Link>
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
-                  <DropdownMenuItem
-                    onClick={handleSignOut}
-                    className="text-destructive focus:text-destructive focus:bg-destructive/10 cursor-pointer transition-colors"
-                  >
+                  <DropdownMenuItem onClick={handleSignOut} className="text-destructive focus:text-destructive focus:bg-destructive/10 cursor-pointer transition-colors">
                     <LogOut className="h-4 w-4 mr-2" />
                     Sign Out
                   </DropdownMenuItem>
@@ -380,20 +275,10 @@ function HeaderContent() {
               </DropdownMenu>
             ) : (
               <div className="hidden sm:flex gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={openSignIn}
-                  className="transition-all hover:bg-primary/10 hover:border-primary/40 hover:text-primary"
-                >
+                <Button variant="outline" size="sm" onClick={() => openAuthModal('signin')} className={headerButtonStyles}>
                   Sign In
                 </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={openSignUp}
-                  className="transition-all hover:bg-secondary/10 hover:border-secondary/40 hover:text-secondary"
-                >
+                <Button variant="outline" size="sm" onClick={() => openAuthModal('signup')} className={headerButtonStyles}>
                   Sign Up
                 </Button>
               </div>
@@ -401,15 +286,9 @@ function HeaderContent() {
           </nav>
         </div>
 
-        {/* Auth Modal */}
-        <AuthModal
-          isOpen={authModalOpen}
-          onClose={() => setAuthModalOpen(false)}
-          defaultView={authModalView}
-        />
+        <AuthModal isOpen={authModalOpen} onClose={() => setAuthModalOpen(false)} defaultView={authModalView} />
       </header>
 
-      {/* Auth Modal Handler - Wrapped in Suspense */}
       <Suspense fallback={null}>
         <AuthModalHandler onOpenModal={handleAuthModal} />
       </Suspense>

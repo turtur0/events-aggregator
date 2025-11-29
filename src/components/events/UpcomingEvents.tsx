@@ -1,7 +1,9 @@
+// components/events/UpcomingEvents.tsx
 import Link from "next/link";
 import { ArrowRight, Calendar, MapPin, Clock } from "lucide-react";
 import { Button } from '@/components/ui/Button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
+import { Skeleton } from '@/components/ui/Skeleton';
 import { EventCard } from '@/components/events/EventCard';
 import { connectDB } from "@/lib/db";
 import { Event } from '@/lib/models';
@@ -10,6 +12,7 @@ interface UpcomingEventsProps {
     userFavourites: Set<string>;
 }
 
+// Helper to convert MongoDB Map to plain object
 function mapToObject(map: any): Record<string, string> {
     if (!map) return {};
     if (typeof map.get === 'function') {
@@ -22,6 +25,20 @@ function mapToObject(map: any): Record<string, string> {
     return map;
 }
 
+// Skeleton for compact event list items
+function CompactEventSkeleton() {
+    return (
+        <div className="flex gap-4 p-4 rounded-lg border-2 border-border/50 bg-card">
+            <Skeleton className="shrink-0 w-16 h-16 rounded-lg" />
+            <div className="flex-1 space-y-2">
+                <Skeleton className="h-5 w-3/4" />
+                <Skeleton className="h-4 w-1/2" />
+                <Skeleton className="h-4 w-1/3" />
+            </div>
+        </div>
+    );
+}
+
 export async function UpcomingEvents({ userFavourites }: UpcomingEventsProps) {
     await connectDB();
 
@@ -29,6 +46,7 @@ export async function UpcomingEvents({ userFavourites }: UpcomingEventsProps) {
     const endOfWeek = new Date(now);
     endOfWeek.setDate(now.getDate() + 7);
 
+    // Fetch this week's events
     const thisWeekEvents = await Event.find({
         startDate: { $gte: now, $lte: endOfWeek },
         imageUrl: { $exists: true, $ne: null },
@@ -37,6 +55,7 @@ export async function UpcomingEvents({ userFavourites }: UpcomingEventsProps) {
         .limit(6)
         .lean();
 
+    // Fetch upcoming events (after this week)
     const upcomingEvents = await Event.find({
         startDate: { $gt: endOfWeek },
         imageUrl: { $exists: true, $ne: null },
@@ -45,6 +64,7 @@ export async function UpcomingEvents({ userFavourites }: UpcomingEventsProps) {
         .limit(6)
         .lean();
 
+    // Serialize MongoDB documents for client components
     const serializeEvent = (e: any) => ({
         _id: e._id.toString(),
         title: e.title,
@@ -72,6 +92,7 @@ export async function UpcomingEvents({ userFavourites }: UpcomingEventsProps) {
     const serializedThisWeek = thisWeekEvents.map(serializeEvent);
     const serializedUpcoming = upcomingEvents.map(serializeEvent);
 
+    // Empty state
     if (serializedThisWeek.length === 0 && serializedUpcoming.length === 0) {
         return (
             <Card className="border-2 border-primary/20 shadow-sm hover:shadow-md hover:border-primary/30 transition-all">
@@ -106,7 +127,7 @@ export async function UpcomingEvents({ userFavourites }: UpcomingEventsProps) {
                     <Button
                         variant="outline"
                         asChild
-                        className="border-2 border-primary/30 hover:border-primary/50 hover:bg-primary/10 transition-all group"
+                        className="border-2 border-primary/30 hover:border-primary/50 hover:bg-primary/10 transition-all hover-lift group"
                     >
                         <Link href="/events" className="flex items-center">
                             View all
@@ -116,7 +137,7 @@ export async function UpcomingEvents({ userFavourites }: UpcomingEventsProps) {
                 </div>
             </CardHeader>
             <CardContent className="space-y-8">
-               {/* This Week - Compact List */}
+                {/* This Week - Compact list with teal accent */}
                 {serializedThisWeek.length > 0 && (
                     <div>
                         <div className="flex items-center justify-between mb-4">
@@ -125,7 +146,7 @@ export async function UpcomingEvents({ userFavourites }: UpcomingEventsProps) {
                                 variant="ghost"
                                 size="sm"
                                 asChild
-                                className="text-foreground hover:text-secondary hover:bg-accent transition-all group"
+                                className="text-muted-foreground hover:text-secondary hover:bg-secondary/10 transition-all group"
                             >
                                 <Link href="/events?date=this-week" className="flex items-center">
                                     View all
@@ -149,9 +170,10 @@ export async function UpcomingEvents({ userFavourites }: UpcomingEventsProps) {
                                     <Link
                                         key={event._id}
                                         href={`/events/${event._id}`}
-                                        className="group flex gap-4 p-4 rounded-lg border-2 border-border/50 bg-card hover:bg-accent/30 hover:border-secondary/50 hover:shadow-md transition-all duration-200"
+                                        className="group flex gap-4 p-4 rounded-lg border-2 border-border/50 bg-card hover:bg-secondary/10 hover:border-secondary/50 hover:shadow-md transition-all duration-200 hover-lift"
                                     >
-                                        <div className="shrink-0 w-16 h-16 rounded-lg border-2 border-secondary/20 bg-secondary/5 flex flex-col items-center justify-center group-hover:bg-secondary/10 group-hover:border-secondary/40 group-hover:scale-105 transition-all">
+                                        {/* Date badge */}
+                                        <div className="shrink-0 w-16 h-16 rounded-lg border-2 border-secondary/20 bg-secondary/5 flex flex-col items-center justify-center group-hover:bg-secondary/15 group-hover:border-secondary/40 group-hover:scale-105 transition-all">
                                             <span className="text-xs font-medium text-muted-foreground uppercase">
                                                 {dayName}
                                             </span>
@@ -162,6 +184,7 @@ export async function UpcomingEvents({ userFavourites }: UpcomingEventsProps) {
                                                 {month}
                                             </span>
                                         </div>
+                                        {/* Event details */}
                                         <div className="min-w-0 flex-1">
                                             <h4 className="font-semibold line-clamp-2 mb-1 group-hover:text-secondary transition-colors">
                                                 {event.title}
@@ -182,7 +205,7 @@ export async function UpcomingEvents({ userFavourites }: UpcomingEventsProps) {
                     </div>
                 )}
 
-                {/* Coming Soon - Grid */}
+                {/* Coming Soon - Grid with orange accent */}
                 {serializedUpcoming.length > 0 && (
                     <div>
                         <div className="flex items-center justify-between mb-4">
@@ -191,7 +214,7 @@ export async function UpcomingEvents({ userFavourites }: UpcomingEventsProps) {
                                 variant="ghost"
                                 size="sm"
                                 asChild
-                                className="text-foreground hover:text-primary hover:bg-accent transition-all group"
+                                className="text-muted-foreground hover:text-primary hover:bg-primary/10 transition-all group"
                             >
                                 <Link href="/events" className="flex items-center">
                                     View all

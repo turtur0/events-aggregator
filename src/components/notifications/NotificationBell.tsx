@@ -11,6 +11,7 @@ import {
     DropdownMenuSeparator,
 } from '@/components/ui/DropdownMenu';
 import { Badge } from '@/components/ui/Badge';
+import { cn } from '@/lib/utils';
 import Link from 'next/link';
 
 interface Notification {
@@ -34,19 +35,19 @@ interface NotificationBellProps {
 const NOTIFICATION_CONFIG = {
     keyword_match: {
         icon: Search,
-        color: 'text-blue-500',
+        color: 'text-blue-600 dark:text-blue-400',
         bgColor: 'bg-blue-500/10',
         label: 'Keyword Match',
     },
     recommendation: {
         icon: Sparkles,
-        color: 'text-purple-500',
+        color: 'text-purple-600 dark:text-purple-400',
         bgColor: 'bg-purple-500/10',
         label: 'Recommended',
     },
     favorite_update: {
         icon: Heart,
-        color: 'text-pink-500',
+        color: 'text-pink-600 dark:text-pink-400',
         bgColor: 'bg-pink-500/10',
         label: 'Favourite Update',
     },
@@ -122,14 +123,19 @@ export function NotificationBell({ isActive = false }: NotificationBellProps) {
         <DropdownMenu open={isOpen} onOpenChange={setIsOpen}>
             <DropdownMenuTrigger asChild>
                 <Button
-                    variant={isActive ? 'default' : 'outline'}
+                    variant="outline"
                     size="icon"
-                    className="relative"
+                    className={cn(
+                        "relative border-2 border-border bg-background text-foreground transition-all duration-200 hover:scale-[1.02] active:scale-[0.98]",
+                        isActive
+                            ? "bg-primary/10 border-primary/50 text-primary"
+                            : "hover:bg-primary/10 hover:border-primary/50 hover:text-primary"
+                    )}
                 >
                     <Bell className="h-5 w-5" />
                     {unreadCount > 0 && (
                         <Badge
-                            className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center p-0 text-xs"
+                            className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center p-0 text-xs animate-in zoom-in-50 duration-200"
                             variant="destructive"
                         >
                             {unreadCount > 9 ? '9+' : unreadCount}
@@ -139,6 +145,7 @@ export function NotificationBell({ isActive = false }: NotificationBellProps) {
             </DropdownMenuTrigger>
 
             <DropdownMenuContent align="end" className="w-96">
+                {/* Header */}
                 <div className="flex items-center justify-between px-4 py-3 border-b">
                     <h3 className="font-semibold text-base">Notifications</h3>
                     {unreadCount > 0 && (
@@ -146,23 +153,20 @@ export function NotificationBell({ isActive = false }: NotificationBellProps) {
                             variant="ghost"
                             size="sm"
                             onClick={markAllAsRead}
-                            className="text-xs h-7"
+                            className="text-xs h-7 hover:bg-primary/10 hover:text-primary transition-colors"
                         >
                             Mark all read
                         </Button>
                     )}
                 </div>
 
+                {/* Notification List */}
                 <div className="max-h-[400px] overflow-y-auto">
                     {notifications.length === 0 ? (
                         <div className="px-4 py-12 text-center">
                             <Bell className="h-12 w-12 mx-auto mb-3 text-muted-foreground/40" />
-                            <p className="text-sm text-muted-foreground font-medium">
-                                No new notifications
-                            </p>
-                            <p className="text-xs text-muted-foreground mt-1">
-                                We'll notify you when something interesting happens
-                            </p>
+                            <p className="text-sm text-muted-foreground font-medium">No new notifications</p>
+                            <p className="text-xs text-muted-foreground mt-1">We'll notify you when something interesting happens</p>
                         </div>
                     ) : (
                         notifications.slice(0, 5).map((notification) => {
@@ -178,8 +182,8 @@ export function NotificationBell({ isActive = false }: NotificationBellProps) {
                                         setIsOpen(false);
                                     }}
                                 >
-                                    <DropdownMenuItem className="flex gap-3 p-4 cursor-pointer hover:bg-muted/50 focus:bg-muted/50">
-                                        <div className={`rounded-lg p-2 ${config.bgColor} shrink-0`}>
+                                    <DropdownMenuItem className="flex gap-3 p-4 cursor-pointer hover:bg-muted/50 focus:bg-muted/50 transition-colors">
+                                        <div className={`rounded-lg p-2 ${config.bgColor} shrink-0 transition-transform hover:scale-110`}>
                                             <Icon className={`h-4 w-4 ${config.color}`} />
                                         </div>
                                         <div className="flex-1 min-w-0">
@@ -193,15 +197,9 @@ export function NotificationBell({ isActive = false }: NotificationBellProps) {
                                                     </Badge>
                                                 )}
                                             </div>
-                                            <div className="font-medium text-sm leading-tight mb-1">
-                                                {notification.title}
-                                            </div>
-                                            <div className="text-sm text-muted-foreground leading-tight line-clamp-2">
-                                                {notification.message}
-                                            </div>
-                                            <div className="text-xs text-muted-foreground mt-2">
-                                                {formatTimeAgo(notification.createdAt)}
-                                            </div>
+                                            <div className="font-medium text-sm leading-tight mb-1">{notification.title}</div>
+                                            <div className="text-sm text-muted-foreground leading-tight line-clamp-2">{notification.message}</div>
+                                            <div className="text-xs text-muted-foreground mt-2">{formatTimeAgo(notification.createdAt)}</div>
                                         </div>
                                     </DropdownMenuItem>
                                 </Link>
@@ -210,15 +208,13 @@ export function NotificationBell({ isActive = false }: NotificationBellProps) {
                     )}
                 </div>
 
+                {/* Footer */}
                 <DropdownMenuSeparator />
                 <div className="p-2">
                     <Link href="/notifications" onClick={() => setIsOpen(false)}>
-                        <Button
-                            variant="ghost"
-                            className="w-full justify-between h-9"
-                        >
+                        <Button variant="ghost" className="w-full justify-between h-9 hover:bg-primary/10 hover:text-primary transition-colors group">
                             <span className="text-sm font-medium">View all notifications</span>
-                            <ArrowRight className="h-4 w-4" />
+                            <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
                         </Button>
                     </Link>
                 </div>
