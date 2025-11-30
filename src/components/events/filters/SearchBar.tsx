@@ -94,14 +94,14 @@ export function SearchBar({
 
   return (
     <form onSubmit={handleSubmit} className="relative group">
-      <Search className={`absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground transition-colors duration-[var(--transition-base)] ${isHomePage ? 'group-focus-within:text-primary' : 'group-focus-within:text-foreground'
+      <Search className={`absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground transition-colors duration-(--transition-base) ${isHomePage ? 'group-focus-within:text-primary' : 'group-focus-within:text-foreground'
         }`} />
       <Input
         type="text"
         placeholder={placeholder}
         value={searchTerm}
         onChange={(e) => setSearchTerm(e.target.value)}
-        className={`pl-9 transition-all duration-[var(--transition-base)] ${isHomePage
+        className={`pl-9 transition-all duration-(--transition-base) ${isHomePage
             ? 'pr-20 h-14 text-base border-2 focus:border-primary/50 focus:ring-2 focus:ring-primary/20'
             : 'pr-9 border-2'
           }`}
@@ -116,7 +116,7 @@ export function SearchBar({
             variant="ghost"
             size="sm"
             onClick={handleClear}
-            className="h-7 w-7 p-0 hover:bg-muted/80 transition-colors duration-[var(--transition-base)]"
+            className="h-7 w-7 p-0 hover:bg-muted/80 transition-colors duration-(--transition-base)"
           >
             <X className="h-4 w-4" />
             <span className="sr-only">Clear search</span>

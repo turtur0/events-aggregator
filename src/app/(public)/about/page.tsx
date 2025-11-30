@@ -6,10 +6,11 @@ import { PageLayout } from '@/components/layout/PageLayout';
 import {
     Database,
     Shield,
-    Clock,
+    Bell,
+    BarChart3,
     Mail,
     Github,
-    Heart,
+    Target,
     ExternalLink,
     Sparkles,
     CheckCircle2
@@ -17,8 +18,8 @@ import {
 import Link from "next/link";
 
 export const metadata = {
-    title: "About | Melbourne Events",
-    description: "Learn about Melbourne Events, our data sources, and ethical practices.",
+    title: "About Melbourne Events | Your Complete Guide to What's On in Melbourne",
+    description: "Discover how Melbourne Events brings together concerts, theatre, sports and more. Set custom alerts, compare pricing and explore event trends across Melbourne.",
 };
 
 const DATA_SOURCES = [
@@ -26,47 +27,57 @@ const DATA_SOURCES = [
         name: 'Ticketmaster',
         url: 'https://www.ticketmaster.com.au/',
         badge: { label: 'Primary', variant: 'default' as const },
-        description: 'Major concerts, sports events, and theatre productions via their official Discovery API.',
+        description: 'Major concerts, sports events and theatre productions via the official Discovery API.',
     },
     {
         name: 'Marriner Group',
         url: 'https://marrinergroup.com.au/',
         badge: { label: 'Venue', variant: 'secondary' as const },
-        description: 'Theatre, musicals, and performing arts from Melbourne\'s premier entertainment venues.',
+        description: "Premium theatre, musicals and performing arts across Melbourne's finest venues.",
         venues: ['Regent Theatre', 'Princess Theatre', 'Comedy Theatre', 'Forum Melbourne', 'Plaza Ballroom'],
     },
     {
         name: 'What\'s On Melbourne',
         url: 'https://whatson.melbourne.vic.gov.au/',
-        badge: { label: 'Secondary', variant: 'outline' as const },
-        description: 'Community events, festivals, and cultural activities curated by the City of Melbourne.',
+        badge: { label: 'Community', variant: 'outline' as const },
+        description: 'Festivals, exhibitions and cultural events from the City of Melbourne.',
+    },
+];
+
+const FEATURES = [
+    {
+        icon: Target,
+        title: "One Search, Every Event",
+        desc: "Stop checking multiple websites. Find concerts, theatre, sports and festivals all in one place."
+    },
+    {
+        icon: Bell,
+        title: "Smart Alerts, Your Way",
+        desc: "Ditch the spam. Set custom notifications for exactly what you want, like your favourite artists, venues or event types."
+    },
+    {
+        icon: BarChart3,
+        title: "Powerful Insights",
+        desc: "Compare ticket prices across categories, spot seasonal trends and discover the best value events."
     },
 ];
 
 const ETHICAL_PRACTICES = [
     {
-        title: "API-first approach",
-        desc: "We use official APIs wherever available (Ticketmaster Discovery API)."
-    },
-    {
-        title: "robots.txt compliance",
-        desc: "We respect crawling restrictions and terms of service."
-    },
-    {
-        title: "Rate limiting",
-        desc: "We implement intelligent delays and never overload source servers."
+        title: "Official APIs first",
+        desc: "We use official data sources wherever available and respect all terms of service."
     },
     {
         title: "Direct attribution",
-        desc: "We always link directly to the original ticketing source for bookings."
+        desc: "All bookings link directly to the official ticketing source. We don't sell tickets."
     },
     {
-        title: "No personal data",
-        desc: "We only collect publicly available event information."
+        title: "Respectful scraping",
+        desc: "We follow robots.txt rules, implement rate limiting and never overload source servers."
     },
     {
-        title: "No ticket sales",
-        desc: "We don't sell tickets - all bookings go directly to official sources."
+        title: "Transparent data use",
+        desc: "We collect event interactions (views, favourites) to improve recommendations. Your data stays private and is never sold."
     },
 ];
 
@@ -77,7 +88,7 @@ export default function AboutPage() {
             iconColor="text-primary"
             iconBgColor="bg-primary/10 ring-1 ring-primary/20"
             title="About Melbourne Events"
-            description="A comprehensive events aggregator built to help Melburnians discover what's happening in their city"
+            description="Making it easier to discover what's on in Melbourne"
             maxWidth="4xl"
         >
             <div className="space-y-8">
@@ -85,21 +96,45 @@ export default function AboutPage() {
                 <Card className="card-interactive">
                     <CardHeader>
                         <CardTitle className="flex items-center gap-3 text-2xl">
-                            <Heart className="h-6 w-6 text-primary" />
-                            Our Mission
+                            <Target className="h-6 w-6 text-primary" />
+                            Why We Built This
                         </CardTitle>
                     </CardHeader>
                     <CardContent className="space-y-4 text-base leading-relaxed">
                         <p className="text-muted-foreground">
-                            Melbourne is one of the world's most vibrant cities for live events,
-                            but finding what's on can be frustrating. Event information is scattered
-                            across multiple ticketing platforms, venue websites, and social media.
+                            Melbourne's events scene is world-class, but finding them shouldn't be.
                         </p>
                         <p className="text-muted-foreground">
-                            Melbourne Events solves this by aggregating events from multiple trusted
-                            sources into one searchable, filterable platform. Whether you're looking
-                            for a concert tonight or planning ahead for festival season, we've got you covered.
+                            Right now, discovering what's on means juggling multiple ticketing sites, signing up for endless newsletters,
+                            and manually tracking events across venues. We thought there had to be a better way.
                         </p>
+                        <p className="text-muted-foreground">
+                            Melbourne Events brings everything together from stadium gigs to local theatre, with one search, custom alerts for what
+                            you actually care about, plus insights into pricing patterns and trends you won't find anywhere else.
+                        </p>
+                    </CardContent>
+                </Card>
+
+                {/* Features */}
+                <Card className="card-interactive">
+                    <CardHeader>
+                        <CardTitle className="text-2xl">What Makes Us Different</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        <div className="grid gap-6 md:grid-cols-3">
+                            {FEATURES.map((feature, i) => {
+                                const Icon = feature.icon;
+                                return (
+                                    <div key={i} className="p-5 rounded-xl border-2 bg-muted/30 transition-all hover:shadow-sm hover-lift">
+                                        <Icon className="h-8 w-8 text-primary mb-3" />
+                                        <h4 className="font-bold text-base mb-2">{feature.title}</h4>
+                                        <p className="text-sm text-muted-foreground leading-relaxed">
+                                            {feature.desc}
+                                        </p>
+                                    </div>
+                                );
+                            })}
+                        </div>
                     </CardContent>
                 </Card>
 
@@ -108,33 +143,33 @@ export default function AboutPage() {
                     <CardHeader>
                         <CardTitle className="flex items-center gap-3 text-2xl">
                             <Database className="h-6 w-6 text-primary" />
-                            Data Sources
+                            Where Our Data Comes From
                         </CardTitle>
                     </CardHeader>
                     <CardContent>
                         <p className="text-muted-foreground mb-6 text-base">
-                            We aggregate event data from the following trusted sources:
+                            We aggregate events from trusted sources, updated daily:
                         </p>
                         <div className="space-y-4">
                             {DATA_SOURCES.map((source) => (
-                                <div key={source.name} className="p-6 rounded-xl border-2 bg-muted/30 transition-all hover:shadow-sm hover-lift">
+                                <div key={source.name} className="p-5 rounded-xl border-2 bg-muted/30 transition-all hover:shadow-sm hover-lift">
                                     <div className="flex items-start gap-4">
-                                        <Badge variant={source.badge.variant} className="mt-1">
+                                        <Badge variant={source.badge.variant} className="mt-1 shrink-0">
                                             {source.badge.label}
                                         </Badge>
-                                        <div className="flex-1">
-                                            <div className="flex items-center gap-2 mb-2">
-                                                <h4 className="font-bold text-lg">{source.name}</h4>
+                                        <div className="flex-1 min-w-0">
+                                            <div className="flex items-center gap-2 mb-2 flex-wrap">
+                                                <h4 className="font-bold text-base">{source.name}</h4>
                                                 <a
                                                     href={source.url}
                                                     target="_blank"
                                                     rel="noopener noreferrer"
-                                                    className="text-primary hover:text-primary/80 transition-colors"
+                                                    className="text-primary hover:text-primary/80 transition-colors shrink-0"
                                                 >
                                                     <ExternalLink className="h-4 w-4" />
                                                 </a>
                                             </div>
-                                            <p className="text-muted-foreground mb-3">
+                                            <p className="text-muted-foreground text-sm mb-3">
                                                 {source.description}
                                             </p>
                                             {source.venues && (
@@ -143,7 +178,7 @@ export default function AboutPage() {
                                                         <Badge
                                                             key={venue}
                                                             variant="outline"
-                                                            className="badge-outline-hover"
+                                                            className="badge-outline-hover text-xs"
                                                         >
                                                             {venue}
                                                         </Badge>
@@ -156,11 +191,9 @@ export default function AboutPage() {
                             ))}
                         </div>
 
-                        <div className="mt-6 p-5 rounded-xl border-2 bg-muted/30">
+                        <div className="mt-6 p-4 rounded-xl border bg-muted/30">
                             <p className="text-sm leading-relaxed text-muted-foreground">
-                                <strong className="text-foreground">Note:</strong> We automatically deduplicate events
-                                that appear across multiple sources, merging information to provide you with the most
-                                complete and accurate event details.
+                                <strong className="text-foreground">Smart deduplication:</strong> Events appearing on multiple platforms are automatically merged to show you the most complete information.
                             </p>
                         </div>
                     </CardContent>
@@ -171,40 +204,24 @@ export default function AboutPage() {
                     <CardHeader>
                         <CardTitle className="flex items-center gap-3 text-2xl">
                             <Shield className="h-6 w-6 text-primary" />
-                            Ethical Data Practices
+                            How We Operate Responsibly
                         </CardTitle>
                     </CardHeader>
                     <CardContent>
                         <p className="text-muted-foreground mb-6 text-base">
-                            We take data ethics seriously. Here's how we operate responsibly:
+                            Data ethics matter. Here's our commitment:
                         </p>
-                        <ul className="space-y-3">
+                        <ul className="grid gap-3 sm:grid-cols-2">
                             {ETHICAL_PRACTICES.map((item, i) => (
                                 <li key={i} className="flex items-start gap-3 p-4 rounded-lg border bg-muted/30 transition-all hover:shadow-sm hover-lift">
                                     <CheckCircle2 className="h-5 w-5 text-primary shrink-0 mt-0.5" />
                                     <div>
-                                        <strong className="text-foreground">{item.title}:</strong>{" "}
-                                        <span className="text-muted-foreground">{item.desc}</span>
+                                        <strong className="text-foreground text-sm">{item.title}</strong>
+                                        <p className="text-sm text-muted-foreground mt-1">{item.desc}</p>
                                     </div>
                                 </li>
                             ))}
                         </ul>
-                    </CardContent>
-                </Card>
-
-                {/* Update Frequency */}
-                <Card className="card-interactive">
-                    <CardHeader>
-                        <CardTitle className="flex items-center gap-3 text-2xl">
-                            <Clock className="h-6 w-6 text-primary" />
-                            Update Frequency
-                        </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <p className="text-muted-foreground text-base">
-                            Our database is automatically updated daily via scheduled jobs. This ensures
-                            you always see the latest events, accurate pricing, and up-to-date availability.
-                        </p>
                     </CardContent>
                 </Card>
 
@@ -213,18 +230,18 @@ export default function AboutPage() {
                     <CardHeader>
                         <CardTitle className="flex items-center gap-3 text-2xl">
                             <Mail className="h-6 w-6 text-primary" />
-                            Contact
+                            Get in Touch
                         </CardTitle>
                     </CardHeader>
                     <CardContent>
                         <p className="text-muted-foreground mb-6 text-base">
-                            Have questions, feedback, or want to report an issue? Get in touch:
+                            Questions, feedback or found a bug? We'd love to hear from you.
                         </p>
                         <div className="flex flex-wrap gap-4 mb-6">
                             <Button variant="outline" size="lg" asChild className="border-2 transition-all hover-lift">
-                                <a href="mailto:your@email.com" className="flex items-center">
+                                <a href="mailto:hello@melbourneevents.com.au" className="flex items-center">
                                     <Mail className="h-5 w-5 mr-2" />
-                                    your@email.com
+                                    hello@melbourneevents.com.au
                                 </a>
                             </Button>
                             <Button variant="outline" size="lg" asChild className="border-2 transition-all hover-lift">
@@ -235,14 +252,13 @@ export default function AboutPage() {
                                     className="flex items-center"
                                 >
                                     <Github className="h-5 w-5 mr-2" />
-                                    GitHub Repository
+                                    View on GitHub
                                 </a>
                             </Button>
                         </div>
-                        <div className="p-5 rounded-xl border-2 bg-muted/30">
+                        <div className="p-4 rounded-xl border bg-muted/30">
                             <p className="text-sm leading-relaxed text-muted-foreground">
-                                <strong className="text-foreground">Venue owners or event organizers:</strong> If you'd like your events
-                                removed from our aggregator, please contact us and we'll process your request within 48 hours.
+                                <strong className="text-foreground">Event organisers:</strong> Need your events removed? Contact us and we'll process your request within 48 hours.
                             </p>
                         </div>
                     </CardContent>

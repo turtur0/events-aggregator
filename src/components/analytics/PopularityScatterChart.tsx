@@ -2,7 +2,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { ScatterChart, Scatter, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, ZAxis } from 'recharts';
+import { ScatterChart, Scatter, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ZAxis } from 'recharts';
 import { Loader2, TrendingUp } from 'lucide-react';
 import { ChartWrapper } from './ChartWrapper';
 import { CategoryFilter, CATEGORY_COLORS } from './CategoryFilter';
@@ -12,6 +12,7 @@ export function PopularityScatterChart() {
     const [data, setData] = useState<PopularityData[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
+    const [hoveredCategory, setHoveredCategory] = useState<string | null>(null);
 
     useEffect(() => {
         fetchData();
@@ -50,7 +51,7 @@ export function PopularityScatterChart() {
             <ChartWrapper
                 icon={TrendingUp}
                 title="Popularity Analysis"
-                description="Price vs popularity correlation (bubble size = favorites)"
+                description="Price vs popularity correlation (bubble size = favourites)"
             >
                 <div className="flex justify-center py-12">
                     <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -72,7 +73,7 @@ export function PopularityScatterChart() {
         <ChartWrapper
             icon={TrendingUp}
             title="Popularity Analysis"
-            description="Price vs popularity correlation (bubble size = favorites)"
+            description="Price vs popularity correlation (bubble size = favourites)"
         >
             {/* Filter Section */}
             <div className="mb-6">
@@ -88,13 +89,13 @@ export function PopularityScatterChart() {
             {chartData.length > 0 ? (
                 <>
                     <ResponsiveContainer width="100%" height={300} className="sm:h-[400px]">
-                        <ScatterChart margin={{ top: 10, right: 10, left: 0, bottom: 10 }}>
+                        <ScatterChart margin={{ top: 10, right: 10, left: 0, bottom: 20 }}>
                             <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
                             <XAxis
                                 type="number"
                                 dataKey="x"
                                 name="Price"
-                                label={{ value: 'Price (AUD)', position: 'bottom', style: { fontSize: 11 } }}
+                                label={{ value: 'Price (AUD)', position: 'insideBottom', offset: -10, style: { fontSize: 11 } }}
                                 tick={{ fontSize: 10 }}
                                 domain={[0, 'auto']}
                             />
@@ -108,11 +109,6 @@ export function PopularityScatterChart() {
                             />
                             <ZAxis type="number" dataKey="z" range={[30, 300]} />
                             <Tooltip content={<PopularityTooltip />} />
-                            <Legend
-                                wrapperStyle={{ fontSize: '11px' }}
-                                iconType="circle"
-                                formatter={(value) => value.charAt(0).toUpperCase() + value.slice(1)}
-                            />
 
                             {categoriesInData.map(category => (
                                 <Scatter
@@ -120,15 +116,42 @@ export function PopularityScatterChart() {
                                     name={category.charAt(0).toUpperCase() + category.slice(1)}
                                     data={chartData.filter(d => d.category === category)}
                                     fill={CATEGORY_COLORS[category]}
-                                    fillOpacity={0.6}
+                                    fillOpacity={hoveredCategory === null || hoveredCategory === category ? 0.6 : 0.15}
+                                    strokeWidth={hoveredCategory === category ? 2 : 0}
+                                    stroke={hoveredCategory === category ? CATEGORY_COLORS[category] : 'none'}
                                 />
                             ))}
                         </ScatterChart>
                     </ResponsiveContainer>
 
+                    {/* Interactive Legend */}
+                    <div className="flex flex-wrap gap-3 mt-4 justify-center">
+                        {categoriesInData.map(category => (
+                            <button
+                                key={category}
+                                onMouseEnter={() => setHoveredCategory(category)}
+                                onMouseLeave={() => setHoveredCategory(null)}
+                                className="flex items-center gap-2 px-3 py-1.5 rounded-lg border-2 transition-all hover:shadow-sm cursor-pointer"
+                                style={{
+                                    borderColor: hoveredCategory === category ? CATEGORY_COLORS[category] : 'transparent',
+                                    backgroundColor: hoveredCategory === category ? `${CATEGORY_COLORS[category]}15` : 'transparent'
+                                }}
+                            >
+                                <div
+                                    className="w-3 h-3 rounded-full transition-transform"
+                                    style={{
+                                        backgroundColor: CATEGORY_COLORS[category],
+                                        transform: hoveredCategory === category ? 'scale(1.2)' : 'scale(1)'
+                                    }}
+                                />
+                                <span className="text-sm font-medium capitalize">{category}</span>
+                            </button>
+                        ))}
+                    </div>
+
                     {/* Insight Zones */}
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-6">
-                        <div className="p-4 bg-muted/30 border-2 rounded-lg">
+                        <div className="p-4 bg-muted/30 border-2 rounded-lg transition-all hover:shadow-sm">
                             <div className="flex items-center gap-2 mb-1">
                                 <div className="w-2 h-2 rounded-full bg-primary" />
                                 <div className="text-sm font-semibold">Value Zone</div>
@@ -137,7 +160,7 @@ export function PopularityScatterChart() {
                                 High popularity with affordable pricing
                             </div>
                         </div>
-                        <div className="p-4 bg-muted/30 border-2 rounded-lg">
+                        <div className="p-4 bg-muted/30 border-2 rounded-lg transition-all hover:shadow-sm">
                             <div className="flex items-center gap-2 mb-1">
                                 <div className="w-2 h-2 rounded-full bg-secondary" />
                                 <div className="text-sm font-semibold">Premium Zone</div>
@@ -169,7 +192,7 @@ export function PopularityScatterChart() {
                                 </span>
                             </div>
                             <div className="flex flex-col">
-                                <span className="text-xs text-muted-foreground">Total Favorites</span>
+                                <span className="text-xs text-muted-foreground">Total Favourites</span>
                                 <span className="font-medium text-lg">
                                     {chartData.reduce((sum, d) => sum + d.favourites, 0)}
                                 </span>
@@ -208,7 +231,7 @@ function PopularityTooltip({ active, payload }: any) {
                     <span className="font-medium">{Math.round(data.popularity * 100)}%</span>
                 </div>
                 <div className="flex justify-between gap-3">
-                    <span className="text-muted-foreground">Favorites:</span>
+                    <span className="text-muted-foreground">Favourites:</span>
                     <span className="font-medium">{data.favourites}</span>
                 </div>
             </div>

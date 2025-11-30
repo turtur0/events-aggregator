@@ -2,7 +2,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { Loader2, Calendar } from 'lucide-react';
 import { ChartWrapper } from './ChartWrapper';
 import { CategoryFilter, CATEGORY_COLORS } from './CategoryFilter';
@@ -12,6 +12,7 @@ export function TimelineChart() {
     const [data, setData] = useState<TimelineData[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
+    const [hoveredCategory, setHoveredCategory] = useState<string | null>(null);
 
     useEffect(() => {
         fetchData();
@@ -85,21 +86,18 @@ export function TimelineChart() {
             {data.length > 0 ? (
                 <>
                     <ResponsiveContainer width="100%" height={300} className="sm:h-[400px]">
-                        <AreaChart data={data} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+                        <AreaChart data={data} margin={{ top: 10, right: 10, left: 0, bottom: 10 }}>
                             <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
                             <XAxis
                                 dataKey="month"
                                 tick={{ fontSize: 10 }}
+                                label={{ value: 'Month', position: 'insideBottom', offset: -5, style: { fontSize: 11 } }}
                             />
                             <YAxis
                                 label={{ value: 'Number of Events', angle: -90, position: 'insideLeft', style: { fontSize: 11 } }}
                                 tick={{ fontSize: 10 }}
                             />
                             <Tooltip content={<TimelineTooltip />} />
-                            <Legend
-                                wrapperStyle={{ fontSize: '11px' }}
-                                iconType="circle"
-                            />
 
                             {categories.map(category => (
                                 <Area
@@ -109,12 +107,39 @@ export function TimelineChart() {
                                     stackId="1"
                                     stroke={CATEGORY_COLORS[category]}
                                     fill={CATEGORY_COLORS[category]}
-                                    fillOpacity={0.6}
+                                    fillOpacity={hoveredCategory === null || hoveredCategory === category ? 0.6 : 0.1}
+                                    strokeOpacity={hoveredCategory === null || hoveredCategory === category ? 1 : 0.3}
+                                    strokeWidth={hoveredCategory === category ? 3 : 2}
                                     name={category.charAt(0).toUpperCase() + category.slice(1)}
                                 />
                             ))}
                         </AreaChart>
                     </ResponsiveContainer>
+
+                    {/* Interactive Legend */}
+                    <div className="flex flex-wrap gap-3 mt-4 justify-center">
+                        {categories.map(category => (
+                            <button
+                                key={category}
+                                onMouseEnter={() => setHoveredCategory(category)}
+                                onMouseLeave={() => setHoveredCategory(null)}
+                                className="flex items-center gap-2 px-3 py-1.5 rounded-lg border-2 transition-all hover:shadow-sm cursor-pointer"
+                                style={{
+                                    borderColor: hoveredCategory === category ? CATEGORY_COLORS[category] : 'transparent',
+                                    backgroundColor: hoveredCategory === category ? `${CATEGORY_COLORS[category]}15` : 'transparent'
+                                }}
+                            >
+                                <div
+                                    className="w-3 h-3 rounded-full transition-transform"
+                                    style={{
+                                        backgroundColor: CATEGORY_COLORS[category],
+                                        transform: hoveredCategory === category ? 'scale(1.2)' : 'scale(1)'
+                                    }}
+                                />
+                                <span className="text-sm font-medium capitalize">{category}</span>
+                            </button>
+                        ))}
+                    </div>
 
                     {/* Insights */}
                     {peakMonth && (

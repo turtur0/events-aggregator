@@ -13,6 +13,7 @@ export function PriceDistributionChart() {
     const [data, setData] = useState<PriceDistribution[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
+    const [hoveredCategory, setHoveredCategory] = useState<string | null>(null);
 
     useEffect(() => {
         fetchData();
@@ -55,6 +56,17 @@ export function PriceDistributionChart() {
         return CATEGORY_COLORS[cat.category] || '#6b7280';
     };
 
+    const getCategoryKey = (cat: PriceDistribution) => {
+        if (cat.isSubcategory) {
+            for (const mainCat of CATEGORIES) {
+                if (mainCat.subcategories?.includes(cat.category)) {
+                    return mainCat.value;
+                }
+            }
+        }
+        return cat.category;
+    };
+
     if (isLoading) {
         return (
             <ChartWrapper
@@ -68,6 +80,8 @@ export function PriceDistributionChart() {
             </ChartWrapper>
         );
     }
+
+    const allCategories = Array.from(new Set(data.map(getCategoryKey)));
 
     return (
         <ChartWrapper
@@ -89,13 +103,13 @@ export function PriceDistributionChart() {
             {data.length > 0 ? (
                 <>
                     <ResponsiveContainer width="100%" height={300} className="sm:h-[400px]">
-                        <ComposedChart data={data} margin={{ top: 10, right: 10, left: 0, bottom: 50 }}>
+                        <ComposedChart data={data} margin={{ top: 10, right: 10, left: 0, bottom: 60 }}>
                             <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
                             <XAxis
                                 dataKey="displayName"
                                 angle={-45}
                                 textAnchor="end"
-                                height={60}
+                                height={70}
                                 tick={{ fontSize: 10 }}
                                 interval={0}
                             />
@@ -110,13 +124,18 @@ export function PriceDistributionChart() {
 
                             {/* Interquartile range bar (Q1 to Q3) */}
                             <Bar dataKey={(entry) => entry.q3 - entry.q1} stackId="range">
-                                {data.map((entry, index) => (
-                                    <Cell
-                                        key={`price-cell-${index}`}
-                                        fill={getColorForCategory(entry)}
-                                        opacity={0.3}
-                                    />
-                                ))}
+                                {data.map((entry, index) => {
+                                    const categoryKey = getCategoryKey(entry);
+                                    const color = getColorForCategory(entry);
+                                    const isHovered = hoveredCategory === null || hoveredCategory === categoryKey;
+                                    return (
+                                        <Cell
+                                            key={`price-cell-${index}`}
+                                            fill={color}
+                                            opacity={isHovered ? 0.3 : 0.08}
+                                        />
+                                    );
+                                })}
                             </Bar>
 
                             {/* Median price line */}
@@ -131,26 +150,81 @@ export function PriceDistributionChart() {
                         </ComposedChart>
                     </ResponsiveContainer>
 
-                    {/* Summary Cards */}
+                    {/* Interactive Summary Cards with Legend */}
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 mt-6">
-                        {data.map((item, index) => (
-                            <div
-                                key={`summary-${index}`}
-                                className="p-3 rounded-lg border-2 bg-card transition-all hover:shadow-sm"
-                                style={{
-                                    borderLeftColor: getColorForCategory(item),
-                                    borderLeftWidth: 4
-                                }}
-                            >
-                                <div className="text-xs sm:text-sm font-medium text-muted-foreground truncate">
-                                    {item.displayName}
-                                </div>
-                                <div className="text-xl sm:text-2xl font-bold mt-1">${item.median}</div>
-                                <div className="text-xs text-muted-foreground mt-1">
-                                    {item.count} events • ${item.min}-${item.max}
-                                </div>
-                            </div>
-                        ))}
+                        {data.map((item, index) => {
+                            const color = getColorForCategory(item);
+                            const categoryKey = getCategoryKey(item);
+                            const isHovered = hoveredCategory === categoryKey;
+
+                            return (
+                                <button
+                                    key={`summary-${index}`}
+                                    onMouseEnter={() => setHoveredCategory(categoryKey)}
+                                    onMouseLeave={() => setHoveredCategory(null)}
+                                    className="p-4 rounded-lg border bg-muted/30 text-left cursor-pointer transition-all duration-300 hover:shadow-sm hover:-translate-y-0.5"
+                                    style={{
+                                        borderColor: isHovered ? color : undefined,
+                                        borderWidth: isHovered ? '2px' : '1px',
+                                        backgroundColor: isHovered ? `${color}08` : undefined,
+                                        transform: isHovered ? 'translateY(-2px) scale(1.02)' : 'translateY(0) scale(1)'
+                                    }}
+                                >
+                                    {/* Category indicator with animation */}
+                                    <div className="flex items-center gap-2 mb-2">
+                                        <div
+                                            className="w-3 h-3 rounded-full transition-all duration-300"
+                                            style={{
+                                                backgroundColor: color,
+                                                transform: isHovered ? 'scale(1.3)' : 'scale(1)',
+                                                boxShadow: isHovered ? `0 0 8px ${color}50` : 'none'
+                                            }}
+                                        />
+                                        <div className="text-xs sm:text-sm font-medium text-muted-foreground truncate transition-colors duration-300"
+                                            style={{ color: isHovered ? color : undefined }}
+                                        >
+                                            {item.displayName}
+                                        </div>
+                                    </div>
+
+                                    {/* Main price */}
+                                    <div className="text-2xl sm:text-3xl font-bold mb-1 transition-all duration-300"
+                                        style={{
+                                            color: isHovered ? color : undefined,
+                                            transform: isHovered ? 'scale(1.05)' : 'scale(1)'
+                                        }}
+                                    >
+                                        ${item.median}
+                                    </div>
+
+                                    {/* Details */}
+                                    <div className="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
+                                        <span className="flex items-center gap-1">
+                                            <span className="font-medium">{item.count}</span> events
+                                        </span>
+                                        <span className="flex items-center gap-1">
+                                            Range: <span className="font-medium">${item.min}-${item.max}</span>
+                                        </span>
+                                    </div>
+
+                                    {/* Average price (subtle) */}
+                                    <div className="mt-2 pt-2 border-t text-xs">
+                                        <span className="text-muted-foreground">Avg: </span>
+                                        <span className="font-medium">${item.avgPrice}</span>
+                                    </div>
+                                </button>
+                            );
+                        })}
+                    </div>
+
+                    {/* Median Legend */}
+                    <div className="mt-4 flex justify-center">
+                        <div className="flex items-center gap-2 px-4 py-2 rounded-lg border bg-muted/30">
+                            <div className="w-3 h-0.5 bg-orange-600 rounded-full" style={{ width: '16px' }} />
+                            <span className="text-xs font-medium text-muted-foreground">
+                                Orange line = Median price
+                            </span>
+                        </div>
                     </div>
                 </>
             ) : (

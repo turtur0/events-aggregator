@@ -1,87 +1,49 @@
 import Link from "next/link";
-import { Github } from "lucide-react";
+import { Github, Mail } from "lucide-react";
 
 export function Footer() {
     return (
         <footer className="border-t bg-muted/20">
             <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-8 mb-8">
                     {/* Brand */}
-                    <div className="sm:col-span-2 lg:col-span-1">
-                        <Link href="/" className="inline-flex items-center gap-2 font-bold text-xl mb-4 group">
+                    <div>
+                        <Link href="/" className="inline-flex items-center gap-2 font-bold text-xl mb-3 group">
                             <span className="bg-primary text-primary-foreground px-2 py-1 rounded text-sm group-hover:scale-105 transition-transform">
                                 ME
                             </span>
                             <span>Melbourne Events</span>
                         </Link>
                         <p className="text-muted-foreground text-sm max-w-md">
-                            Your comprehensive guide to concerts, theatre, sports, and festivals in Melbourne.
+                            All your Melbourne events in one place. Smart alerts, powerful insights.
                         </p>
                     </div>
 
-                    {/* Browse */}
-                    <div>
-                        <h4 className="font-semibold mb-4 text-primary">Browse</h4>
+                    {/* Quick Links */}
+                    <div className="sm:text-right">
+                        <h4 className="font-semibold mb-3 text-sm">Quick Links</h4>
                         <ul className="space-y-2 text-sm text-muted-foreground">
                             <li>
-                                <Link href="/events" className="hover:text-primary transition-colors inline-flex items-center group">
-                                    <span className="group-hover:translate-x-0.5 transition-transform">All Events</span>
+                                <Link href="/events" className="hover:text-primary transition-colors">
+                                    Browse Events
                                 </Link>
                             </li>
                             <li>
-                                <Link href="/events?date=today" className="hover:text-primary transition-colors inline-flex items-center group">
-                                    <span className="group-hover:translate-x-0.5 transition-transform">Today</span>
+                                <Link href="/insights" className="hover:text-primary transition-colors">
+                                    Insights
                                 </Link>
                             </li>
                             <li>
-                                <Link href="/events?date=this-week" className="hover:text-primary transition-colors inline-flex items-center group">
-                                    <span className="group-hover:translate-x-0.5 transition-transform">This Week</span>
+                                <Link href="/about" className="hover:text-primary transition-colors">
+                                    About
                                 </Link>
-                            </li>
-                            <li>
-                                <Link href="/events?free=true" className="hover:text-primary transition-colors inline-flex items-center group">
-                                    <span className="group-hover:translate-x-0.5 transition-transform">Free Events</span>
-                                </Link>
-                            </li>
-                        </ul>
-                    </div>
-
-                    {/* About */}
-                    <div>
-                        <h4 className="font-semibold mb-4 text-secondary">About</h4>
-                        <ul className="space-y-2 text-sm text-muted-foreground">
-                            <li>
-                                <Link href="/about" className="hover:text-secondary transition-colors inline-flex items-center group">
-                                    <span className="group-hover:translate-x-0.5 transition-transform">About Us</span>
-                                </Link>
-                            </li>
-                            <li>
-                                <Link href="/about#data-sources" className="hover:text-secondary transition-colors inline-flex items-center group">
-                                    <span className="group-hover:translate-x-0.5 transition-transform">Data Sources</span>
-                                </Link>
-                            </li>
-                            <li>
-                                <Link href="/about#contact" className="hover:text-secondary transition-colors inline-flex items-center group">
-                                    <span className="group-hover:translate-x-0.5 transition-transform">Contact</span>
-                                </Link>
-                            </li>
-                            <li>
-                                <a
-                                    href="https://github.com/turtur0/events-aggregator"
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="hover:text-secondary transition-colors inline-flex items-center gap-1 group"
-                                >
-                                    <span className="group-hover:translate-x-0.5 transition-transform">GitHub</span>
-                                    <Github className="h-3 w-3 group-hover:rotate-12 transition-transform" />
-                                </a>
                             </li>
                         </ul>
                     </div>
                 </div>
 
-                <div className="border-t mt-8 pt-8 text-center">
-                    <p className="text-sm text-muted-foreground">
+                <div className="border-t pt-6 flex flex-col sm:flex-row justify-between items-center gap-4">
+                    <p className="text-sm text-muted-foreground text-center sm:text-left">
                         © {new Date().getFullYear()} Melbourne Events. Built by{" "}
                         <a
                             href="https://github.com/turtur0"
@@ -92,6 +54,27 @@ export function Footer() {
                             turtur0
                         </a>
                     </p>
+
+                    <div className="flex items-center gap-4">
+                        <a
+                            href="mailto:hello@melbourneevents.com.au"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-muted-foreground hover:text-primary transition-colors"
+                            aria-label="Email"
+                        >
+                            <Mail className="h-4 w-4" />
+                        </a>
+                        <a
+                            href="https://github.com/turtur0/events-aggregator"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-muted-foreground hover:text-primary transition-colors"
+                            aria-label="GitHub"
+                        >
+                            <Github className="h-4 w-4" />
+                        </a>
+                    </div>
                 </div>
             </div>
         </footer>

@@ -12,7 +12,7 @@ import { connectDB } from "@/lib/db";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { getUserFavourites } from "@/lib/actions/interactions";
-import { Event } from '@/lib/models';                                                                                       
+import { Event } from '@/lib/models';
 
 const CATEGORIES = [
   { label: "Music", slug: "music", icon: Music, className: "category-music" },
@@ -75,12 +75,11 @@ export default async function HomePage() {
             </Badge>
 
             <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold tracking-tight mb-6">
-              Discover What's On in{" "}
-              <span className="text-primary">Melbourne</span>
+              Every Melbourne Event,{" "}
+              <span className="text-primary">One Platform</span>
             </h1>
             <p className="text-lg sm:text-xl text-muted-foreground mb-10 max-w-2xl mx-auto leading-relaxed">
-              Your one-stop guide to concerts, theatre, sports, festivals and more.
-              Find your next experience from {totalEvents.toLocaleString()}+ events.
+              Search {totalEvents.toLocaleString()}+ events from across Melbourne. Set custom alerts for what matters to you. Compare pricing and discover trends.
             </p>
 
             <div className="max-w-2xl mx-auto mb-8">
@@ -120,7 +119,7 @@ export default async function HomePage() {
       <section className="container-page section-spacing">
         <div className="mb-10">
           <h2 className="text-3xl font-bold mb-2">Browse by Category</h2>
-          <p className="text-muted-foreground text-lg">Find events that match your interests</p>
+          <p className="text-muted-foreground text-lg">Find what you're looking for</p>
         </div>
 
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
