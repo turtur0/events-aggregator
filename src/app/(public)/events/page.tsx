@@ -2,9 +2,9 @@
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { EventsPageLayout } from '@/components/layout/EventsPageLayout';
-import { EventsGrid, EventsGridSkeleton } from '@/components/events/EventsGrid';
-import { SearchBar } from '@/components/search/SearchBar';
-import { EventFilters } from '@/components/events/EventFilters';
+import { EventsGrid, EventsGridSkeleton } from '@/components/events/sections/EventsGrid';
+import { SearchBar } from '@/components/events/filters/SearchBar';
+import { EventFilters } from '@/components/events/filters/EventFilters';
 import { Suspense } from "react";
 import { SerializedEvent } from "@/lib/models/Event";
 import { getUserFavourites } from "@/lib/actions/interactions";

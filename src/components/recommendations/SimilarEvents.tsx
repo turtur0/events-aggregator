@@ -4,8 +4,8 @@
 import { useEffect, useState } from 'react';
 import { Sparkles, AlertCircle } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/Alert';
-import { EventCarousel } from '@/components/events/EventCarousel';
-import { CarouselSkeleton } from '@/components/skeletons/CarouselSkeleton';
+import { EventCarousel } from '@/components/events/sections/EventCarousel';
+import { CarouselSkeleton } from '@/components/other/CarouselSkeleton';
 import { Card, CardContent } from '@/components/ui/Card';
 
 interface SimilarEventsProps {

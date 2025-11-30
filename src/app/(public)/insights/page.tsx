@@ -5,7 +5,7 @@ import { PopularityScatterChart } from '@/components/analytics/PopularityScatter
 import { PriceDistributionChart } from '@/components/analytics/PriceDistributionChart';
 import { TimelineChart } from '@/components/analytics/TimelineChart';
 import { Sparkles, TrendingUp, DollarSign, Calendar, BarChart3, Grid3x3, List } from 'lucide-react';
-import { BackButton } from '@/components/navigation/BackButton';
+import { BackButton } from '@/components/layout/BackButton';
 
 const AVAILABLE_CHARTS = [
     {

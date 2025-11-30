@@ -5,7 +5,7 @@ import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
 import { useSession, signOut } from "next-auth/react";
 import { Search, ChevronDown, Music, Theater, Trophy, Palette, Users, Sparkles, Menu, LogOut, Settings, User, Heart, BarChart3 } from "lucide-react";
-import { ThemeToggle } from '../theme/ThemeToggle';
+import { ThemeToggle } from '../other/ThemeToggle';
 import { NotificationBell } from "../notifications/NotificationBell";
 import { AuthModal } from '../auth/AuthModals';
 import { Button } from '../ui/Button';

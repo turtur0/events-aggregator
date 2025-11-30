@@ -4,9 +4,9 @@
 import { useEffect, useState } from 'react';
 import { Heart, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
-import { EventCarousel } from '@/components/events/EventCarousel';
-import { EventSection } from '@/components/events/EventSection';
-import { CarouselSkeleton } from '@/components/skeletons/CarouselSkeleton';
+import { EventCarousel } from '@/components/events/sections/EventCarousel';
+import { EventSection } from '@/components/events/sections/EventSection';
+import { CarouselSkeleton } from '@/components/other/CarouselSkeleton';
 import Link from 'next/link';
 
 interface ForYouSectionProps {

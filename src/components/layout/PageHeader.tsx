@@ -1,6 +1,6 @@
 // components/layout/PageHeader.tsx
 import { LucideIcon } from 'lucide-react';
-import { BackButton } from '@/components/navigation/BackButton';
+import { BackButton } from '@/components/layout/BackButton';
 import { Badge } from '@/components/ui/Badge';
 import { cn } from '@/lib/utils';
 

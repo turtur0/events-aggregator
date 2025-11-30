@@ -1,6 +1,6 @@
 // components/layout/EventsPageLayout.tsx
 import { ReactNode } from 'react';
-import { BackButton } from '@/components/navigation/BackButton';
+import { BackButton } from '@/components/layout/BackButton';
 import { Badge } from '@/components/ui/Badge';
 import { LucideIcon } from 'lucide-react';
 

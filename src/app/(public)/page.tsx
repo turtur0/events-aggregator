@@ -4,10 +4,10 @@ import { ArrowRight, Music, Theater, Trophy, Palette, Users, Sparkles, Zap } fro
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
-import { SearchBar } from '@/components/search/SearchBar';
+import { SearchBar } from '@/components/events/filters/SearchBar';
 import { ForYouSection } from '@/components/recommendations/ForYouSection';
 import { TrendingSection } from '@/components/recommendations/TrendingSection';
-import { UpcomingEvents } from '@/components/events/UpcomingEvents';
+import { UpcomingEvents } from '@/components/events/sections/UpcomingEvents';
 import { connectDB } from "@/lib/db";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";

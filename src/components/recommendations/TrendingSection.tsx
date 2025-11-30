@@ -4,8 +4,8 @@
 import { useEffect, useState } from 'react';
 import { TrendingUp, Sparkles, Rocket, LucideIcon } from 'lucide-react';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/Tabs';
-import { EventCarousel } from '@/components/events/EventCarousel';
-import { CarouselSkeleton } from '@/components/skeletons/CarouselSkeleton';
+import { EventCarousel } from '@/components/events/sections/EventCarousel';
+import { CarouselSkeleton } from '@/components/other/CarouselSkeleton';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 
 interface TrendingSectionProps {
@@ -109,7 +109,7 @@ export function TrendingSection({ userFavourites }: TrendingSectionProps) {
     // Empty state
     if (!events || events.length === 0) {
         return (
-            <Card className="border-2 border-primary/20 bg-gradient-to-br from-primary/5 via-transparent to-transparent shadow-sm transition-all">
+            <Card className="border-2 border-primary/20 bg-linear-to-br from-primary/5 via-transparent to-transparent shadow-sm transition-all">
                 <CardHeader>
                     <div className="flex items-center justify-between mb-4">
                         <div className="flex-1 min-w-0">

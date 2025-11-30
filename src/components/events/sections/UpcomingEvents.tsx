@@ -2,8 +2,8 @@
 import Link from "next/link";
 import { ArrowRight, Calendar, MapPin, Clock } from "lucide-react";
 import { Button } from '@/components/ui/Button';
-import { EventCard } from '@/components/events/EventCard';
-import { EventSection } from '@/components/events/EventSection';
+import { EventCard } from '@/components/events/cards/EventCard';
+import { EventSection } from '@/components/events/sections/EventSection';
 import { connectDB } from "@/lib/db";
 import { Event } from '@/lib/models';
 
