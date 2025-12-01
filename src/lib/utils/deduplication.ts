@@ -339,39 +339,6 @@ export function findDuplicates(events: (EventForDedup & { _id: string })[]): Dup
 }
 
 /**
- * Selects which event should be the primary source when merging duplicates.
- * 
- * Priority order:
- * 1. Source priority (Marriner > Ticketmaster > What's On)
- * 2. Data completeness score (more fields filled = better)
- * 
- * @returns 'event1' or 'event2' indicating which should be primary
- */
-export function selectPrimaryEvent(e1: EventForDedup, e2: EventForDedup): 'event1' | 'event2' {
-    const p1 = SOURCE_PRIORITY[e1.source] || 0;
-    const p2 = SOURCE_PRIORITY[e2.source] || 0;
-
-    if (p1 !== p2) {
-        return p1 > p2 ? 'event1' : 'event2';
-    }
-
-    // Calculate data completeness score when priorities are equal
-    const completenessScore = (e: EventForDedup): number => {
-        let score = 0;
-        if (e.description && e.description.length > 100) score += 2;
-        if (e.imageUrl) score += 1;
-        if (e.priceMin !== undefined) score += 1;
-        if (e.priceDetails) score += 1;
-        if (e.endDate) score += 1;
-        if (e.venue.address && !e.venue.address.includes('TBA')) score += 1;
-        if (e.accessibility?.length) score += 1;
-        return score;
-    };
-
-    return completenessScore(e1) >= completenessScore(e2) ? 'event1' : 'event2';
-}
-
-/**
  * Merges two duplicate events, intelligently combining data from both sources.
  * 
  * Merge Strategy:
@@ -438,9 +405,30 @@ export function mergeEvents(primary: EventForDedup, secondary: EventForDedup): E
     const priceMin = allPrices.length > 0 ? Math.min(...allPrices) : undefined;
     const priceMax = allPrices.length > 0 ? Math.max(...allPrices) : undefined;
 
-    const priceDetails = [primary.priceDetails, secondary.priceDetails]
-        .filter(Boolean)
-        .join(' | ') || undefined;
+    // Merge price details intelligently - avoid duplication
+    const priceDetails = (() => {
+        const details = [primary.priceDetails, secondary.priceDetails]
+            .filter(Boolean)
+            .map(d => d!.trim());
+
+        if (details.length === 0) return undefined;
+        if (details.length === 1) return details[0];
+
+        // Check if one detail string contains the other (avoid duplication)
+        if (details[0].includes(details[1])) return details[0];
+        if (details[1].includes(details[0])) return details[1];
+
+        // Split by separator and deduplicate
+        const allDetails = details
+            .flatMap(d => d.split(/\s*\|\s*/))
+            .map(d => d.trim())
+            .filter(Boolean);
+
+        // Use Set to remove duplicates, preserving order
+        const uniqueDetails = Array.from(new Set(allDetails));
+
+        return uniqueDetails.join(' | ');
+    })();
 
     // Combine most complete venue information
     const venue = {
