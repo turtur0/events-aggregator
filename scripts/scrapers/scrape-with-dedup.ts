@@ -16,6 +16,7 @@ interface EventChanges {
   priceDrop?: number;
   significantUpdate?: string;
   hasChanges?: boolean;
+  hasContentChanges?: boolean;
 }
 
 interface ProcessContext {
@@ -52,6 +53,7 @@ const SIGNIFICANT_KEYWORDS = [
  *       - If no match: insert as new event
  * 4. Track which events were processed in this batch to avoid re-insertion
  * 5. Send notifications for price drops and significant changes
+ * 6. Set lastContentChange timestamp when user-facing content changes
  * 
  * @param newEvents - Freshly scraped events to process
  * @param sourceName - Name of the scraping source (e.g., 'ticketmaster')
@@ -185,6 +187,7 @@ async function processEvent(
 /**
  * Updates an existing event from the same source.
  * Only performs update if actual changes are detected.
+ * Sets lastContentChange timestamp when user-facing content changes.
  * 
  * @returns Number of notifications sent, or -1 if no update needed
  */
@@ -200,28 +203,35 @@ async function updateExistingEvent(existing: any, newEvent: NormalisedEvent): Pr
     subcategories.push(newEvent.subcategory);
   }
 
+  const updateFields: any = {
+    title: newEvent.title,
+    description: newEvent.description,
+    category: newEvent.category,
+    startDate: newEvent.startDate,
+    endDate: newEvent.endDate,
+    venue: newEvent.venue,
+    priceMin: newEvent.priceMin,
+    priceMax: newEvent.priceMax,
+    priceDetails: newEvent.priceDetails,
+    isFree: newEvent.isFree,
+    bookingUrl: newEvent.bookingUrl,
+    imageUrl: newEvent.imageUrl,
+    videoUrl: newEvent.videoUrl,
+    accessibility: newEvent.accessibility,
+    ageRestriction: newEvent.ageRestriction,
+    duration: newEvent.duration,
+    lastUpdated: new Date(),
+  };
+
+  // Set lastContentChange if user-facing content changed
+  if (changes.hasContentChanges) {
+    updateFields.lastContentChange = new Date();
+  }
+
   await Event.updateOne(
     { _id: existing._id },
     {
-      $set: {
-        title: newEvent.title,
-        description: newEvent.description,
-        category: newEvent.category,
-        startDate: newEvent.startDate,
-        endDate: newEvent.endDate,
-        venue: newEvent.venue,
-        priceMin: newEvent.priceMin,
-        priceMax: newEvent.priceMax,
-        priceDetails: newEvent.priceDetails,
-        isFree: newEvent.isFree,
-        bookingUrl: newEvent.bookingUrl,
-        imageUrl: newEvent.imageUrl,
-        videoUrl: newEvent.videoUrl,
-        accessibility: newEvent.accessibility,
-        ageRestriction: newEvent.ageRestriction,
-        duration: newEvent.duration,
-        lastUpdated: new Date(),
-      },
+      $set: updateFields,
       $addToSet: { subcategories: { $each: subcategories } },
     }
   );
@@ -237,6 +247,7 @@ async function updateExistingEvent(existing: any, newEvent: NormalisedEvent): Pr
 /**
  * Merges a new event into an existing event from a different source.
  * Only performs merge if actual changes are detected.
+ * Sets lastContentChange timestamp when user-facing content changes.
  * 
  * @returns Number of notifications sent, or -1 if no merge needed
  */
@@ -254,28 +265,35 @@ async function mergeIntoExisting(
 
   const merged = mergeEvents(existing, newEvent);
 
+  const updateFields: any = {
+    description: merged.description,
+    category: merged.category,
+    startDate: merged.startDate,
+    endDate: merged.endDate,
+    venue: merged.venue,
+    priceMin: merged.priceMin,
+    priceMax: merged.priceMax,
+    priceDetails: merged.priceDetails,
+    imageUrl: merged.imageUrl,
+    videoUrl: merged.videoUrl,
+    accessibility: merged.accessibility,
+    ageRestriction: merged.ageRestriction,
+    duration: merged.duration,
+    isFree: merged.isFree,
+    lastUpdated: new Date(),
+    [`bookingUrls.${newEvent.source}`]: newEvent.bookingUrl,
+    [`sourceIds.${newEvent.source}`]: newEvent.sourceId,
+  };
+
+  // Set lastContentChange if user-facing content changed
+  if (changes.hasContentChanges) {
+    updateFields.lastContentChange = new Date();
+  }
+
   await Event.updateOne(
     { _id: existingId },
     {
-      $set: {
-        description: merged.description,
-        category: merged.category,
-        startDate: merged.startDate,
-        endDate: merged.endDate,
-        venue: merged.venue,
-        priceMin: merged.priceMin,
-        priceMax: merged.priceMax,
-        priceDetails: merged.priceDetails,
-        imageUrl: merged.imageUrl,
-        videoUrl: merged.videoUrl,
-        accessibility: merged.accessibility,
-        ageRestriction: merged.ageRestriction,
-        duration: merged.duration,
-        isFree: merged.isFree,
-        lastUpdated: new Date(),
-        [`bookingUrls.${newEvent.source}`]: newEvent.bookingUrl,
-        [`sourceIds.${newEvent.source}`]: newEvent.sourceId,
-      },
+      $set: updateFields,
       $addToSet: {
         sources: newEvent.source,
         subcategories: { $each: merged.subcategories || [] },
@@ -292,12 +310,17 @@ async function mergeIntoExisting(
   return 0;
 }
 
-/** Inserts a new event into the database. */
+/**
+ * Inserts a new event into the database.
+ * Sets lastContentChange to current time for newly inserted events.
+ */
 async function insertNewEvent(event: NormalisedEvent) {
   const subcategories = [...(event.subcategories || [])];
   if (event.subcategory && !subcategories.includes(event.subcategory)) {
     subcategories.push(event.subcategory);
   }
+
+  const now = new Date();
 
   return Event.create({
     title: event.title,
@@ -321,51 +344,69 @@ async function insertNewEvent(event: NormalisedEvent) {
     accessibility: event.accessibility,
     ageRestriction: event.ageRestriction,
     duration: event.duration,
-    scrapedAt: new Date(),
-    lastUpdated: new Date(),
+    scrapedAt: now,
+    lastUpdated: now,
+    lastContentChange: now,
   });
 }
 
 /**
  * Detects all changes between existing and new event data.
  * 
- * Checks for:
- * - Field changes (title, description, prices, dates, etc.)
- * - Venue and accessibility changes
- * - Significant updates (price drops, cancellations, etc.)
+ * Separates changes into two categories:
+ * - User-facing content changes (hasContentChanges): title, description, dates, venue, prices, etc.
+ * - Technical changes only (hasChanges but not hasContentChanges): booking URLs, video URLs
+ * 
+ * User-facing changes trigger lastContentChange updates and email digest notifications.
+ * Technical changes only trigger lastUpdated but not lastContentChange.
+ * 
+ * Also checks for:
+ * - Significant price changes (drops/increases over threshold)
+ * - Event status keywords (cancelled, postponed, sold out, etc.)
  * 
  * @returns Object describing what changed and its significance
  */
 function detectAllChanges(existing: any, newEvent: NormalisedEvent): EventChanges {
-  const changes: EventChanges = { hasChanges: false };
+  const changes: EventChanges = { hasChanges: false, hasContentChanges: false };
 
-  // Check direct field changes
-  const fieldChanged =
+  // Check user-facing content changes
+  const contentChanged =
     existing.title !== newEvent.title ||
     existing.description !== newEvent.description ||
     existing.category !== newEvent.category ||
     existing.isFree !== newEvent.isFree ||
-    existing.priceMin !== newEvent.priceMin ||
-    existing.priceMax !== newEvent.priceMax ||
-    existing.priceDetails !== newEvent.priceDetails ||
     existing.imageUrl !== newEvent.imageUrl ||
-    existing.videoUrl !== newEvent.videoUrl ||
-    existing.bookingUrl !== newEvent.bookingUrl ||
     existing.ageRestriction !== newEvent.ageRestriction ||
     existing.duration !== newEvent.duration;
 
-  // Check date changes
+  // Check date changes (more than 1 hour difference to avoid minor timestamp variations)
   const dateChanged =
-    existing.startDate?.getTime() !== newEvent.startDate?.getTime() ||
-    existing.endDate?.getTime() !== newEvent.endDate?.getTime();
+    Math.abs(existing.startDate?.getTime() - newEvent.startDate?.getTime()) > 3600000 ||
+    Math.abs((existing.endDate?.getTime() || 0) - (newEvent.endDate?.getTime() || 0)) > 3600000;
 
   // Check structural changes (venue, accessibility)
   const venueChanged = JSON.stringify(existing.venue) !== JSON.stringify(newEvent.venue);
   const accessibilityChanged =
     JSON.stringify(existing.accessibility) !== JSON.stringify(newEvent.accessibility);
 
-  if (fieldChanged || dateChanged || venueChanged || accessibilityChanged) {
+  // Check price changes
+  const priceChanged =
+    existing.priceMin !== newEvent.priceMin ||
+    existing.priceMax !== newEvent.priceMax ||
+    existing.priceDetails !== newEvent.priceDetails;
+
+  // Check technical-only changes (booking URL, video)
+  const technicalChanged =
+    existing.bookingUrl !== newEvent.bookingUrl ||
+    existing.videoUrl !== newEvent.videoUrl;
+
+  // Set flags based on what changed
+  if (contentChanged || dateChanged || venueChanged || accessibilityChanged || priceChanged) {
     changes.hasChanges = true;
+    changes.hasContentChanges = true;
+  } else if (technicalChanged) {
+    changes.hasChanges = true;
+    changes.hasContentChanges = false;
   }
 
   // Detect significant price changes

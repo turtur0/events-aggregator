@@ -1,4 +1,3 @@
-
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
@@ -7,10 +6,6 @@ import { User } from '@/lib/models';
 
 const ALL_CATEGORIES = ['music', 'theatre', 'sports', 'arts', 'family', 'other'];
 
-/**
- * GET /api/user/preferences
- * Retrieves the current user's preferences.
- */
 export async function GET() {
   try {
     const session = await getServerSession(authOptions);
@@ -34,10 +29,6 @@ export async function GET() {
   }
 }
 
-/**
- * POST /api/user/preferences
- * Creates or updates user preferences (used during onboarding).
- */
 export async function POST(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
@@ -80,10 +71,6 @@ export async function POST(request: NextRequest) {
   }
 }
 
-/**
- * PATCH /api/user/preferences
- * Partially updates user preferences.
- */
 export async function PATCH(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
@@ -128,13 +115,12 @@ export async function PATCH(request: NextRequest) {
 }
 
 /**
- * Builds the update fields object from request body.
- * Handles category weights, notifications, and other preferences.
+ * Builds update fields object for MongoDB from request body
  */
 function buildPreferenceUpdateFields(body: any): Record<string, any> {
   const updateFields: Record<string, any> = {};
 
-  // Category selection and weights
+  // Category preferences
   if (body.selectedCategories !== undefined) {
     updateFields['preferences.selectedCategories'] = body.selectedCategories;
     updateFields['preferences.categoryWeights'] = calculateCategoryWeights(body.selectedCategories);
@@ -142,21 +128,16 @@ function buildPreferenceUpdateFields(body: any): Record<string, any> {
     updateFields['preferences.categoryWeights'] = body.categoryWeights;
   }
 
-  // Subcategories
   if (body.selectedSubcategories !== undefined) {
     updateFields['preferences.selectedSubcategories'] = body.selectedSubcategories;
   }
 
-  // Popularity preference
+  // Popularity preference (defaults to 0.5 if not provided)
   if (body.popularityPreference !== undefined) {
     updateFields['preferences.popularityPreference'] = body.popularityPreference;
   } else {
     updateFields['preferences.popularityPreference'] = 0.5;
   }
-
-  // Price and venue preferences (defaults)
-  updateFields['preferences.pricePreference'] = 0.5;
-  updateFields['preferences.venuePreference'] = 0.5;
 
   // Price range
   if (body.priceRange) {
@@ -182,19 +163,20 @@ function buildPreferenceUpdateFields(body: any): Record<string, any> {
 }
 
 /**
- * Calculates category weights based on selected categories.
- * Selected categories get 0.8 weight, others get 0.2.
+ * Calculates category weights based on selected categories
+ * Selected categories get 0.8, others get 0.2
  */
 function calculateCategoryWeights(selectedCategories?: string[]): Record<string, number> {
   const weights: Record<string, number> = {};
 
   if (selectedCategories && Array.isArray(selectedCategories)) {
-    ALL_CATEGORIES.forEach(cat => {
-      weights[cat] = selectedCategories.includes(cat) ? 0.8 : 0.2;
+    ALL_CATEGORIES.forEach(category => {
+      weights[category] = selectedCategories.includes(category) ? 0.8 : 0.2;
     });
   } else {
-    ALL_CATEGORIES.forEach(cat => {
-      weights[cat] = 0.5;
+    // Default to 0.5 for all categories
+    ALL_CATEGORIES.forEach(category => {
+      weights[category] = 0.5;
     });
   }
 
@@ -202,23 +184,31 @@ function calculateCategoryWeights(selectedCategories?: string[]): Record<string,
 }
 
 /**
- * Applies notification settings to the update fields object.
+ * Applies notification settings to update fields object
+ * Uses dot notation for nested MongoDB updates
  */
 function applyNotificationSettings(updateFields: Record<string, any>, notifications: any) {
+  // Basic notification toggles
   if (notifications.inApp !== undefined) {
     updateFields['preferences.notifications.inApp'] = notifications.inApp;
   }
+
   if (notifications.email !== undefined) {
     updateFields['preferences.notifications.email'] = notifications.email;
   }
+
   if (notifications.emailFrequency !== undefined) {
     updateFields['preferences.notifications.emailFrequency'] = notifications.emailFrequency;
   }
+
+  // Keywords array
   if (notifications.keywords !== undefined) {
     updateFields['preferences.notifications.keywords'] = Array.isArray(notifications.keywords)
       ? notifications.keywords
       : [];
   }
+
+  // Smart filtering settings
   if (notifications.smartFiltering) {
     if (notifications.smartFiltering.enabled !== undefined) {
       updateFields['preferences.notifications.smartFiltering.enabled'] =
@@ -228,5 +218,22 @@ function applyNotificationSettings(updateFields: Record<string, any>, notificati
       updateFields['preferences.notifications.smartFiltering.minRecommendationScore'] =
         notifications.smartFiltering.minRecommendationScore;
     }
+  }
+
+  // Email digest preferences
+  if (notifications.includeFavouriteUpdates !== undefined) {
+    updateFields['preferences.notifications.includeFavouriteUpdates'] =
+      notifications.includeFavouriteUpdates;
+  }
+
+  if (notifications.recommendationsSize !== undefined) {
+    updateFields['preferences.notifications.recommendationsSize'] =
+      notifications.recommendationsSize;
+  }
+
+  // THE FIX: This was missing consistent handling
+  if (notifications.customRecommendationsCount !== undefined) {
+    updateFields['preferences.notifications.customRecommendationsCount'] =
+      notifications.customRecommendationsCount;
   }
 }

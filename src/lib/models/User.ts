@@ -28,6 +28,9 @@ export interface IUser {
                 enabled: boolean;
                 minRecommendationScore: number;
             };
+            includeFavouriteUpdates: boolean;
+            recommendationsSize: 'minimal' | 'moderate' | 'comprehensive' | 'custom';
+            customRecommendationsCount?: number;
         };
     };
 
@@ -105,6 +108,13 @@ const UserSchema = new Schema<IUser>(
                     enabled: { type: Boolean, default: true },
                     minRecommendationScore: { type: Number, default: 0.6 },
                 },
+                includeFavouriteUpdates: { type: Boolean, default: true },
+                recommendationsSize: {
+                    type: String,
+                    enum: ['minimal', 'moderate', 'comprehensive', 'custom'],
+                    default: 'moderate'
+                },
+                customRecommendationsCount: { type: Number, min: 1, max: 20, default: 5 },
             },
         },
         userVector: [Number],

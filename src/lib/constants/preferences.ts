@@ -1,6 +1,5 @@
-
 // lib/constants/preferences.ts
-import { Search, Target, TrendingUp } from 'lucide-react';
+import { Search, Target, TrendingUp, Minimize2, Grid3x3, Maximize2 } from 'lucide-react';
 
 export const POPULARITY_OPTIONS = [
     {
@@ -25,6 +24,50 @@ export const POPULARITY_OPTIONS = [
         shortDesc: 'Popular and trending'
     },
 ] as const;
+
+// Email digest recommendations per category
+export const DIGEST_RECOMMENDATIONS_OPTIONS = [
+    {
+        value: 'minimal',
+        label: 'Minimal',
+        icon: Minimize2,
+        description: 'Just the highlights',
+        count: 3,
+    },
+    {
+        value: 'moderate',
+        label: 'Moderate',
+        icon: Grid3x3,
+        description: 'Balanced selection',
+        count: 5,
+    },
+    {
+        value: 'comprehensive',
+        label: 'Comprehensive',
+        icon: Maximize2,
+        description: 'All the details',
+        count: 10,
+    },
+    {
+        value: 'custom',
+        label: 'Custom',
+        icon: Target,
+        description: 'Set your own limit',
+        count: 5,
+    }
+] as const;
+
+export type DigestRecommendationsSize = typeof DIGEST_RECOMMENDATIONS_OPTIONS[number]['value'];
+
+// Helper to get recommendations count for a given size
+export function getRecommendationsCount(size: DigestRecommendationsSize, customCount?: number): number {
+    if (size === 'custom' && customCount !== undefined) {
+        return customCount;
+    }
+    
+    const option = DIGEST_RECOMMENDATIONS_OPTIONS.find(opt => opt.value === size);
+    return option?.count || 5; // Default to moderate
+}
 
 // Helper to get closest option for a given value
 export function getPopularityOption(value: number) {

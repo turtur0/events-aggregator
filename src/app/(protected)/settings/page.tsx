@@ -1,4 +1,3 @@
-// app/(protected)/settings/page.tsx
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -17,6 +16,7 @@ import { CategorySelector } from '@/components/preferences/CategorySelector';
 import { NotificationSettings } from '@/components/preferences/NotificationSettings';
 import { PriceRangeSelector } from '@/components/preferences/PriceRangeSelector';
 import { CATEGORIES } from '@/lib/constants/categories';
+import type { DigestRecommendationsSize } from '@/lib/constants/preferences';
 
 type EmailFrequency = 'weekly' | 'monthly';
 
@@ -46,6 +46,9 @@ export default function SettingsPage() {
     const [notificationKeywords, setNotificationKeywords] = useState('');
     const [useSmartFiltering, setUseSmartFiltering] = useState(true);
     const [minRecommendationScore, setMinRecommendationScore] = useState(0.6);
+    const [includeFavouriteUpdates, setIncludeFavouriteUpdates] = useState(true);
+    const [recommendationsSize, setRecommendationsSize] = useState<DigestRecommendationsSize>('moderate');
+    const [customRecommendationsCount, setCustomRecommendationsCount] = useState(5);
 
     // UI state
     const [isLoading, setIsLoading] = useState(true);
@@ -93,6 +96,9 @@ export default function SettingsPage() {
                 setNotificationKeywords((notifs.keywords || []).join(', '));
                 setUseSmartFiltering(notifs.smartFiltering?.enabled ?? true);
                 setMinRecommendationScore(notifs.smartFiltering?.minRecommendationScore ?? 0.6);
+                setIncludeFavouriteUpdates(notifs.includeFavouriteUpdates ?? true);
+                setRecommendationsSize(notifs.recommendationsSize || 'moderate');
+                setCustomRecommendationsCount(notifs.customRecommendationsCount || 5);
             } catch (err) {
                 setError('Failed to load settings');
             } finally {
@@ -108,7 +114,6 @@ export default function SettingsPage() {
 
         if (newCategories.has(categoryValue)) {
             newCategories.delete(categoryValue);
-            // Remove associated subcategories
             const category = CATEGORIES.find(c => c.value === categoryValue);
             if (category?.subcategories) {
                 const newSubs = new Set(selectedSubcategories);
@@ -134,14 +139,12 @@ export default function SettingsPage() {
         setIsSaving(true);
 
         try {
-            // Validate password changes
             if (newPassword) {
                 if (!currentPassword) throw new Error('Current password required');
                 if (newPassword.length < 8) throw new Error('New password must be at least 8 characters');
                 if (newPassword !== confirmPassword) throw new Error('Passwords do not match');
             }
 
-            // Update account
             const accountRes = await fetch('/api/user/account', {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
@@ -158,7 +161,6 @@ export default function SettingsPage() {
                 throw new Error(data.error || 'Failed to update account');
             }
 
-            // Update preferences
             const keywords = notificationKeywords
                 .split(',')
                 .map(k => k.trim())
@@ -181,6 +183,9 @@ export default function SettingsPage() {
                             enabled: useSmartFiltering,
                             minRecommendationScore,
                         },
+                        includeFavouriteUpdates,
+                        recommendationsSize,
+                        customRecommendationsCount,
                     },
                 }),
             });
@@ -189,7 +194,6 @@ export default function SettingsPage() {
 
             await update();
 
-            // Clear password fields
             setCurrentPassword('');
             setNewPassword('');
             setConfirmPassword('');
@@ -238,7 +242,6 @@ export default function SettingsPage() {
             maxWidth="4xl"
         >
             <div className="space-y-6">
-                {/* Status Messages */}
                 {error && (
                     <div className="flex items-start gap-3 p-4 bg-destructive/10 border-2 border-destructive/20 rounded-lg text-destructive" role="alert">
                         <AlertCircle className="h-5 w-5 shrink-0 mt-0.5" aria-hidden="true" />
@@ -253,7 +256,6 @@ export default function SettingsPage() {
                     </div>
                 )}
 
-                {/* Account Information */}
                 <Card className="card-interactive">
                     <CardHeader>
                         <CardTitle className="text-xl flex items-centre gap-2">
@@ -293,7 +295,6 @@ export default function SettingsPage() {
                     </CardContent>
                 </Card>
 
-                {/* Password Change */}
                 <Card className="card-interactive">
                     <CardHeader>
                         <CardTitle className="text-xl flex items-centre gap-2">
@@ -329,7 +330,6 @@ export default function SettingsPage() {
                     </CardContent>
                 </Card>
 
-                {/* Event Preferences */}
                 <Card className="card-interactive">
                     <CardHeader>
                         <CardTitle className="text-xl flex items-centre gap-2">
@@ -390,7 +390,6 @@ export default function SettingsPage() {
                     </CardContent>
                 </Card>
 
-                {/* Notifications */}
                 <Card className="card-interactive">
                     <CardHeader>
                         <CardTitle className="text-xl flex items-centre gap-2">
@@ -406,18 +405,23 @@ export default function SettingsPage() {
                             keywords={notificationKeywords}
                             useSmartFiltering={useSmartFiltering}
                             minRecommendationScore={minRecommendationScore}
+                            includeFavouriteUpdates={includeFavouriteUpdates}
+                            recommendationsSize={recommendationsSize}
+                            customRecommendationsCount={customRecommendationsCount}
                             onInAppChange={setInAppNotifications}
                             onEmailChange={setEmailNotifications}
                             onFrequencyChange={setEmailFrequency}
                             onKeywordsChange={setNotificationKeywords}
                             onSmartFilteringChange={setUseSmartFiltering}
                             onScoreChange={setMinRecommendationScore}
+                            onFavouriteUpdatesChange={setIncludeFavouriteUpdates}
+                            onRecommendationsSizeChange={setRecommendationsSize}
+                            onCustomCountChange={setCustomRecommendationsCount}
                             variant="settings"
                         />
                     </CardContent>
                 </Card>
 
-                {/* Actions */}
                 <div className="flex flex-col sm:flex-row gap-4">
                     <Button
                         variant="outline"
@@ -447,7 +451,6 @@ export default function SettingsPage() {
                     </Button>
                 </div>
 
-                {/* Delete Account */}
                 <Card className="border-2 border-destructive/20">
                     <CardHeader>
                         <CardTitle className="text-xl text-destructive flex items-centre gap-2">
@@ -467,7 +470,6 @@ export default function SettingsPage() {
                 </Card>
             </div>
 
-            {/* Delete Dialog */}
             <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
                 <DialogContent>
                     <DialogHeader>

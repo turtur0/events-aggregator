@@ -258,13 +258,13 @@ function HeaderContent() {
                 <DropdownMenuTrigger asChild>
                   <Button variant="outline" size="sm" className={cn("hidden sm:flex gap-2", headerButtonStyles, isOnProfilePages && activeButtonStyles)}>
                     <User className="h-4 w-4" />
-                    <span className="hidden md:inline">{session.user.name}</span>
+                    <span className="hidden md:inline">{session.user.username}</span>
                     <ChevronDown className="h-4 w-4 transition-transform duration-200 group-data-[state=open]:rotate-180" />
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-56">
                   <DropdownMenuLabel className="flex flex-col space-y-1">
-                    <span className="font-medium">{session.user.name}</span>
+                    <span className="font-medium">{session.user.username}</span>
                     <span className="text-xs font-normal text-muted-foreground">{session.user.email}</span>
                   </DropdownMenuLabel>
                   <DropdownMenuSeparator />

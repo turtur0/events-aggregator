@@ -1,4 +1,3 @@
-// app/(auth)/onboarding/page.tsx
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -14,6 +13,7 @@ import { CategorySelector } from '@/components/preferences/CategorySelector';
 import { NotificationSettings } from '@/components/preferences/NotificationSettings';
 import { PriceRangeSelector } from '@/components/preferences/PriceRangeSelector';
 import { CATEGORIES } from '@/lib/constants/categories';
+import type { DigestRecommendationsSize } from '@/lib/constants/preferences';
 
 const MIN_CATEGORIES = 2;
 type Step = 'username' | 'categories' | 'preferences' | 'notifications';
@@ -34,28 +34,26 @@ export default function Onboarding() {
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState('');
 
-    // Username
     const [username, setUsername] = useState('');
     const [needsUsername, setNeedsUsername] = useState(false);
 
-    // Categories
     const [selectedCategories, setSelectedCategories] = useState<Set<string>>(new Set());
     const [selectedSubcategories, setSelectedSubcategories] = useState<Set<string>>(new Set());
 
-    // Preferences
     const [popularityPref, setPopularityPref] = useState(0.5);
     const [priceMin, setPriceMin] = useState(0);
     const [priceMax, setPriceMax] = useState(500);
 
-    // Notifications
     const [inAppNotifications, setInAppNotifications] = useState(true);
     const [emailNotifications, setEmailNotifications] = useState(false);
     const [emailFrequency, setEmailFrequency] = useState<EmailFrequency>('weekly');
     const [notificationKeywords, setNotificationKeywords] = useState('');
     const [useSmartFiltering, setUseSmartFiltering] = useState(true);
     const [minRecommendationScore, setMinRecommendationScore] = useState(0.6);
+    const [includeFavouriteUpdates, setIncludeFavouriteUpdates] = useState(true);
+    const [recommendationsSize, setRecommendationsSize] = useState<DigestRecommendationsSize>('moderate');
+    const [customRecommendationsCount, setCustomRecommendationsCount] = useState(5);
 
-    // Check if username is needed
     useEffect(() => {
         if (session?.user && !session.user.username) {
             setNeedsUsername(true);
@@ -68,7 +66,6 @@ export default function Onboarding() {
 
         if (newCategories.has(categoryValue)) {
             newCategories.delete(categoryValue);
-            // Remove associated subcategories
             const category = CATEGORIES.find(c => c.value === categoryValue);
             if (category?.subcategories) {
                 const newSubs = new Set(selectedSubcategories);
@@ -148,6 +145,9 @@ export default function Onboarding() {
                             enabled: useSmartFiltering,
                             minRecommendationScore,
                         },
+                        includeFavouriteUpdates,
+                        recommendationsSize,
+                        customRecommendationsCount,
                     },
                 }),
             });
@@ -181,7 +181,6 @@ export default function Onboarding() {
     return (
         <div className="w-full min-h-screen bg-linear-to-b from-primary/5 via-background to-background">
             <div className="container max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16">
-                {/* Header */}
                 <header className="mb-8">
                     <div className="flex flex-col sm:flex-row items-start gap-4 mb-4">
                         <div className="rounded-2xl bg-primary/10 p-3 ring-1 ring-primary/20" aria-hidden="true">
@@ -198,7 +197,6 @@ export default function Onboarding() {
                     </div>
                 </header>
 
-                {/* Username Step */}
                 {step === 'username' && (
                     <Card className="border-2 animate-in fade-in-0 slide-in-from-bottom-4 duration-500">
                         <CardHeader>
@@ -264,7 +262,6 @@ export default function Onboarding() {
                     </Card>
                 )}
 
-                {/* Categories Step */}
                 {step === 'categories' && (
                     <Card className="border-2 animate-in fade-in-0 slide-in-from-bottom-4 duration-500">
                         <CardHeader>
@@ -308,7 +305,6 @@ export default function Onboarding() {
                     </Card>
                 )}
 
-                {/* Preferences Step */}
                 {step === 'preferences' && (
                     <Card className="border-2 animate-in fade-in-0 slide-in-from-bottom-4 duration-500">
                         <CardHeader>
@@ -359,7 +355,6 @@ export default function Onboarding() {
                     </Card>
                 )}
 
-                {/* Notifications Step */}
                 {step === 'notifications' && (
                     <Card className="border-2 animate-in fade-in-0 slide-in-from-bottom-4 duration-500">
                         <CardHeader>
@@ -379,12 +374,18 @@ export default function Onboarding() {
                                 keywords={notificationKeywords}
                                 useSmartFiltering={useSmartFiltering}
                                 minRecommendationScore={minRecommendationScore}
+                                includeFavouriteUpdates={includeFavouriteUpdates}
+                                recommendationsSize={recommendationsSize}
+                                customRecommendationsCount={customRecommendationsCount}
                                 onInAppChange={setInAppNotifications}
                                 onEmailChange={setEmailNotifications}
                                 onFrequencyChange={setEmailFrequency}
                                 onKeywordsChange={setNotificationKeywords}
                                 onSmartFilteringChange={setUseSmartFiltering}
                                 onScoreChange={setMinRecommendationScore}
+                                onFavouriteUpdatesChange={setIncludeFavouriteUpdates}
+                                onRecommendationsSizeChange={setRecommendationsSize}
+                                onCustomCountChange={setCustomRecommendationsCount}
                                 variant="onboarding"
                             />
 
@@ -426,7 +427,6 @@ export default function Onboarding() {
                     </Card>
                 )}
 
-                {/* Progress Indicator */}
                 <nav className="flex gap-2 mt-12 justify-centre" aria-label="Onboarding progress">
                     {allSteps.map((s, idx) => {
                         const currentIdx = allSteps.indexOf(step);
