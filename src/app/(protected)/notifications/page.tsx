@@ -1,15 +1,14 @@
-// app/(protected)/notifications/page.tsx
 'use client';
 
 import { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 import Link from 'next/link';
+import { Bell, Search, Sparkles, Heart, Loader2, Check, CheckCheck } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/Tabs';
 import { PageLayout } from '@/components/layout/PageLayout';
-import { Bell, Search, Sparkles, Heart, Loader2, Check, CheckCheck } from 'lucide-react';
 
 interface Notification {
     _id: string;
@@ -42,7 +41,7 @@ const NOTIFICATION_CONFIG = {
         color: 'text-pink-600 dark:text-pink-400',
         bgColor: 'bg-pink-500/10',
         borderColor: 'border-pink-500/20',
-        label: 'Favorite Update',
+        label: 'Favourite Update',
     },
 };
 
@@ -60,13 +59,12 @@ function formatTimeAgo(date: string): string {
     return `${Math.floor(diffInSeconds / 604800)}w ago`;
 }
 
-function NotificationCard({
-    notification,
-    onMarkAsRead,
-}: {
+interface NotificationCardProps {
     notification: Notification;
     onMarkAsRead: (id: string) => void;
-}) {
+}
+
+function NotificationCard({ notification, onMarkAsRead }: NotificationCardProps) {
     const config = NOTIFICATION_CONFIG[notification.type];
     const Icon = config.icon;
 
@@ -78,10 +76,12 @@ function NotificationCard({
                 }`}
         >
             <div className="flex gap-4">
+                {/* Icon */}
                 <div className={`rounded-lg border ${config.borderColor} p-3 ${config.bgColor} shrink-0 h-fit`}>
-                    <Icon className={`h-5 w-5 ${config.color}`} />
+                    <Icon className={`h-5 w-5 ${config.color}`} aria-hidden="true" />
                 </div>
 
+                {/* Content */}
                 <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-2 flex-wrap">
                         <span className={`text-xs font-semibold uppercase tracking-wide ${config.color}`}>
@@ -122,6 +122,7 @@ function NotificationCard({
                                 size="sm"
                                 onClick={() => onMarkAsRead(notification._id)}
                                 className="gap-2 hover:bg-accent transition-all"
+                                aria-label="Mark as read"
                             >
                                 <Check className="h-3 w-3" />
                                 Mark read
@@ -158,7 +159,6 @@ export default function NotificationsPage() {
                 const data = await response.json();
                 setAllNotifications(data.notifications);
 
-                // Initialize displayed notifications
                 const unread = data.notifications.filter((n: Notification) => !n.read);
                 setDisplayedUnread(unread.slice(0, ITEMS_PER_LOAD));
                 setDisplayedAll(data.notifications.slice(0, ITEMS_PER_LOAD));
@@ -201,7 +201,6 @@ export default function NotificationsPage() {
                 body: JSON.stringify({ notificationIds: [notificationId] }),
             });
 
-            // Update all notification lists
             setAllNotifications(prev =>
                 prev.map(n => n._id === notificationId ? { ...n, read: true } : n)
             );
@@ -234,7 +233,7 @@ export default function NotificationsPage() {
     if (status === 'loading' || isLoading) {
         return (
             <div className="min-h-screen flex items-center justify-center">
-                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                <Loader2 className="h-8 w-8 animate-spin text-primary" aria-label="Loading" />
             </div>
         );
     }
@@ -313,7 +312,7 @@ export default function NotificationsPage() {
                                         disabled={isLoadingMore}
                                         variant="outline"
                                         size="lg"
-                                        className="gap-2 border-2 hover:border-primary/50 hover:bg-primary/10 transition-all hover-lift"
+                                        className="gap-2 border-2"
                                     >
                                         {isLoadingMore ? (
                                             <>
@@ -366,7 +365,7 @@ export default function NotificationsPage() {
                                         disabled={isLoadingMore}
                                         variant="outline"
                                         size="lg"
-                                        className="gap-2 border-2 hover:border-primary/50 hover:bg-primary/10 transition-all hover-lift"
+                                        className="gap-2 border-2"
                                     >
                                         {isLoadingMore ? (
                                             <>

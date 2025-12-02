@@ -7,7 +7,12 @@ const config: Config = {
     "./app/**/*.{js,ts,jsx,tsx,mdx}",
   ],
   theme: {
-    extend: {},
+    extend: {
+      fontFamily: {
+        sans: ["var(--font-nunito)", "ui-sans-serif", "system-ui"],
+        nunito: ["var(--font-nunito)"], // optional utility class
+      },
+    },
   },
   plugins: [],
 };

@@ -1,14 +1,23 @@
-// app/(public)/events/page.tsx
 import { getServerSession } from "next-auth";
+import { Suspense } from "react";
+import { Metadata } from "next";
+import { Search } from "lucide-react";
 import { authOptions } from "@/lib/auth";
 import { EventsPageLayout } from '@/components/layout/EventsPageLayout';
 import { EventsGrid, EventsGridSkeleton } from '@/components/events/sections/EventsGrid';
 import { SearchBar } from '@/components/events/filters/SearchBar';
 import { EventFilters } from '@/components/events/filters/EventFilters';
-import { Suspense } from "react";
 import { SerializedEvent } from "@/lib/models/Event";
 import { getUserFavourites } from "@/lib/actions/interactions";
-import { Search } from "lucide-react";
+
+export const metadata: Metadata = {
+  title: "All Events | Melbourne Events",
+  description: "Browse all concerts, shows, festivals and events across Melbourne. Filter by category, date, price and more.",
+  openGraph: {
+    title: "All Events | Melbourne Events",
+    description: "Browse all concerts, shows, festivals and events across Melbourne.",
+  },
+};
 
 interface EventsPageProps {
   searchParams: Promise<{
@@ -53,46 +62,34 @@ interface EventsGridWrapperProps {
 }
 
 async function EventsGridWrapper(props: EventsGridWrapperProps) {
-  const {
-    page,
-    searchQuery,
-    category,
-    subcategory,
-    dateFilter,
-    dateFrom,
-    dateTo,
-    freeOnly,
-    accessibleOnly,
-    sortOption,
-    userFavourites,
-  } = props;
+  const params = new URLSearchParams({ page: props.page.toString() });
 
-  const params = new URLSearchParams({ page: page.toString() });
-
-  if (searchQuery.trim()) params.set('q', searchQuery.trim());
-  if (category) params.set('category', category);
-  if (subcategory) params.set('subcategory', subcategory);
-  if (dateFilter) params.set('date', dateFilter);
-  if (dateFrom) params.set('dateFrom', dateFrom);
-  if (dateTo) params.set('dateTo', dateTo);
-  if (freeOnly) params.set('free', 'true');
-  if (accessibleOnly) params.set('accessible', 'true');
-  if (sortOption) params.set('sort', sortOption);
+  // Apply filters
+  if (props.searchQuery.trim()) params.set('q', props.searchQuery.trim());
+  if (props.category) params.set('category', props.category);
+  if (props.subcategory) params.set('subcategory', props.subcategory);
+  if (props.dateFilter) params.set('date', props.dateFilter);
+  if (props.dateFrom) params.set('dateFrom', props.dateFrom);
+  if (props.dateTo) params.set('dateTo', props.dateTo);
+  if (props.freeOnly) params.set('free', 'true');
+  if (props.accessibleOnly) params.set('accessible', 'true');
+  if (props.sortOption) params.set('sort', props.sortOption);
 
   const data = await fetchEvents(params);
-  const eventsData: SerializedEvent[] = data.events;
+  const events: SerializedEvent[] = data.events;
   const { totalEvents, totalPages } = data.pagination;
 
-  const source = searchQuery ? 'search' : category ? 'category_browse' : 'direct';
-  const hasFilters = searchQuery || category || subcategory || dateFilter || dateFrom || dateTo || freeOnly || accessibleOnly;
+  const source = props.searchQuery ? 'search' : props.category ? 'category_browse' : 'direct';
+  const hasFilters = props.searchQuery || props.category || props.subcategory ||
+    props.dateFilter || props.dateFrom || props.dateTo || props.freeOnly || props.accessibleOnly;
 
   return (
     <EventsGrid
-      events={eventsData}
+      events={events}
       totalEvents={totalEvents}
       totalPages={totalPages}
-      currentPage={page}
-      userFavourites={userFavourites}
+      currentPage={props.page}
+      userFavourites={props.userFavourites}
       source={source}
       emptyTitle={hasFilters ? "No events found" : "No events yet"}
       emptyDescription={
@@ -106,7 +103,9 @@ async function EventsGridWrapper(props: EventsGridWrapperProps) {
 
 export default async function EventsPage({ searchParams }: EventsPageProps) {
   const params = await searchParams;
+  const session = await getServerSession(authOptions);
 
+  // Parse search parameters
   const currentPage = Number(params.page) || 1;
   const searchQuery = params.q || '';
   const category = params.category || '';
@@ -118,15 +117,14 @@ export default async function EventsPage({ searchParams }: EventsPageProps) {
   const accessibleOnly = params.accessible === 'true';
   const sortOption = params.sort || '';
 
-  const session = await getServerSession(authOptions);
-  const isAuthenticated = Boolean(session?.user);
-
+  // Get user favourites
   let userFavourites = new Set<string>();
   if (session?.user?.id) {
     const favouriteIds = await getUserFavourites(session.user.id);
     userFavourites = new Set(favouriteIds);
   }
 
+  // Create unique key for Suspense
   const suspenseKey = `${currentPage}-${searchQuery}-${category}-${subcategory}-${dateFilter}-${dateFrom}-${dateTo}-${freeOnly}-${accessibleOnly}-${sortOption}`;
 
   return (
@@ -135,11 +133,11 @@ export default async function EventsPage({ searchParams }: EventsPageProps) {
       iconColor="text-primary"
       iconBgColor="bg-primary/10 ring-1 ring-primary/20"
       title={searchQuery ? `Search: "${searchQuery}"` : 'All Events'}
-      description="Discover concerts, shows, festivals, and events across Melbourne"
+      description="Discover concerts, shows, festivals and events across Melbourne"
       filters={
         <div className="space-y-4">
           <SearchBar />
-          <EventFilters isAuthenticated={isAuthenticated} />
+          <EventFilters isAuthenticated={!!session?.user} />
         </div>
       }
     >

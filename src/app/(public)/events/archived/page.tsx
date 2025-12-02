@@ -1,14 +1,23 @@
-// app/(public)/events/archived/page.tsx
 import { getServerSession } from "next-auth";
+import { Suspense } from "react";
+import { Metadata } from "next";
+import { Archive } from "lucide-react";
 import { authOptions } from "@/lib/auth";
 import { EventsPageLayout } from '@/components/layout/EventsPageLayout';
 import { EventsGrid, EventsGridSkeleton } from '@/components/events/sections/EventsGrid';
 import { SearchBar } from '@/components/events/filters/SearchBar';
 import { EventFilters } from '@/components/events/filters/EventFilters';
-import { Suspense } from "react";
 import { SerializedEvent } from "@/lib/models/Event";
 import { getUserFavourites } from "@/lib/actions/interactions";
-import { Archive } from "lucide-react";
+
+export const metadata: Metadata = {
+    title: "Archived Events | Melbourne Events",
+    description: "Browse Melbourne's event history. Explore past concerts, shows, festivals and cultural events for research and reference.",
+    openGraph: {
+        title: "Archived Events | Melbourne Events",
+        description: "Browse Melbourne's event history and explore past concerts, shows and festivals.",
+    },
+};
 
 interface ArchivedEventsPageProps {
     searchParams: Promise<{
@@ -45,38 +54,29 @@ interface ArchivedEventsGridWrapperProps {
 }
 
 async function ArchivedEventsGridWrapper(props: ArchivedEventsGridWrapperProps) {
-    const {
-        page,
-        searchQuery,
-        category,
-        subcategory,
-        freeOnly,
-        sortOption,
-        userFavourites,
-    } = props;
+    const params = new URLSearchParams({ page: props.page.toString() });
 
-    const params = new URLSearchParams({ page: page.toString() });
-
-    if (searchQuery.trim()) params.set('q', searchQuery.trim());
-    if (category) params.set('category', category);
-    if (subcategory) params.set('subcategory', subcategory);
-    if (freeOnly) params.set('free', 'true');
-    if (sortOption) params.set('sort', sortOption);
+    // Apply filters
+    if (props.searchQuery.trim()) params.set('q', props.searchQuery.trim());
+    if (props.category) params.set('category', props.category);
+    if (props.subcategory) params.set('subcategory', props.subcategory);
+    if (props.freeOnly) params.set('free', 'true');
+    if (props.sortOption) params.set('sort', props.sortOption);
 
     const data = await fetchArchivedEvents(params);
-    const eventsData: SerializedEvent[] = data.events;
+    const events: SerializedEvent[] = data.events;
     const { totalEvents, totalPages } = data.pagination;
 
-    const source = searchQuery ? 'search' : category ? 'category_browse' : 'direct';
-    const hasFilters = searchQuery || category || subcategory || freeOnly;
+    const source = props.searchQuery ? 'search' : props.category ? 'category_browse' : 'direct';
+    const hasFilters = props.searchQuery || props.category || props.subcategory || props.freeOnly;
 
     return (
         <EventsGrid
-            events={eventsData}
+            events={events}
             totalEvents={totalEvents}
             totalPages={totalPages}
-            currentPage={page}
-            userFavourites={userFavourites}
+            currentPage={props.page}
+            userFavourites={props.userFavourites}
             source={source}
             emptyTitle={hasFilters ? "No archived events found" : "No archived events yet"}
             emptyDescription={
@@ -90,7 +90,9 @@ async function ArchivedEventsGridWrapper(props: ArchivedEventsGridWrapperProps) 
 
 export default async function ArchivedEventsPage({ searchParams }: ArchivedEventsPageProps) {
     const params = await searchParams;
+    const session = await getServerSession(authOptions);
 
+    // Parse search parameters
     const currentPage = Number(params.page) || 1;
     const searchQuery = params.q || '';
     const category = params.category || '';
@@ -98,15 +100,14 @@ export default async function ArchivedEventsPage({ searchParams }: ArchivedEvent
     const freeOnly = params.free === 'true';
     const sortOption = params.sort || 'date-recent';
 
-    const session = await getServerSession(authOptions);
-    const isAuthenticated = Boolean(session?.user);
-
+    // Get user favourites
     let userFavourites = new Set<string>();
     if (session?.user?.id) {
         const favouriteIds = await getUserFavourites(session.user.id);
         userFavourites = new Set(favouriteIds);
     }
 
+    // Create unique key for Suspense
     const suspenseKey = `archived-${currentPage}-${searchQuery}-${category}-${subcategory}-${freeOnly}-${sortOption}`;
 
     return (
@@ -120,7 +121,11 @@ export default async function ArchivedEventsPage({ searchParams }: ArchivedEvent
                 <div className="space-y-4">
                     <SearchBar placeholder="Search archived events..." />
                     <EventFilters
-                        isAuthenticated={isAuthenticated}
+                        isAuthenticated={!!session?.user}
+                        hideRecommendedSort={true}
+                        hideDateFilters={true}
+                        hideAccessibilityFilter={true}
+                        isArchived={true}
                     />
                 </div>
             }

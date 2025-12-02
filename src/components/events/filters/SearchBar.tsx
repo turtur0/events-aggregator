@@ -1,4 +1,3 @@
-// components/search/SearchBar.tsx
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -12,7 +11,7 @@ interface SearchBarProps {
 }
 
 export function SearchBar({
-  placeholder = "Search events by name, venue, or description..."
+  placeholder = "Search events by name, venue or description..."
 }: SearchBarProps) {
   const router = useRouter();
   const pathname = usePathname();
@@ -23,15 +22,15 @@ export function SearchBar({
 
   const isHomePage = pathname === '/';
 
-  // Sync input with URL when user navigates (back/forward button)
+  // Sync input with URL when navigating (back/forward)
   useEffect(() => {
     const urlQuery = searchParams.get('q') || '';
     if (urlQuery !== searchTerm) {
       setSearchTerm(urlQuery);
     }
-  }, [searchParams.get('q')]);
+  }, [searchParams]);
 
-  // Debounced search - only runs when searchTerm changes
+  // Debounced search for non-home pages
   useEffect(() => {
     if (isHomePage) {
       setIsSearching(false);
@@ -57,7 +56,6 @@ export function SearchBar({
       }
 
       params.set('page', '1');
-
       router.push(`${pathname}?${params.toString()}`, { scroll: false });
       setIsSearching(false);
     }, 500);
@@ -94,44 +92,53 @@ export function SearchBar({
 
   return (
     <form onSubmit={handleSubmit} className="relative group">
-      <Search className={`absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground transition-colors duration-(--transition-base) ${isHomePage ? 'group-focus-within:text-primary' : 'group-focus-within:text-foreground'
-        }`} />
+      {/* Search Icon */}
+      <Search
+        className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground transition-colors group-focus-within:text-primary"
+        aria-hidden="true"
+      />
+
+      {/* Input Field */}
       <Input
         type="text"
         placeholder={placeholder}
         value={searchTerm}
         onChange={(e) => setSearchTerm(e.target.value)}
-        className={`pl-9 transition-all duration-(--transition-base) ${isHomePage
-            ? 'pr-20 h-14 text-base border-2 focus:border-primary/50 focus:ring-2 focus:ring-primary/20'
-            : 'pr-9 border-2'
-          }`}
+        className="pl-9 pr-20 h-14 text-base border-2 focus:border-primary/50 focus:ring-2 focus:ring-primary/20 transition-all"
+        aria-label="Search events"
       />
+
+      {/* Right Side Controls */}
       <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
+        {/* Loading Spinner */}
         {isSearching && (
-          <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+          <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" aria-label="Searching" />
         )}
+
+        {/* Clear Button */}
         {searchTerm && !isSearching && (
           <Button
             type="button"
             variant="ghost"
             size="sm"
             onClick={handleClear}
-            className="h-7 w-7 p-0 hover:bg-muted/80 transition-colors duration-(--transition-base)"
+            className="h-7 w-7 p-0 hover:bg-muted/80 transition-colors"
+            aria-label="Clear search"
           >
             <X className="h-4 w-4" />
-            <span className="sr-only">Clear search</span>
           </Button>
         )}
-        {isHomePage && (
-          <Button
-            type="submit"
-            size="sm"
-            className={`h-9 px-4 transition-all hover:scale-[1.02] active:scale-[0.98] ${searchTerm.trim() ? 'animate-in fade-in-0 slide-in-from-right-2 duration-200' : ''
-              }`}
-          >
-            Search
-          </Button>
-        )}
+
+        {/* Search Button - Always visible */}
+        <Button
+          type="submit"
+          size="sm"
+          disabled={!searchTerm.trim()}
+          className="h-9 px-4 transition-all hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
+          aria-label="Search"
+        >
+          Search
+        </Button>
       </div>
     </form>
   );

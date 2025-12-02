@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { Metadata } from "next";
 import { PopularityScatterChart } from '@/components/analytics/PopularityScatterChart';
 import { PriceDistributionChart } from '@/components/analytics/PriceDistributionChart';
 import { TimelineChart } from '@/components/analytics/TimelineChart';
@@ -29,9 +30,7 @@ const AVAILABLE_CHARTS = [
 ];
 
 export default function InsightsPage() {
-    const [selectedCharts, setSelectedCharts] = useState(
-        AVAILABLE_CHARTS.map(c => c.id)
-    );
+    const [selectedCharts, setSelectedCharts] = useState(AVAILABLE_CHARTS.map(c => c.id));
     const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
     const [showSelector, setShowSelector] = useState(false);
 
@@ -49,7 +48,7 @@ export default function InsightsPage() {
 
     return (
         <div className="w-full">
-            {/* Header Section */}
+            {/* Header */}
             <section className="page-header">
                 <div className="container-page">
                     <BackButton fallbackUrl="/" className="mb-8" />
@@ -74,25 +73,27 @@ export default function InsightsPage() {
             <section className="border-b bg-background/95 backdrop-blur sticky top-14 sm:top-16 z-10">
                 <div className="container-page py-4">
                     <div className="flex items-center justify-between gap-4">
-                        {/* View Mode Toggle - Hidden on mobile */}
+                        {/* View Mode Toggle */}
                         <div className="hidden sm:flex items-center rounded-lg border-2 bg-background p-1 gap-1">
                             <button
                                 onClick={() => setViewMode('grid')}
-                                className={`p-2 rounded transition-all duration-(--transition-base) ${viewMode === 'grid'
+                                className={`p-2 rounded transition-all ${viewMode === 'grid'
                                         ? 'bg-primary text-primary-foreground shadow-sm'
                                         : 'text-muted-foreground hover:text-foreground hover:bg-muted'
                                     }`}
                                 title="Grid view"
+                                aria-label="Grid view"
                             >
                                 <Grid3x3 className="h-4 w-4" />
                             </button>
                             <button
                                 onClick={() => setViewMode('list')}
-                                className={`p-2 rounded transition-all duration-(--transition-base) ${viewMode === 'list'
+                                className={`p-2 rounded transition-all ${viewMode === 'list'
                                         ? 'bg-primary text-primary-foreground shadow-sm'
                                         : 'text-muted-foreground hover:text-foreground hover:bg-muted'
                                     }`}
                                 title="List view"
+                                aria-label="List view"
                             >
                                 <List className="h-4 w-4" />
                             </button>
@@ -102,20 +103,28 @@ export default function InsightsPage() {
                         <div className="relative ml-auto">
                             <button
                                 onClick={() => setShowSelector(!showSelector)}
-                                className="flex items-center gap-2 px-4 py-2 rounded-lg border-2 bg-background hover:bg-muted transition-all duration-(--transition-base) text-sm font-medium"
+                                className="flex items-center gap-2 px-4 py-2 rounded-lg border-2 bg-background hover:bg-muted transition-all text-sm font-medium"
+                                aria-expanded={showSelector}
+                                aria-label="Customise charts"
                             >
                                 <BarChart3 className="h-4 w-4" />
-                                <span className="hidden sm:inline">Customize</span>
+                                <span className="hidden sm:inline">Customise</span>
                                 <span className="sm:hidden">Charts</span>
-                                <span className="text-xs text-muted-foreground">({selectedCharts.length})</span>
+                                <span className="text-xs text-muted-foreground">
+                                    ({selectedCharts.length})
+                                </span>
                             </button>
 
                             {showSelector && (
                                 <>
+                                    {/* Backdrop */}
                                     <div
                                         className="fixed inset-0 z-20"
                                         onClick={() => setShowSelector(false)}
+                                        aria-hidden="true"
                                     />
+
+                                    {/* Dropdown */}
                                     <div className="absolute right-0 mt-2 w-64 sm:w-72 rounded-xl border-2 bg-background shadow-lg z-30 overflow-hidden">
                                         <div className="p-4 border-b bg-muted/30">
                                             <h3 className="font-semibold text-sm">Select Charts</h3>
@@ -127,15 +136,16 @@ export default function InsightsPage() {
                                                 return (
                                                     <label
                                                         key={chart.id}
-                                                        className="flex items-center gap-3 p-3 hover:bg-muted cursor-pointer transition-colors duration-(--transition-base) border-b last:border-b-0"
+                                                        className="flex items-center gap-3 p-3 hover:bg-muted cursor-pointer transition-colors border-b last:border-b-0"
                                                     >
                                                         <input
                                                             type="checkbox"
                                                             checked={isSelected}
                                                             onChange={() => toggleChart(chart.id)}
                                                             className="rounded border-2 text-primary focus:ring-primary focus:ring-offset-0"
+                                                            aria-label={`Toggle ${chart.name}`}
                                                         />
-                                                        <Icon className="h-4 w-4 text-primary" />
+                                                        <Icon className="h-4 w-4 text-primary" aria-hidden="true" />
                                                         <span className="text-sm font-medium">{chart.name}</span>
                                                     </label>
                                                 );
@@ -151,14 +161,14 @@ export default function InsightsPage() {
 
             {/* Empty State */}
             {displayedCharts.length === 0 && (
-                <section className="container-page section-spacing animate-in fade-in-0 slide-in-from-bottom-4 duration-500">
-                    <div className="text-center py-12">
+                <section className="container-page section-spacing">
+                    <div className="text-center py-12 animate-in fade-in slide-in-from-bottom-4 duration-500">
                         <div className="rounded-2xl bg-muted/30 p-4 inline-flex mb-4">
                             <BarChart3 className="h-12 w-12 sm:h-16 sm:w-16 text-muted-foreground" />
                         </div>
                         <h3 className="text-lg sm:text-xl font-semibold mb-2">No charts selected</h3>
                         <p className="text-sm text-muted-foreground">
-                            Click "Customize" to select visualizations
+                            Click "Customise" to select visualisations
                         </p>
                     </div>
                 </section>
@@ -166,12 +176,12 @@ export default function InsightsPage() {
 
             {/* Charts */}
             {displayedCharts.length > 0 && (
-                <section className="container-page section-spacing animate-in fade-in-0 slide-in-from-bottom-4 duration-500">
+                <section className="container-page section-spacing">
                     <div
                         className={
                             viewMode === 'grid'
-                                ? 'grid grid-cols-1 lg:grid-cols-2 gap-6'
-                                : 'space-y-6'
+                                ? 'grid grid-cols-1 lg:grid-cols-2 gap-6 animate-in fade-in slide-in-from-bottom-4 duration-500'
+                                : 'space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500'
                         }
                     >
                         {displayedCharts.map((chart) => {

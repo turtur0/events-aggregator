@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { Suspense } from "react";
+import { Metadata } from "next";
 import { ArrowRight, Music, Theater, Trophy, Palette, Users, Sparkles, Zap } from "lucide-react";
+import { getServerSession } from "next-auth";
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
@@ -9,10 +11,19 @@ import { ForYouSection } from '@/components/recommendations/ForYouSection';
 import { TrendingSection } from '@/components/recommendations/TrendingSection';
 import { UpcomingEvents } from '@/components/events/sections/UpcomingEvents';
 import { connectDB } from "@/lib/db";
-import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { getUserFavourites } from "@/lib/actions/interactions";
 import { Event } from '@/lib/models';
+
+export const metadata: Metadata = {
+  title: "Melbourne Events | Find Concerts, Theatre, Sports & More",
+  description: "Discover events across Melbourne. Search concerts, theatre, sports, festivals and more. Set custom alerts, compare pricing and explore trends. Updated daily.",
+  openGraph: {
+    title: "Melbourne Events | Find Concerts, Theatre, Sports & More",
+    description: "Discover events across Melbourne. Search concerts, theatre, sports, festivals and more.",
+    type: "website",
+  },
+};
 
 const CATEGORIES = [
   { label: "Music", slug: "music", icon: Music, className: "category-music" },
@@ -23,9 +34,12 @@ const CATEGORIES = [
   { label: "Other", slug: "other", icon: Sparkles, className: "category-other" },
 ];
 
-async function getStats() {
+async function getEventStats() {
   await connectDB();
-  const totalEvents = await Event.countDocuments({ startDate: { $gte: new Date() } });
+  const totalEvents = await Event.countDocuments({
+    startDate: { $gte: new Date() },
+    isArchived: { $ne: true }
+  });
   const sources = await Event.distinct('primarySource');
   return { totalEvents, sourceCount: sources.length };
 }
@@ -48,11 +62,10 @@ function CarouselSkeleton() {
 }
 
 export default async function HomePage() {
-  const { totalEvents, sourceCount } = await getStats();
-
+  const { totalEvents, sourceCount } = await getEventStats();
   const session = await getServerSession(authOptions);
-  let userFavourites = new Set<string>();
 
+  let userFavourites = new Set<string>();
   if (session?.user?.id) {
     const favouriteIds = await getUserFavourites(session.user.id);
     userFavourites = new Set(favouriteIds);
@@ -63,9 +76,10 @@ export default async function HomePage() {
   return (
     <div className="w-full">
       {/* Hero Section */}
-      <section className="relative overflow-hidden bg-linear-to-b from-background via-orange-50/30 to-background dark:from-background dark:via-orange-950/5 dark:to-background">
+      <section className="relative overflow-hidden bg-linear-to-b from-background via-orange-50/30 to-background dark:via-orange-950/5">
         <div className="container-page section-spacing">
           <div className="max-w-3xl mx-auto text-center">
+            {/* Badge */}
             <Badge
               variant="secondary"
               className="mb-6 border-2 border-primary/20 bg-primary/5 text-foreground hover:bg-primary/10 transition-colors duration-(--transition-base)"
@@ -74,37 +88,35 @@ export default async function HomePage() {
               Updated daily from {sourceCount} sources
             </Badge>
 
+
+            {/* Heading */}
             <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold tracking-tight mb-6">
               Every Melbourne Event,{" "}
               <span className="text-primary">One Platform</span>
             </h1>
+
+            {/* Description */}
             <p className="text-lg sm:text-xl text-muted-foreground mb-10 max-w-2xl mx-auto leading-relaxed">
               Search {totalEvents.toLocaleString()}+ events from across Melbourne. Set custom alerts for what matters to you. Compare pricing and discover trends.
             </p>
 
+            {/* Search Bar */}
             <div className="max-w-2xl mx-auto mb-8">
               <Suspense fallback={<div className="h-14 bg-muted animate-pulse rounded-lg" />}>
                 <SearchBar />
               </Suspense>
             </div>
 
+            {/* CTA Buttons */}
             <div className="flex flex-col sm:flex-row justify-center gap-4">
-              <Button
-                asChild
-                size="lg"
-                className="text-base border-2 border-primary/30 bg-primary text-primary-foreground hover:bg-primary/90 transition-all duration-(--transition-base) group shadow-sm"
-              >
+              <Button asChild size="lg" className="group">
                 <Link href="/events">
                   Browse All Events
-                  <ArrowRight className="ml-2 h-5 w-5 transition-transform duration-(--transition-base) group-hover:translate-x-0.5" />
+                  <ArrowRight className="ml-2 h-5 w-5 transition-transform group-hover:translate-x-1" />
                 </Link>
               </Button>
-              <Button
-                variant="outline"
-                size="lg"
-                asChild
-                className="text-base border-2 border-secondary/30 bg-secondary/5 text-secondary hover:bg-secondary/10 hover:border-secondary/50 transition-all duration-(--transition-base)"
-              >
+
+              <Button variant="outline" size="lg" asChild className="border-2 border-secondary/30 bg-secondary/5 text-secondary hover:bg-secondary/10 hover:border-secondary/50 transition-all duration-(--transition-base)">
                 <Link href="/insights">
                   <Sparkles className="mr-2 h-5 w-5" />
                   View Insights
@@ -123,23 +135,23 @@ export default async function HomePage() {
         </div>
 
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
-          {CATEGORIES.map((cat) => {
-            const Icon = cat.icon;
+          {CATEGORIES.map((category) => {
+            const Icon = category.icon;
             return (
               <Link
-                key={cat.slug}
-                href={`/category/${cat.slug}`}
-                className={`flex flex-col items-center justify-center p-6 rounded-xl ${cat.className}`}
+                key={category.slug}
+                href={`/category/${category.slug}`}
+                className={`flex flex-col items-center justify-center p-6 rounded-xl transition-transform hover:scale-105 ${category.className}`}
               >
                 <Icon className="h-8 w-8 mb-3" />
-                <span className="font-medium text-center text-sm">{cat.label}</span>
+                <span className="font-medium text-center text-sm">{category.label}</span>
               </Link>
             );
           })}
         </div>
       </section>
 
-      {/* For You Section */}
+      {/* Personalised Recommendations */}
       {isLoggedIn && (
         <section className="section-bg-orange">
           <div className="container-page section-spacing">
@@ -150,7 +162,7 @@ export default async function HomePage() {
         </section>
       )}
 
-      {/* Trending Section */}
+      {/* Trending Events */}
       <section className="section-bg-teal">
         <div className="container-page section-spacing">
           <Suspense fallback={<CarouselSkeleton />}>
@@ -159,7 +171,7 @@ export default async function HomePage() {
         </div>
       </section>
 
-      {/* Upcoming Events Section */}
+      {/* Upcoming Events */}
       <section className="container-page section-spacing">
         <Suspense fallback={<CarouselSkeleton />}>
           <UpcomingEvents userFavourites={userFavourites} />

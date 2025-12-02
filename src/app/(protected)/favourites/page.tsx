@@ -1,7 +1,10 @@
-// app/(protected)/favourites/page.tsx
 import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
 import { redirect } from 'next/navigation';
+import { Metadata } from "next";
+import Link from 'next/link';
+import mongoose from 'mongoose';
+import { Heart, Sparkles } from 'lucide-react';
+import { authOptions } from '@/lib/auth';
 import { connectDB } from '@/lib/db';
 import { Button } from '@/components/ui/Button';
 import { EventsPageLayout } from '@/components/layout/EventsPageLayout';
@@ -9,10 +12,13 @@ import { EventsGrid } from '@/components/events/sections/EventsGrid';
 import { EmptyState } from '@/components/other/EmptyState';
 import { SearchBar } from '@/components/events/filters/SearchBar';
 import { EventFilters } from '@/components/events/filters/EventFilters';
-import Link from 'next/link';
-import mongoose from 'mongoose';
-import { Heart, Sparkles } from 'lucide-react';
 import { UserFavourite, Event } from '@/lib/models';
+
+export const metadata: Metadata = {
+    title: "My Favourites | Melbourne Events",
+    description: "View and manage your saved Melbourne events. Keep track of concerts, shows and festivals you don't want to miss.",
+    robots: "noindex, nofollow", // Private page
+};
 
 const ITEMS_PER_PAGE = 12;
 
@@ -27,29 +33,35 @@ interface FavouritesPageProps {
     }>;
 }
 
+interface FilterOptions {
+    searchQuery?: string;
+    category?: string;
+    subcategory?: string;
+    dateFilter?: string;
+    freeOnly?: boolean;
+}
+
 async function getFavouritesWithFilters(
     userId: string,
     page: number,
-    filters: {
-        searchQuery?: string;
-        category?: string;
-        subcategory?: string;
-        dateFilter?: string;
-        freeOnly?: boolean;
-    }
+    filters: FilterOptions
 ) {
-    const query: any = { userId: new mongoose.Types.ObjectId(userId) };
-
     // Get favourite event IDs
-    const favourites = await UserFavourite.find(query).select('eventId').lean();
+    const favourites = await UserFavourite.find({
+        userId: new mongoose.Types.ObjectId(userId)
+    }).select('eventId').lean();
+
     const eventIds = favourites.map(f => f.eventId);
 
     if (eventIds.length === 0) {
         return { events: [], totalFavourites: 0, totalPages: 0 };
     }
 
-    // Build event query
-    const eventQuery: any = { _id: { $in: eventIds } };
+    // Build event query with filters
+    const eventQuery: any = {
+        _id: { $in: eventIds },
+        isArchived: { $ne: true }
+    };
 
     if (filters.searchQuery) {
         eventQuery.$or = [
@@ -57,30 +69,34 @@ async function getFavouritesWithFilters(
             { description: { $regex: filters.searchQuery, $options: 'i' } },
         ];
     }
+
     if (filters.category) eventQuery.category = filters.category;
     if (filters.subcategory) eventQuery.subcategories = filters.subcategory;
     if (filters.freeOnly) eventQuery.isFree = true;
+
+    // Apply date filters
     if (filters.dateFilter) {
         const now = new Date();
+        const today = new Date(now.setHours(0, 0, 0, 0));
+
         switch (filters.dateFilter) {
-            case 'today':
-                eventQuery.startDate = {
-                    $gte: new Date(now.setHours(0, 0, 0, 0)),
-                    $lt: new Date(now.setHours(23, 59, 59, 999))
-                };
+            case 'today': {
+                const tomorrow = new Date(today);
+                tomorrow.setDate(tomorrow.getDate() + 1);
+                eventQuery.startDate = { $gte: today, $lt: tomorrow };
                 break;
-            case 'week':
-                eventQuery.startDate = {
-                    $gte: now,
-                    $lt: new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000)
-                };
+            }
+            case 'this-week': {
+                const weekEnd = new Date(today);
+                weekEnd.setDate(weekEnd.getDate() + 7);
+                eventQuery.startDate = { $gte: today, $lt: weekEnd };
                 break;
-            case 'month':
-                eventQuery.startDate = {
-                    $gte: now,
-                    $lt: new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000)
-                };
+            }
+            case 'this-month': {
+                const monthEnd = new Date(today.getFullYear(), today.getMonth() + 1, 1);
+                eventQuery.startDate = { $gte: today, $lt: monthEnd };
                 break;
+            }
         }
     }
 
@@ -104,6 +120,8 @@ export default async function FavouritesPage({ searchParams }: FavouritesPagePro
     }
 
     const params = await searchParams;
+
+    // Parse search parameters
     const currentPage = Number(params.page) || 1;
     const searchQuery = params.q || '';
     const category = params.category || '';
@@ -113,13 +131,15 @@ export default async function FavouritesPage({ searchParams }: FavouritesPagePro
 
     await connectDB();
 
+    // Fetch favourites with filters
     const { events, totalFavourites, totalPages } = await getFavouritesWithFilters(
         session.user.id,
         currentPage,
         { searchQuery, category, subcategory, dateFilter, freeOnly }
     );
 
-    const serializedEvents = events.map(e => ({
+    // Serialise events
+    const serialisedEvents = events.map(e => ({
         _id: e._id.toString(),
         title: e.title,
         description: e.description,
@@ -137,10 +157,11 @@ export default async function FavouritesPage({ searchParams }: FavouritesPagePro
         sources: e.sources || [],
     }));
 
-    // Get all user favourites for the heart icons
+    // Get all user favourites for heart icons
     const allFavourites = await UserFavourite.find({
         userId: new mongoose.Types.ObjectId(session.user.id)
     }).select('eventId').lean();
+
     const userFavourites = new Set(allFavourites.map(f => f.eventId.toString()));
 
     const hasFilters = searchQuery || category || subcategory || dateFilter || freeOnly;
@@ -158,12 +179,12 @@ export default async function FavouritesPage({ searchParams }: FavouritesPagePro
             } : undefined}
             filters={
                 <div className="space-y-4">
-                    <SearchBar />
-                    <EventFilters />
+                    <SearchBar placeholder="Search your favourites..." />
+                    <EventFilters isAuthenticated={true} />
                 </div>
             }
         >
-            {/* Content */}
+            {/* Empty State */}
             {totalFavourites === 0 && !hasFilters ? (
                 <div className="max-w-2xl mx-auto">
                     <EmptyState
@@ -171,29 +192,21 @@ export default async function FavouritesPage({ searchParams }: FavouritesPagePro
                         description="Start exploring events and tap the heart icon to save them here for easy access later."
                     />
                     <div className="flex flex-col sm:flex-row gap-4 justify-center mt-8">
-                        <Button
-                            asChild
-                            size="lg"
-                            className="border-2 border-primary/30 hover:border-primary/50 transition-all hover-lift group"
-                        >
-                            <Link href="/events" className="flex items-center">
-                                <Sparkles className="mr-2 h-5 w-5 group-hover:rotate-12 transition-transform" />
+                        <Button asChild size="lg" className="group">
+                            <Link href="/events">
+                                <Sparkles className="mr-2 h-5 w-5 transition-transform group-hover:rotate-12" />
                                 Discover Events
                             </Link>
                         </Button>
-                        <Button
-                            variant="outline"
-                            size="lg"
-                            asChild
-                            className="border-2 border-secondary/30 hover:border-secondary/50 hover:bg-secondary/10 transition-all hover-lift"
-                        >
+
+                        <Button variant="outline" size="lg" asChild className="border-2">
                             <Link href="/category/music">Browse Music</Link>
                         </Button>
                     </div>
                 </div>
             ) : (
                 <EventsGrid
-                    events={serializedEvents}
+                    events={serialisedEvents}
                     totalEvents={totalFavourites}
                     totalPages={totalPages}
                     currentPage={currentPage}

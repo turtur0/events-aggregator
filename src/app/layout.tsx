@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
+import { Nunito } from "next/font/google";
 import "./globals.css";
 import { ThemeProvider } from "@/components/recommendations/ThemeProvider";
 import { Header } from "@/components/layout/Header";
@@ -7,11 +7,16 @@ import { Footer } from "@/components/layout/Footer";
 import { cn } from "@/lib/utils";
 import { SessionProviderWrapper } from "./providers";
 
-const inter = Inter({ subsets: ["latin"] });
+const nunito = Nunito({
+  subsets: ["latin"],
+  variable: "--font-nunito",
+  weight: ["300", "400", "500", "600", "700", "800", "900"],
+});
 
 export const metadata: Metadata = {
   title: "Melbourne Events | Discover Concerts, Shows & Festivals",
-  description: "Discover the best events across Melbourne - concerts, theatre, sports, festivals and more. Aggregated from multiple sources, updated daily.",
+  description:
+    "Discover the best events across Melbourne - concerts, theatre, sports, festivals and more. Aggregated from multiple sources, updated daily.",
 };
 
 export default function RootLayout({
@@ -21,7 +26,13 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={cn(inter.className, "min-h-screen bg-background antialiased")}>
+      {/* Nunito is the global font now */}
+      <body
+        className={cn(
+          nunito.variable,
+          "min-h-screen bg-background antialiased font-sans"
+        )}
+      >
         <SessionProviderWrapper>
           <ThemeProvider
             attribute="class"
@@ -31,9 +42,7 @@ export default function RootLayout({
           >
             <div className="relative flex min-h-screen flex-col">
               <Header />
-              <main className="flex-1 w-full">
-                {children}
-              </main>
+              <main className="flex-1 w-full">{children}</main>
               <Footer />
             </div>
           </ThemeProvider>

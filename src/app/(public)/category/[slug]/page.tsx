@@ -1,17 +1,17 @@
-// app/category/[slug]/page.tsx
 import { notFound } from "next/navigation";
 import Link from "next/link";
+import { Suspense } from "react";
+import { Metadata } from "next";
 import { getServerSession } from "next-auth";
+import { Music, Theater, Trophy, Palette, Users, Sparkles, LucideIcon } from "lucide-react";
 import { authOptions } from "@/lib/auth";
 import { EventsPageLayout } from '@/components/layout/EventsPageLayout';
 import { EventsGrid, EventsGridSkeleton } from "@/components/events/sections/EventsGrid";
 import { SearchBar } from '@/components/events/filters/SearchBar';
 import { EventFilters } from '@/components/events/filters/EventFilters';
 import { Badge } from '@/components/ui/Badge';
-import { Suspense } from "react";
 import { CATEGORIES } from "@/lib/constants/categories";
 import { getUserFavourites } from "@/lib/actions/interactions";
-import { Music, Theater, Trophy, Palette, Users, Sparkles, LucideIcon } from "lucide-react";
 
 interface CategoryPageProps {
   params: Promise<{ slug: string }>;
@@ -68,7 +68,7 @@ const CATEGORY_CONFIG: Record<string, CategoryInfo> = {
   },
   family: {
     title: 'Family Events',
-    description: 'Fun for the whole family - kids shows, educational events and more',
+    description: 'Fun for the whole family — kids shows, educational events and more',
     icon: Users,
     color: 'text-emerald-600 dark:text-emerald-400',
     bgColor: 'bg-emerald-500/10 ring-1 ring-emerald-500/20',
@@ -84,23 +84,14 @@ const CATEGORY_CONFIG: Record<string, CategoryInfo> = {
   },
 };
 
-async function CategoryEventsGridWrapper({
-  categoryValue,
-  page,
-  searchQuery,
-  subcategory,
-  dateFilter,
-  freeOnly,
-  userFavourites,
-}: {
-  categoryValue: string;
-  page: number;
-  searchQuery: string;
-  subcategory: string;
-  dateFilter: string;
-  freeOnly: boolean;
-  userFavourites: Set<string>;
-}) {
+async function fetchCategoryEvents(
+  categoryValue: string,
+  page: number,
+  searchQuery: string,
+  subcategory: string,
+  dateFilter: string,
+  freeOnly: boolean
+) {
   const params = new URLSearchParams({
     page: page.toString(),
     category: categoryValue,
@@ -120,51 +111,81 @@ async function CategoryEventsGridWrapper({
     throw new Error('Failed to fetch events');
   }
 
-  const { events, pagination } = await response.json();
+  return response.json();
+}
+
+interface CategoryEventsGridWrapperProps {
+  categoryValue: string;
+  page: number;
+  searchQuery: string;
+  subcategory: string;
+  dateFilter: string;
+  freeOnly: boolean;
+  userFavourites: Set<string>;
+}
+
+async function CategoryEventsGridWrapper(props: CategoryEventsGridWrapperProps) {
+  const { events, pagination } = await fetchCategoryEvents(
+    props.categoryValue,
+    props.page,
+    props.searchQuery,
+    props.subcategory,
+    props.dateFilter,
+    props.freeOnly
+  );
+
   const { totalEvents, totalPages } = pagination;
+  const source = props.searchQuery ? 'search' : 'category_browse';
 
   return (
     <EventsGrid
       events={events}
       totalEvents={totalEvents}
       totalPages={totalPages}
-      currentPage={page}
-      userFavourites={userFavourites}
+      currentPage={props.page}
+      userFavourites={props.userFavourites}
+      source={source}
       emptyTitle="No events found"
       emptyDescription="No events in this category right now. Check back soon!"
     />
   );
 }
 
-export async function generateMetadata({ params }: CategoryPageProps) {
+export async function generateMetadata({ params }: CategoryPageProps): Promise<Metadata> {
   const { slug } = await params;
   const info = CATEGORY_CONFIG[slug];
 
   if (!info) {
-    return { title: 'Category Not Found' };
+    return { title: 'Category Not Found | Melbourne Events' };
   }
 
   return {
     title: `${info.title} | Melbourne Events`,
-    description: info.description,
+    description: `${info.description}. Browse all ${info.title.toLowerCase()} events in Melbourne.`,
+    openGraph: {
+      title: `${info.title} | Melbourne Events`,
+      description: info.description,
+    },
   };
 }
 
 export default async function CategoryPage({ params, searchParams }: CategoryPageProps) {
   const { slug } = await params;
-  const searchParamsResolved = await searchParams;
+  const resolvedParams = await searchParams;
   const categoryInfo = CATEGORY_CONFIG[slug];
 
   if (!categoryInfo) {
     notFound();
   }
 
-  const currentPage = Number(searchParamsResolved.page) || 1;
-  const searchQuery = searchParamsResolved.q || '';
-  const subcategory = searchParamsResolved.subcategory || '';
-  const dateFilter = searchParamsResolved.date || '';
-  const freeOnly = searchParamsResolved.free === 'true';
+  // Parse search parameters
+  const currentPage = Number(resolvedParams.page) || 1;
+  const searchQuery = resolvedParams.q || '';
+  const subcategory = resolvedParams.subcategory || '';
+  const dateFilter = resolvedParams.date || '';
+  const freeOnly = resolvedParams.free === 'true';
 
+  // Get user session and favourites
   const session = await getServerSession(authOptions);
   let userFavourites = new Set<string>();
 
@@ -173,6 +194,7 @@ export default async function CategoryPage({ params, searchParams }: CategoryPag
     userFavourites = new Set(favouriteIds);
   }
 
+  // Get category configuration for subcategories
   const categoryConfig = CATEGORIES.find(c => c.value === slug);
   const suspenseKey = `${slug}-${currentPage}-${searchQuery}-${subcategory}-${dateFilter}-${freeOnly}`;
 
@@ -187,7 +209,7 @@ export default async function CategoryPage({ params, searchParams }: CategoryPag
         <div className="space-y-4">
           <SearchBar placeholder={`Search ${categoryInfo.title.toLowerCase()}...`} />
 
-          {/* Subcategories */}
+          {/* Subcategory Filter Pills */}
           {categoryConfig?.subcategories && categoryConfig.subcategories.length > 0 && (
             <div className="flex flex-wrap gap-2">
               <Link href={`/category/${slug}`}>
@@ -216,7 +238,11 @@ export default async function CategoryPage({ params, searchParams }: CategoryPag
             </div>
           )}
 
-          <EventFilters />
+          <EventFilters
+            isAuthenticated={!!session?.user}
+            hideCategoryFilter={true}
+            hideSubcategoryFilter={true}
+          />
         </div>
       }
     >
