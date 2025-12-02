@@ -1,63 +1,100 @@
-import { notFound } from "next/navigation";
-import Image from "next/image";
-import { Calendar, MapPin, DollarSign, Users, Clock, Video, Info } from "lucide-react";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
-import { connectDB } from "@/lib/db";
-import { Badge } from '@/components/ui/Badge';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
+// app/events/[id]/page.tsx
+import { notFound } from 'next/navigation';
+import Image from 'next/image';
+import { Calendar, MapPin, DollarSign, Users, Clock, Video, Info } from 'lucide-react';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth';
+import { connectDB } from '@/lib/db';
+import { Card, CardContent } from '@/components/ui/Card';
 import { Separator } from '@/components/ui/Separator';
 import { FavouriteButton } from '@/components/events/cards/FavouriteButton';
 import { ViewTracker } from '@/components/events/ViewTracker';
 import { BookingLink } from '@/components/events/BookingLink';
 import { SimilarEvents } from '@/components/recommendations/SimilarEvents';
 import { BackButton } from '@/components/layout/BackButton';
-import { format, isSameMonth } from "date-fns";
-import { getCategoryLabel } from "@/lib/constants/categories";
-import mongoose from "mongoose";
+import { EventBadge } from '@/components/events/cards/EventBadge';
+import { EventComparison } from '@/components/analytics/EventComparisonChart';
+import { format, isSameMonth } from 'date-fns';
+import { getCategoryLabel } from '@/lib/constants/categories';
+import mongoose from 'mongoose';
 import { Event, UserFavourite } from '@/lib/models';
-import { EventComparison } from "@/components/analytics/EventComparisonChart";
+import { EventInfoSidebar } from '@/components/events/sections/EventInfoSidebar';
 
 interface EventPageProps {
     params: Promise<{ id: string }>;
 }
 
-// Category colour mapping using utility classes from global.css
-const CATEGORY_COLORS: Record<string, string> = {
-    music: "category-music",
-    theatre: "category-theatre",
-    sports: "category-sports",
-    arts: "category-arts",
-    family: "category-family",
-    other: "category-other",
+// Helper functions
+const mapToObject = (map: any) => {
+    if (!map) return {};
+    if (typeof map.get === 'function') {
+        const obj: Record<string, any> = {};
+        for (const [key, value] of map) {
+            obj[key] = value;
+        }
+        return obj;
+    }
+    return map;
 };
 
+const formatEventDate = (startDate: string, endDate?: string) => {
+    try {
+        const start = new Date(startDate);
+        if (!endDate) return format(start, 'EEEE, MMMM d, yyyy');
+
+        const end = new Date(endDate);
+        if (isSameMonth(start, end)) {
+            return `${format(start, 'EEEE, MMMM d')} - ${format(end, 'd, yyyy')}`;
+        }
+        return `${format(start, 'MMMM d')} - ${format(end, 'MMMM d, yyyy')}`;
+    } catch {
+        return 'Date TBA';
+    }
+};
+
+const formatEventTime = (startDate: string, hasEndDate: boolean) => {
+    try {
+        const start = new Date(startDate);
+        const startTime = format(start, 'h:mm a');
+        return hasEndDate ? `Starts ${startTime} daily` : startTime;
+    } catch {
+        return '';
+    }
+};
+
+const formatEventPrice = (isFree: boolean, priceMin?: number, priceMax?: number) => {
+    if (isFree) return 'Free Entry';
+    if (priceMin && priceMax) return `$${priceMin} - $${priceMax}`;
+    if (priceMin) return `From $${priceMin}`;
+    return 'Check booking link for pricing';
+};
+
+// Metadata generation
 export async function generateMetadata({ params }: EventPageProps) {
     const { id } = await params;
     await connectDB();
     const event = await Event.findById(id).lean();
 
     if (!event) {
-        return {
-            title: "Event Not Found",
-        };
+        return { title: 'Event Not Found' };
     }
 
     return {
         title: `${event.title} | Melbourne Events`,
         description: event.description.substring(0, 160),
+        openGraph: {
+            title: event.title,
+            description: event.description.substring(0, 160),
+            images: event.imageUrl ? [event.imageUrl] : [],
+        },
     };
 }
-
 export default async function EventPage({ params }: EventPageProps) {
     const { id } = await params;
     await connectDB();
 
     const eventDoc = await Event.findById(id).lean();
-
-    if (!eventDoc) {
-        notFound();
-    }
+    if (!eventDoc) notFound();
 
     const session = await getServerSession(authOptions);
     let isFavourited = false;
@@ -66,28 +103,16 @@ export default async function EventPage({ params }: EventPageProps) {
     if (session?.user?.id) {
         const userId = new mongoose.Types.ObjectId(session.user.id);
 
-        const favourite = await UserFavourite.findOne({
-            userId,
-            eventId: new mongoose.Types.ObjectId(id),
-        });
-        isFavourited = !!favourite;
+        const [favourite, allFavourites] = await Promise.all([
+            UserFavourite.findOne({ userId, eventId: new mongoose.Types.ObjectId(id) }),
+            UserFavourite.find({ userId }).select('eventId')
+        ]);
 
-        const allFavourites = await UserFavourite.find({ userId }).select('eventId');
+        isFavourited = !!favourite;
         userFavourites = new Set(allFavourites.map(f => f.eventId.toString()));
     }
 
-    const mapToObject = (map: any) => {
-        if (!map) return {};
-        if (typeof map.get === 'function') {
-            const obj: Record<string, any> = {};
-            for (const [key, value] of map) {
-                obj[key] = value;
-            }
-            return obj;
-        }
-        return map;
-    };
-
+    // Serialize event
     const event = {
         ...eventDoc,
         _id: eventDoc._id.toString(),
@@ -99,65 +124,27 @@ export default async function EventPage({ params }: EventPageProps) {
         bookingUrls: mapToObject(eventDoc.bookingUrls),
     };
 
-    const formatDate = () => {
-        try {
-            const start = new Date(event.startDate);
-
-            if (!event.endDate) {
-                return format(start, "EEEE, MMMM d, yyyy");
-            }
-
-            const end = new Date(event.endDate);
-
-            if (isSameMonth(start, end)) {
-                return `${format(start, "EEEE, MMMM d")} - ${format(end, "d, yyyy")}`;
-            }
-
-            return `${format(start, "MMMM d")} - ${format(end, "MMMM d, yyyy")}`;
-
-        } catch {
-            return "Date TBA";
-        }
-    };
-
-    const formatTime = () => {
-        try {
-            const start = new Date(event.startDate);
-            const startTime = format(start, "h:mm a");
-
-            if (event.endDate) {
-                return `Starts ${startTime} daily`;
-            }
-
-            return startTime;
-        } catch {
-            return "";
-        }
-    };
-
-    const formatPrice = () => {
-        if (event.isFree) return "Free Entry";
-        if (event.priceMin && event.priceMax) {
-            return `$${event.priceMin} - $${event.priceMax}`;
-        }
-        if (event.priceMin) return `From $${event.priceMin}`;
-        return "Check booking link for pricing";
-    };
-
-    const bookingUrls = event.bookingUrls || {};
     const hasMultipleSources = event.sources && event.sources.length > 1;
-    const categoryColorClass = CATEGORY_COLORS[event.category] || CATEGORY_COLORS.other;
+    const bookingUrls = event.bookingUrls || {};
+
+    // Prepare alternative bookings
+    const alternativeBookings = hasMultipleSources && Object.keys(bookingUrls).length > 1
+        ? Object.entries(bookingUrls)
+            .filter(([source]) => source !== event.primarySource)
+            .map(([source, url]) => ({ source, url: url as string }))
+        : [];
 
     return (
         <div className="w-full">
             <ViewTracker eventId={event._id} source="direct" />
 
-            <section className="container max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-12">
+            <section className="container-page section-spacing">
                 <BackButton fallbackUrl="/" className="mb-6 sm:mb-8" />
 
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8">
-                    {/* Main content */}
+                    {/* Main Content */}
                     <div className="lg:col-span-2">
+                        {/* Event Image */}
                         {event.imageUrl && (
                             <div className="relative h-64 sm:h-80 lg:h-96 w-full rounded-lg overflow-hidden mb-6 border-2 border-border/50 shadow-lg">
                                 <Image
@@ -177,37 +164,30 @@ export default async function EventPage({ params }: EventPageProps) {
                             </div>
                         )}
 
-                        {/* Title and badges section */}
+                        {/* Title & Badges */}
                         <div className="mb-6">
-                            <div className="flex items-center justify-between gap-4 mb-3">
-                                <div className="flex items-center gap-2 flex-wrap">
-                                    <Badge className={`${categoryColorClass} font-medium hover:shadow-[0_0_10px_currentColor] hover:scale-105`}>
-                                        {getCategoryLabel(event.category)}
-                                    </Badge>
+                            <div className="flex items-centre justify-between gap-4 mb-3 flex-wrap">
+                                <div className="flex items-centre gap-2 flex-wrap">
+                                    <EventBadge
+                                        type="category"
+                                        label={getCategoryLabel(event.category)}
+                                        category={event.category}
+                                        href={`/category/${event.category}`}
+                                    />
                                     {event.subcategories?.map((sub) => (
-                                        <Badge
+                                        <EventBadge
                                             key={sub}
-                                            variant="outline"
-                                            className="badge-outline-hover"
-                                        >
-                                            {sub}
-                                        </Badge>
+                                            type="subcategory"
+                                            label={sub}
+                                            category={event.category}
+                                            subcategory={sub}
+                                        />
                                     ))}
                                     {event.endDate && (
-                                        <Badge
-                                            variant="outline"
-                                            className="badge-outline-hover"
-                                        >
-                                            Multi-day Event
-                                        </Badge>
+                                        <EventBadge type="multiday" label="Multi-day Event" />
                                     )}
                                     {event.ageRestriction && (
-                                        <Badge
-                                            variant="destructive"
-                                            className="transition-all hover:shadow-[0_0_12px_rgba(239,68,68,0.5)] hover:scale-105"
-                                        >
-                                            {event.ageRestriction}
-                                        </Badge>
+                                        <EventBadge type="age" label={event.ageRestriction} />
                                     )}
                                 </div>
                                 {!event.imageUrl && (
@@ -219,154 +199,51 @@ export default async function EventPage({ params }: EventPageProps) {
                                     />
                                 )}
                             </div>
+
                             <h1 className="text-3xl sm:text-4xl font-bold mb-3">{event.title}</h1>
+
                             {hasMultipleSources && (
-                                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                                    <Info className="h-4 w-4" />
+                                <div className="flex items-centre gap-2 text-sm text-muted-foreground">
+                                    <Info className="h-4 w-4" aria-hidden="true" />
                                     <p>Verified across {event.sources.length} sources</p>
                                 </div>
                             )}
                         </div>
 
-                        {/* Sidebar appears here on mobile - below title/badges but above description */}
+                        {/* Mobile Sidebar */}
                         <div className="lg:hidden mb-6">
-                            <Card className="border-2 border-border/50 shadow-lg">
-                                <CardContent className="p-4 sm:p-6">
-                                    {/* Date & time */}
-                                    <div className="mb-4">
-                                        <div className="flex items-start gap-3">
-                                            <Calendar className="h-5 w-5 text-primary mt-0.5 shrink-0" />
-                                            <div>
-                                                <p className="font-semibold mb-1 text-sm">Date & Time</p>
-                                                <p className="text-sm text-muted-foreground">{formatDate()}</p>
-                                                {formatTime() && (
-                                                    <p className="text-sm text-muted-foreground">{formatTime()}</p>
-                                                )}
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    <Separator className="my-4" />
-
-                                    {/* Duration (if available) */}
-                                    {event.duration && (
-                                        <>
-                                            <div className="mb-4">
-                                                <div className="flex items-start gap-3">
-                                                    <Clock className="h-5 w-5 text-secondary mt-0.5 shrink-0" />
-                                                    <div>
-                                                        <p className="font-semibold mb-1 text-sm">Duration</p>
-                                                        <p className="text-sm text-muted-foreground">{event.duration}</p>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                            <Separator className="my-4" />
-                                        </>
-                                    )}
-
-                                    {/* Location */}
-                                    <div className="mb-4">
-                                        <div className="flex items-start gap-3">
-                                            <MapPin className="h-5 w-5 text-primary mt-0.5 shrink-0" />
-                                            <div>
-                                                <p className="font-semibold mb-1 text-sm">Location</p>
-                                                <p className="text-sm text-muted-foreground">
-                                                    {event.venue.name}
-                                                </p>
-                                                <p className="text-sm text-muted-foreground">
-                                                    {event.venue.suburb}
-                                                </p>
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    <Separator className="my-4" />
-
-                                    {/* Price */}
-                                    <div className="mb-6">
-                                        <div className="flex items-start gap-3">
-                                            <DollarSign className="h-5 w-5 text-secondary mt-0.5 shrink-0" />
-                                            <div className="w-full">
-                                                <p className="font-semibold mb-1 text-sm">Price</p>
-                                                <p className="text-sm text-muted-foreground mb-2">{formatPrice()}</p>
-                                                {event.priceDetails && (
-                                                    <p className="text-xs text-muted-foreground">
-                                                        {event.priceDetails}
-                                                    </p>
-                                                )}
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    <Separator className="my-4" />
-
-                                    {/* Action buttons */}
-                                    <div className="space-y-3">
-                                        <FavouriteButton
-                                            eventId={event._id}
-                                            initialFavourited={isFavourited}
-                                            source="direct"
-                                            variant="button"
-                                            className="w-full"
-                                        />
-
-                                        <BookingLink
-                                            eventId={event._id}
-                                            href={event.bookingUrl}
-                                            className="w-full"
-                                        >
-                                            Get Tickets
-                                        </BookingLink>
-
-                                        {/* Alternative booking sources */}
-                                        {hasMultipleSources && Object.keys(bookingUrls).length > 1 && (
-                                            <div className="pt-2 space-y-2">
-                                                <p className="text-xs text-muted-foreground text-center">
-                                                    Also available on:
-                                                </p>
-                                                {Object.entries(bookingUrls).map(([source, url]) => {
-                                                    if (source === event.primarySource) return null;
-                                                    return (
-                                                        <BookingLink
-                                                            key={source}
-                                                            eventId={event._id}
-                                                            href={url as string}
-                                                            variant="outline"
-                                                            size="sm"
-                                                            className="w-full"
-                                                        >
-                                                            {source.charAt(0).toUpperCase() + source.slice(1)}
-                                                        </BookingLink>
-                                                    );
-                                                })}
-                                            </div>
-                                        )}
-
-                                        <p className="text-xs text-muted-foreground text-center pt-2">
-                                            You'll be redirected to the official ticketing site
-                                        </p>
-                                    </div>
-                                </CardContent>
-                            </Card>
+                            <EventInfoSidebar
+                                eventId={event._id}
+                                isFavourited={isFavourited}
+                                dateText={formatEventDate(event.startDate, event.endDate)}
+                                timeText={formatEventTime(event.startDate, !!event.endDate)}
+                                duration={event.duration}
+                                venueName={event.venue.name}
+                                venueSuburb={event.venue.suburb}
+                                priceText={formatEventPrice(event.isFree, event.priceMin, event.priceMax)}
+                                priceDetails={event.priceDetails}
+                                bookingUrl={event.bookingUrl}
+                                alternativeBookings={alternativeBookings}
+                            />
                         </div>
 
                         <Separator className="my-6" />
 
-                        {/* About section */}
-                        <div className="mb-6">
+                        {/* About Section */}
+                        <section className="mb-6">
                             <h2 className="text-2xl font-bold mb-4">About This Event</h2>
                             <p className="text-muted-foreground leading-relaxed whitespace-pre-wrap">
                                 {event.description}
                             </p>
-                        </div>
+                        </section>
 
-                        {/* Video preview */}
+                        {/* Video Preview */}
                         {event.videoUrl && (
                             <>
                                 <Separator className="my-6" />
-                                <div className="mb-6">
-                                    <h2 className="text-2xl font-bold mb-4 flex items-center gap-2">
-                                        <Video className="h-6 w-6 text-primary" />
+                                <section className="mb-6">
+                                    <h2 className="text-2xl font-bold mb-4 flex items-centre gap-2">
+                                        <Video className="h-6 w-6 text-primary" aria-hidden="true" />
                                         Preview
                                     </h2>
                                     <div className="relative w-full aspect-video rounded-lg overflow-hidden border-2 border-border/50 shadow-lg">
@@ -375,41 +252,40 @@ export default async function EventPage({ params }: EventPageProps) {
                                             className="w-full h-full"
                                             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                                             allowFullScreen
+                                            title="Event preview video"
                                         />
                                     </div>
-                                </div>
+                                </section>
                             </>
                         )}
 
-                        {/* Accessibility section */}
+                        {/* Accessibility */}
                         {event.accessibility && event.accessibility.length > 0 && (
                             <>
                                 <Separator className="my-6" />
-                                <div className="mb-6">
-                                    <h2 className="text-2xl font-bold mb-4 flex items-center gap-2">
-                                        <Users className="h-6 w-6 text-emerald-600 dark:text-emerald-400" />
+                                <section className="mb-6">
+                                    <h2 className="text-2xl font-bold mb-4 flex items-centre gap-2">
+                                        <Users className="h-6 w-6 text-emerald-600 dark:text-emerald-400" aria-hidden="true" />
                                         Accessibility
                                     </h2>
                                     <div className="flex flex-wrap gap-2">
                                         {event.accessibility.map((feature) => (
-                                            <Badge
+                                            <EventBadge
                                                 key={feature}
-                                                variant="secondary"
-                                                className="bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/30 transition-all hover:shadow-[0_0_10px_rgba(16,185,129,0.3)] hover:scale-105"
-                                            >
-                                                {feature}
-                                            </Badge>
+                                                type="accessibility"
+                                                label={feature}
+                                            />
                                         ))}
                                     </div>
-                                </div>
+                                </section>
                             </>
                         )}
 
                         <Separator className="my-6" />
 
-                        {/* Venue and sources side by side on desktop */}
+                        {/* Venue & Sources */}
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            {/* Venue information */}
+                            {/* Venue */}
                             <div>
                                 <h2 className="text-xl font-bold mb-3">Venue</h2>
                                 <Card className="border-2 border-primary/20 bg-linear-to-br from-primary/5 via-transparent to-transparent hover:border-primary/30 transition-all">
@@ -421,7 +297,7 @@ export default async function EventPage({ params }: EventPageProps) {
                                 </Card>
                             </div>
 
-                            {/* Event sources - only show if multiple sources */}
+                            {/* Sources */}
                             {hasMultipleSources && (
                                 <div>
                                     <h2 className="text-xl font-bold mb-3">Sources</h2>
@@ -432,13 +308,11 @@ export default async function EventPage({ params }: EventPageProps) {
                                             </p>
                                             <div className="flex flex-wrap gap-2">
                                                 {event.sources.map((source: string) => (
-                                                    <Badge
+                                                    <EventBadge
                                                         key={source}
-                                                        variant="outline"
-                                                        className="badge-outline-hover"
-                                                    >
-                                                        {source.charAt(0).toUpperCase() + source.slice(1)}
-                                                    </Badge>
+                                                        type="sources"
+                                                        label={source.charAt(0).toUpperCase() + source.slice(1)}
+                                                    />
                                                 ))}
                                             </div>
                                         </CardContent>
@@ -448,134 +322,29 @@ export default async function EventPage({ params }: EventPageProps) {
                         </div>
                     </div>
 
-                    {/* Sidebar - hidden on mobile, shown on desktop */}
-                    <div className="hidden lg:block lg:col-span-1">
-                        <Card className="sticky top-20 border-2 border-border/50 shadow-lg">
-                            <CardContent className="p-4 sm:p-6">
-                                {/* Date & time */}
-                                <div className="mb-4">
-                                    <div className="flex items-start gap-3">
-                                        <Calendar className="h-5 w-5 text-primary mt-0.5 shrink-0" />
-                                        <div>
-                                            <p className="font-semibold mb-1 text-sm">Date & Time</p>
-                                            <p className="text-sm text-muted-foreground">{formatDate()}</p>
-                                            {formatTime() && (
-                                                <p className="text-sm text-muted-foreground">{formatTime()}</p>
-                                            )}
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <Separator className="my-4" />
-
-                                {/* Duration (if available) */}
-                                {event.duration && (
-                                    <>
-                                        <div className="mb-4">
-                                            <div className="flex items-start gap-3">
-                                                <Clock className="h-5 w-5 text-secondary mt-0.5 shrink-0" />
-                                                <div>
-                                                    <p className="font-semibold mb-1 text-sm">Duration</p>
-                                                    <p className="text-sm text-muted-foreground">{event.duration}</p>
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <Separator className="my-4" />
-                                    </>
-                                )}
-
-                                {/* Location */}
-                                <div className="mb-4">
-                                    <div className="flex items-start gap-3">
-                                        <MapPin className="h-5 w-5 text-primary mt-0.5 shrink-0" />
-                                        <div>
-                                            <p className="font-semibold mb-1 text-sm">Location</p>
-                                            <p className="text-sm text-muted-foreground">
-                                                {event.venue.name}
-                                            </p>
-                                            <p className="text-sm text-muted-foreground">
-                                                {event.venue.suburb}
-                                            </p>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <Separator className="my-4" />
-
-                                {/* Price */}
-                                <div className="mb-6">
-                                    <div className="flex items-start gap-3">
-                                        <DollarSign className="h-5 w-5 text-secondary mt-0.5 shrink-0" />
-                                        <div className="w-full">
-                                            <p className="font-semibold mb-1 text-sm">Price</p>
-                                            <p className="text-sm text-muted-foreground mb-2">{formatPrice()}</p>
-                                            {event.priceDetails && (
-                                                <p className="text-xs text-muted-foreground">
-                                                    {event.priceDetails}
-                                                </p>
-                                            )}
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <Separator className="my-4" />
-
-                                {/* Action buttons */}
-                                <div className="space-y-3">
-                                    <FavouriteButton
-                                        eventId={event._id}
-                                        initialFavourited={isFavourited}
-                                        source="direct"
-                                        variant="button"
-                                        className="w-full"
-                                    />
-
-                                    <BookingLink
-                                        eventId={event._id}
-                                        href={event.bookingUrl}
-                                        className="w-full"
-                                    >
-                                        Get Tickets
-                                    </BookingLink>
-
-                                    {/* Alternative booking sources */}
-                                    {hasMultipleSources && Object.keys(bookingUrls).length > 1 && (
-                                        <div className="pt-2 space-y-2">
-                                            <p className="text-xs text-muted-foreground text-center">
-                                                Also available on:
-                                            </p>
-                                            {Object.entries(bookingUrls).map(([source, url]) => {
-                                                if (source === event.primarySource) return null;
-                                                return (
-                                                    <BookingLink
-                                                        key={source}
-                                                        eventId={event._id}
-                                                        href={url as string}
-                                                        variant="outline"
-                                                        size="sm"
-                                                        className="w-full"
-                                                    >
-                                                        {source.charAt(0).toUpperCase() + source.slice(1)}
-                                                    </BookingLink>
-                                                );
-                                            })}
-                                        </div>
-                                    )}
-
-                                    <p className="text-xs text-muted-foreground text-center pt-2">
-                                        You'll be redirected to the official ticketing site
-                                    </p>
-                                </div>
-                            </CardContent>
-                        </Card>
-                    </div>
+                    {/* Desktop Sidebar */}
+                    <aside className="hidden lg:block lg:col-span-1">
+                        <EventInfoSidebar
+                            eventId={event._id}
+                            isFavourited={isFavourited}
+                            dateText={formatEventDate(event.startDate, event.endDate)}
+                            timeText={formatEventTime(event.startDate, !!event.endDate)}
+                            duration={event.duration}
+                            venueName={event.venue.name}
+                            venueSuburb={event.venue.suburb}
+                            priceText={formatEventPrice(event.isFree, event.priceMin, event.priceMax)}
+                            priceDetails={event.priceDetails}
+                            bookingUrl={event.bookingUrl}
+                            alternativeBookings={alternativeBookings}
+                            className="sticky top-20"
+                        />
+                    </aside>
                 </div>
             </section>
 
-            {/* Analytics and recommendations section */}
+            {/* Analytics & Recommendations */}
             <section className="bg-muted/30">
-                <div className="container max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16">
-                    {/* Event comparison chart */}
+                <div className="container-page py-12 sm:py-16">
                     {!event.isFree && (
                         <div className="mb-12">
                             <EventComparison
@@ -586,11 +355,7 @@ export default async function EventPage({ params }: EventPageProps) {
                         </div>
                     )}
 
-                    {/* Similar events carousel */}
-                    <SimilarEvents
-                        eventId={event._id}
-                        userFavourites={userFavourites}
-                    />
+                    <SimilarEvents eventId={event._id} userFavourites={userFavourites} />
                 </div>
             </section>
         </div>

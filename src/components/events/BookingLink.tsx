@@ -1,3 +1,4 @@
+// components/events/BookingLink.tsx
 'use client';
 
 import { trackClickthrough } from '@/lib/actions/interactions';
@@ -16,7 +17,7 @@ interface BookingLinkProps {
 export function BookingLink({
     eventId,
     href,
-    children,
+    children = 'Get Tickets',
     className,
     variant = 'default',
     size = 'lg'
@@ -28,19 +29,22 @@ export function BookingLink({
     return (
         <Button
             asChild
-            className={`${className} group transition-all duration-200`}
+            className={className}
             size={size}
             variant={variant}
-            onClick={handleClick}
         >
             <a
                 href={href}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex items-center justify-center"
+                onClick={handleClick}
+                className="flex items-centre justify-centre group"
             >
-                {children || 'Get Tickets'}
-                <ExternalLink className="h-4 w-4 ml-2 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
+                {children}
+                <ExternalLink
+                    className="h-4 w-4 ml-2 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform"
+                    aria-hidden="true"
+                />
             </a>
         </Button>
     );
