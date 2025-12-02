@@ -43,8 +43,12 @@ function serializeEvent(e: any) {
         primarySource: e.primarySource,
         sourceIds: mapToObject(e.sourceIds),
         accessibility: e.accessibility || [],
+        ageRestriction: e.ageRestriction,
+        duration: e.duration,
         scrapedAt: e.scrapedAt.toISOString(),
         lastUpdated: e.lastUpdated.toISOString(),
+        isArchived: e.isArchived || false,
+        archivedAt: e.archivedAt?.toISOString(),
         stats: e.stats || { viewCount: 0, favouriteCount: 0, clickthroughCount: 0 },
     };
 }
@@ -59,6 +63,7 @@ export async function UpcomingEvents({ userFavourites }: UpcomingEventsProps) {
     const [thisWeekEvents, upcomingEvents] = await Promise.all([
         Event.find({
             startDate: { $gte: now, $lte: endOfWeek },
+            isArchived: false,
             imageUrl: { $exists: true, $ne: null },
         })
             .sort({ startDate: 1 })
@@ -66,6 +71,7 @@ export async function UpcomingEvents({ userFavourites }: UpcomingEventsProps) {
             .lean(),
         Event.find({
             startDate: { $gt: endOfWeek },
+            isArchived: false,
             imageUrl: { $exists: true, $ne: null },
         })
             .sort({ startDate: 1 })
