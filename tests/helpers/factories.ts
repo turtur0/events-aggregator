@@ -25,6 +25,7 @@ export const createMockEvent = (overrides: Partial<IEvent> = {}): IEvent => ({
     sourceIds: { ticketmaster: 'test-123' },
     scrapedAt: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000),
     lastUpdated: new Date(),
+    isArchived: false,
     stats: {
         viewCount: 10,
         favouriteCount: 5,
