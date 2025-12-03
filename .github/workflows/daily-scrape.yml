@@ -1,0 +1,55 @@
+name: Daily Event Scrape
+
+on:
+  schedule:
+    # Runs at 3:00 AM Melbourne time (5:00 PM UTC previous day)
+    # Melbourne is UTC+10 (standard) or UTC+11 (daylight saving)
+    # Using 5pm UTC covers both scenarios for 3am Melbourne
+    - cron: "0 17 * * *"
+  workflow_dispatch: # Allows manual triggering from GitHub UI
+
+jobs:
+  scrape-and-update:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Chromium dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libnss3 \
+            libatk-bridge2.0-0 \
+            libdrm2 \
+            libxkbcommon0 \
+            libgbm1 \
+            libasound2
+
+      - name: Run scraper
+        env:
+          MONGODB_URI: ${{ secrets.MONGODB_URI }}
+          TICKETMASTER_API_KEY: ${{ secrets.TICKETMASTER_API_KEY }}
+        run: npm run scrape
+
+      - name: Update popularity scores
+        env:
+          MONGODB_URI: ${{ secrets.MONGODB_URI }}
+        run: npm run update-popularity
+
+      - name: Report results
+        if: always()
+        run: |
+          echo "Scrape job completed at $(date)"
+          echo "Check logs above for detailed results"

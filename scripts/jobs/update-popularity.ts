@@ -1,12 +1,13 @@
 import dotenv from 'dotenv';
 import path from 'path';
 
-dotenv.config({ path: path.resolve(process.cwd(), '.env.local') });
+// Only load .env.local if not in CI environment
+if (!process.env.CI) {
+  dotenv.config({ path: path.resolve(process.cwd(), '.env.local') });
+}
 
 import { connectDB, disconnectDB } from '@/lib/db';
-
 import { updateCategoryPopularityPercentiles } from '@/lib/ml';
-;
 
 async function main() {
   console.log('Starting popularity update job');

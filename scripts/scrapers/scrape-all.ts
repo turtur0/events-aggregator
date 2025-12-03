@@ -1,7 +1,10 @@
 import dotenv from 'dotenv';
 import path from 'path';
 
-dotenv.config({ path: path.resolve(process.cwd(), '.env.local') });
+// Only load .env.local if not in CI environment
+if (!process.env.CI) {
+  dotenv.config({ path: path.resolve(process.cwd(), '.env.local') });
+}
 
 import { connectDB, disconnectDB } from '@/lib/db';
 import Event from '@/lib/models/Event';
@@ -23,10 +26,6 @@ interface ArchiveStats {
   errors: number;
 }
 
-/**
- * Main scraper orchestrator that coordinates scraping from all sources,
- * processes events with deduplication, archives past events, and reports statistics.
- */
 async function main() {
   const startTime = Date.now();
 
@@ -37,10 +36,10 @@ async function main() {
   try {
     await connectDB();
 
-    // Step 1: Archive past events before scraping new ones
+    // Step 1: Archive past events
     console.log('Step 1: Archiving past events...\n');
     const archiveStats = await archivePastEvents();
-    console.log(''); // Blank line for readability
+    console.log('');
 
     // Step 2: Scrape new events
     console.log('Step 2: Scraping new events...\n');
@@ -88,9 +87,6 @@ async function main() {
   }
 }
 
-/**
- * Processes events grouped by source through the deduplication pipeline.
- */
 async function processAllEvents(events: any[]): Promise<ScrapeStats> {
   const stats: ScrapeStats = {
     inserted: 0,
@@ -116,7 +112,6 @@ async function processAllEvents(events: any[]): Promise<ScrapeStats> {
   return stats;
 }
 
-/** Groups events by their source for separate processing. */
 function groupEventsBySource(events: any[]): Map<string, any[]> {
   const grouped = new Map<string, any[]>();
 
@@ -130,7 +125,6 @@ function groupEventsBySource(events: any[]): Map<string, any[]> {
   return grouped;
 }
 
-/** Displays comprehensive scrape statistics and summary. */
 async function displaySummary(
   stats: ScrapeStats,
   totalScraped: number,
