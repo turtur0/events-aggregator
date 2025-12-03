@@ -3,10 +3,8 @@ name: Daily Event Scrape
 on:
   schedule:
     # Runs at 3:00 AM Melbourne time (5:00 PM UTC previous day)
-    # Melbourne is UTC+10 (standard) or UTC+11 (daylight saving)
-    # Using 5pm UTC covers both scenarios for 3am Melbourne
-    - cron: "0 17 * * *"
-  workflow_dispatch: # Allows manual triggering from GitHub UI
+    - cron: '0 17 * * *'
+  workflow_dispatch: # Allows manual triggering
 
 jobs:
   scrape-and-update:
@@ -20,8 +18,8 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: "20"
-          cache: "npm"
+          node-version: '20'
+          cache: 'npm'
 
       - name: Install dependencies
         run: npm ci
@@ -35,7 +33,7 @@ jobs:
             libdrm2 \
             libxkbcommon0 \
             libgbm1 \
-            libasound2
+            libasound2t64
 
       - name: Run scraper
         env:
