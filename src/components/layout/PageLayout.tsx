@@ -1,4 +1,3 @@
-// components/layout/PageLayout.tsx
 import { LucideIcon } from 'lucide-react';
 import { PageHeader } from './PageHeader';
 import { cn } from '@/lib/utils';

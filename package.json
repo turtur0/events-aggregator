@@ -15,7 +15,8 @@
     "scrape:marriner": "tsx scripts/scrapers/scrape-marriner.ts",
     "scrape:whatson": "tsx scripts/scrapers/scrape-whatson.ts",
     "debug:website": "tsx scripts/dev/debug-website.ts",
-    "test:website": "tsx scripts/dev/test-website.ts"
+    "test:website": "tsx scripts/dev/test-website.ts",
+    "test-email": "tsx scripts/dev/test-email"
   },
   "dependencies": {
     "@radix-ui/react-checkbox": "^1.3.3",

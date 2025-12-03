@@ -1,4 +1,3 @@
-
 import {
     Body,
     Container,
@@ -62,6 +61,7 @@ export default function DigestEmail({
             </Preview>
             <Body style={main}>
                 <Container style={container}>
+                    {/* Header with Orange Primary Color */}
                     <Section style={header}>
                         <Heading style={h1}>Melbourne Events</Heading>
                         <Text style={headerSubtext}>Your Event Digest</Text>
@@ -250,9 +250,10 @@ function getCategoryLabel(category: string): string {
     return labels[category.toLowerCase()] || category;
 }
 
+// Styled with site colors matching the Melbourne Events design system
 const main = {
     backgroundColor: '#f5f5f5',
-    fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
+    fontFamily: 'Nunito, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
 };
 
 const container = {
@@ -260,72 +261,78 @@ const container = {
     margin: '0 auto',
     marginBottom: '40px',
     maxWidth: '600px',
-    borderRadius: '8px',
+    borderRadius: '12px',
     overflow: 'hidden' as const,
-    boxShadow: '0 2px 8px rgba(0, 0, 0, 0.05)',
+    boxShadow: '0 4px 6px rgba(0, 0, 0, 0.05)',
 };
 
+// Primary orange color from site theme
 const header = {
-    backgroundColor: '#2563eb',
-    padding: '32px 24px',
+    backgroundColor: '#ea580c',
+    padding: '40px 24px',
     textAlign: 'center' as const,
 };
 
 const h1 = {
     color: '#ffffff',
-    fontSize: '28px',
-    fontWeight: '700',
+    fontSize: '32px',
+    fontWeight: '800',
     margin: '0 0 8px 0',
     letterSpacing: '-0.5px',
 };
 
 const headerSubtext = {
-    color: '#dbeafe',
-    fontSize: '14px',
-    fontWeight: '500',
+    color: '#fed7aa',
+    fontSize: '13px',
+    fontWeight: '600',
     margin: '0',
     textTransform: 'uppercase' as const,
-    letterSpacing: '1px',
+    letterSpacing: '1.5px',
 };
 
 const section = {
-    padding: '24px 24px 0 24px',
+    padding: '28px 24px 0 24px',
 };
 
 const greeting = {
-    fontSize: '18px',
-    fontWeight: '600',
-    color: '#111827',
+    fontSize: '20px',
+    fontWeight: '700',
+    color: '#0a0a0a',
     margin: '0 0 12px 0',
 };
 
 const intro = {
-    fontSize: '15px',
-    lineHeight: '24px',
-    color: '#4b5563',
+    fontSize: '16px',
+    lineHeight: '26px',
+    color: '#525252',
     margin: '0',
 };
 
 const h2 = {
-    fontSize: '20px',
-    fontWeight: '600',
-    color: '#111827',
+    fontSize: '22px',
+    fontWeight: '700',
+    color: '#0a0a0a',
     margin: '0 0 8px 0',
     letterSpacing: '-0.3px',
+    paddingLeft: '12px',
+    borderLeft: '4px solid #14b8a6',
 };
 
 const sectionSubtext = {
     fontSize: '14px',
-    color: '#6b7280',
-    margin: '0 0 16px 0',
+    color: '#14b8a6',
+    margin: '0 0 20px 0',
+    fontWeight: '600',
 };
 
 const eventCard = {
-    backgroundColor: '#f9fafb',
-    border: '1px solid #e5e7eb',
-    borderRadius: '8px',
+    backgroundColor: '#fafafa',
+    border: '2px solid #e5e5e5',
+    borderRadius: '12px',
     margin: '0 24px 16px 24px',
-    padding: '16px',
+    padding: '20px',
+    transition: 'all 0.3s ease',
+    borderTop: '3px solid #14b8a6',
 };
 
 const eventImageCell = {
@@ -335,9 +342,10 @@ const eventImageCell = {
 };
 
 const eventImage = {
-    borderRadius: '6px',
+    borderRadius: '8px',
     objectFit: 'cover' as const,
     display: 'block',
+    border: '2px solid #e5e5e5',
 };
 
 const eventDetails = {
@@ -345,91 +353,93 @@ const eventDetails = {
 };
 
 const eventTitle = {
-    fontSize: '16px',
-    fontWeight: '600',
-    color: '#111827',
+    fontSize: '17px',
+    fontWeight: '700',
+    color: '#0a0a0a',
     textDecoration: 'none',
     display: 'block',
-    marginBottom: '8px',
-    lineHeight: '22px',
+    marginBottom: '10px',
+    lineHeight: '24px',
 };
 
 const eventMeta = {
     fontSize: '14px',
-    lineHeight: '20px',
-    color: '#4b5563',
-    margin: '4px 0',
+    lineHeight: '22px',
+    color: '#525252',
+    margin: '6px 0',
 };
 
 const metaLabel = {
-    fontWeight: '500',
-    color: '#6b7280',
+    fontWeight: '600',
+    color: '#737373',
 };
 
 const eventButton = {
-    backgroundColor: '#2563eb',
-    borderRadius: '6px',
+    backgroundColor: '#14b8a6',
+    borderRadius: '8px',
     color: '#ffffff',
     fontSize: '14px',
-    fontWeight: '600',
+    fontWeight: '700',
     textDecoration: 'none',
     textAlign: 'center' as const,
     display: 'inline-block',
-    padding: '10px 20px',
-    marginTop: '12px',
+    padding: '12px 24px',
+    marginTop: '14px',
     border: 'none',
     cursor: 'pointer',
 };
 
 const button = {
-    backgroundColor: '#2563eb',
-    borderRadius: '6px',
+    backgroundColor: '#ea580c',
+    borderRadius: '8px',
     color: '#ffffff',
-    fontSize: '14px',
-    fontWeight: '600',
+    fontSize: '15px',
+    fontWeight: '700',
     textDecoration: 'none',
     textAlign: 'center' as const,
     display: 'inline-block',
-    padding: '12px 24px',
-    marginTop: '8px',
+    padding: '14px 28px',
+    marginTop: '12px',
 };
 
 const divider = {
-    borderColor: '#e5e7eb',
-    margin: '24px 24px',
+    borderColor: '#e5e5e5',
+    margin: '28px 24px',
 };
 
 const footerDivider = {
-    borderColor: '#e5e7eb',
-    margin: '32px 24px 24px 24px',
+    borderColor: '#e5e5e5',
+    margin: '40px 24px 28px 24px',
 };
 
 const footer = {
-    padding: '0 24px 32px 24px',
+    padding: '0 24px 36px 24px',
 };
 
 const footerText = {
     fontSize: '13px',
-    lineHeight: '20px',
-    color: '#6b7280',
+    lineHeight: '22px',
+    color: '#737373',
     margin: '8px 0',
     textAlign: 'center' as const,
 };
 
 const footerLink = {
-    color: '#2563eb',
+    color: '#ea580c',
+    textDecoration: 'underline',
+    fontWeight: '600',
+};
+
+const unsubscribeLink = {
+    color: '#a3a3a3',
     textDecoration: 'underline',
     fontWeight: '500',
 };
 
-const unsubscribeLink = {
-    color: '#9ca3af',
-    textDecoration: 'underline',
-};
-
 const footerCopyright = {
     fontSize: '12px',
-    color: '#9ca3af',
-    margin: '16px 0 0 0',
+    color: '#a3a3a3',
+    margin: '20px 0 0 0',
     textAlign: 'center' as const,
+    fontWeight: '500',
 };

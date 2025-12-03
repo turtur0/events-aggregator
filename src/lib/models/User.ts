@@ -4,7 +4,7 @@ export interface IUser {
     email: string;
     name: string;
     username?: string;
-    usernameLower?: string; // For case-insensitive uniqueness
+    usernameLower?: string;
     passwordHash?: string;
     provider?: 'credentials' | 'google';
 

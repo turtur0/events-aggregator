@@ -1,7 +1,6 @@
 'use client';
 
 import { useState } from 'react';
-import { Metadata } from "next";
 import { PopularityScatterChart } from '@/components/analytics/PopularityScatterChart';
 import { PriceDistributionChart } from '@/components/analytics/PriceDistributionChart';
 import { TimelineChart } from '@/components/analytics/TimelineChart';

@@ -1,4 +1,3 @@
-// src/app/api/events/archived/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { connectDB } from '@/lib/db';
 import { FilterQuery } from 'mongoose';

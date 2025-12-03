@@ -1,4 +1,3 @@
-// app/api/events/comparison/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { connectDB } from '@/lib/db';
 import { Event } from '@/lib/models';

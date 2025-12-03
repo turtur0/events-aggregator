@@ -1,6 +1,6 @@
 'use client';
 
-import { Bell, Mail, Filter, Zap, Sparkles, Settings2, Heart } from 'lucide-react';
+import { Mail, Filter, Zap, Sparkles, Settings2, Heart } from 'lucide-react';
 import { Label } from '@/components/ui/Label';
 import { Input } from '@/components/ui/Input';
 import { Checkbox } from '@/components/ui/Checkbox';

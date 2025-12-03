@@ -1,7 +1,6 @@
-// app/events/[id]/page.tsx
 import { notFound } from 'next/navigation';
 import Image from 'next/image';
-import { Calendar, MapPin, DollarSign, Users, Clock, Video, Info } from 'lucide-react';
+import { Users, Video, Info } from 'lucide-react';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { connectDB } from '@/lib/db';
@@ -9,7 +8,6 @@ import { Card, CardContent } from '@/components/ui/Card';
 import { Separator } from '@/components/ui/Separator';
 import { FavouriteButton } from '@/components/events/cards/FavouriteButton';
 import { ViewTracker } from '@/components/events/ViewTracker';
-import { BookingLink } from '@/components/events/BookingLink';
 import { SimilarEvents } from '@/components/recommendations/SimilarEvents';
 import { BackButton } from '@/components/layout/BackButton';
 import { EventBadge } from '@/components/events/cards/EventBadge';

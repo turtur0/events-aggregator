@@ -5,7 +5,8 @@ import { useEffect, useState } from 'react';
 import { AreaChart, Area, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 import { Loader2, Calendar } from 'lucide-react';
 import { ChartWrapper } from './ChartWrapper';
-import { CategoryFilter, CATEGORY_COLORS } from './CategoryFilter';
+import { CategoryFilter } from './CategoryFilter';
+import { CATEGORY_COLORS } from '@/lib/constants/categories';
 import type { TimelineData } from '@/lib/services';
 
 export function TimelineChart() {
@@ -89,8 +90,8 @@ export function TimelineChart() {
                         <button
                             onClick={() => setViewMode('stacked')}
                             className={`px-3 py-1 text-xs rounded transition-all ${viewMode === 'stacked'
-                                    ? 'bg-background shadow-sm font-medium'
-                                    : 'text-muted-foreground hover:text-foreground'
+                                ? 'bg-background shadow-sm font-medium'
+                                : 'text-muted-foreground hover:text-foreground'
                                 }`}
                         >
                             Stacked (Total)
@@ -98,8 +99,8 @@ export function TimelineChart() {
                         <button
                             onClick={() => setViewMode('separate')}
                             className={`px-3 py-1 text-xs rounded transition-all ${viewMode === 'separate'
-                                    ? 'bg-background shadow-sm font-medium'
-                                    : 'text-muted-foreground hover:text-foreground'
+                                ? 'bg-background shadow-sm font-medium'
+                                : 'text-muted-foreground hover:text-foreground'
                                 }`}
                         >
                             Separate (Individual)

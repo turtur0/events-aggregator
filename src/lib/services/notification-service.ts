@@ -1,6 +1,6 @@
 import { CATEGORIES } from '@/lib/constants/categories';
 import { cosineSimilarity, extractEventFeatures } from '@/lib/ml';
-import { Event, User, UserFavourite, Notification, type IEvent } from '@/lib/models';
+import { User, UserFavourite, Notification, type IEvent } from '@/lib/models';
 
 // ============================================
 // TYPE DEFINITIONS

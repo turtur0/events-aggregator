@@ -1,4 +1,3 @@
-// components/analytics/ChartWrapper.tsx
 'use client';
 
 import { ReactNode } from 'react';

@@ -3,9 +3,12 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { connectDB } from '@/lib/db';
 import { User } from '@/lib/models';
+import { CATEGORIES } from '@/lib/constants/categories';
 
-const ALL_CATEGORIES = ['music', 'theatre', 'sports', 'arts', 'family', 'other'];
-
+/**
+ * GET /api/user/preferences
+ * Fetches the authenticated user's preferences
+ */
 export async function GET() {
   try {
     const session = await getServerSession(authOptions);
@@ -29,6 +32,10 @@ export async function GET() {
   }
 }
 
+/**
+ * POST /api/user/preferences
+ * Creates/updates user preferences (typically used during onboarding)
+ */
 export async function POST(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
@@ -71,6 +78,10 @@ export async function POST(request: NextRequest) {
   }
 }
 
+/**
+ * PATCH /api/user/preferences
+ * Partially updates user preferences
+ */
 export async function PATCH(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
@@ -115,7 +126,8 @@ export async function PATCH(request: NextRequest) {
 }
 
 /**
- * Builds update fields object for MongoDB from request body
+ * Builds update fields object for MongoDB from request body.
+ * Uses dot notation for nested field updates.
  */
 function buildPreferenceUpdateFields(body: any): Record<string, any> {
   const updateFields: Record<string, any> = {};
@@ -163,19 +175,21 @@ function buildPreferenceUpdateFields(body: any): Record<string, any> {
 }
 
 /**
- * Calculates category weights based on selected categories
- * Selected categories get 0.8, others get 0.2
+ * Calculates category weights based on selected categories.
+ * Selected categories receive 0.8 weight, others receive 0.2.
+ * Uses CATEGORIES constant to ensure all valid categories are included.
  */
 function calculateCategoryWeights(selectedCategories?: string[]): Record<string, number> {
   const weights: Record<string, number> = {};
+  const allCategoryValues = CATEGORIES.map(cat => cat.value);
 
   if (selectedCategories && Array.isArray(selectedCategories)) {
-    ALL_CATEGORIES.forEach(category => {
+    allCategoryValues.forEach(category => {
       weights[category] = selectedCategories.includes(category) ? 0.8 : 0.2;
     });
   } else {
     // Default to 0.5 for all categories
-    ALL_CATEGORIES.forEach(category => {
+    allCategoryValues.forEach(category => {
       weights[category] = 0.5;
     });
   }
@@ -184,8 +198,8 @@ function calculateCategoryWeights(selectedCategories?: string[]): Record<string,
 }
 
 /**
- * Applies notification settings to update fields object
- * Uses dot notation for nested MongoDB updates
+ * Applies notification settings to update fields object.
+ * Uses MongoDB dot notation for nested field updates.
  */
 function applyNotificationSettings(updateFields: Record<string, any>, notifications: any) {
   // Basic notification toggles
@@ -231,7 +245,6 @@ function applyNotificationSettings(updateFields: Record<string, any>, notificati
       notifications.recommendationsSize;
   }
 
-  // THE FIX: This was missing consistent handling
   if (notifications.customRecommendationsCount !== undefined) {
     updateFields['preferences.notifications.customRecommendationsCount'] =
       notifications.customRecommendationsCount;

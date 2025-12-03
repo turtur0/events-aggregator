@@ -1,6 +1,8 @@
 export interface CategoryConfig {
   value: string;
   label: string;
+  color: string; // RGB color for charts
+  className: string; // CSS utility class from global.css
   subcategories?: string[];
 }
 
@@ -8,6 +10,8 @@ export const CATEGORIES: CategoryConfig[] = [
   {
     value: 'music',
     label: 'Music',
+    color: 'rgb(234 88 12)', // orange-600
+    className: 'category-music',
     subcategories: [
       'Rock & Alternative',
       'Pop & Electronic',
@@ -22,6 +26,8 @@ export const CATEGORIES: CategoryConfig[] = [
   {
     value: 'theatre',
     label: 'Theatre',
+    color: 'rgb(244 63 94)', // rose-600
+    className: 'category-theatre',
     subcategories: [
       'Musicals',
       'Drama',
@@ -36,6 +42,8 @@ export const CATEGORIES: CategoryConfig[] = [
   {
     value: 'sports',
     label: 'Sports',
+    color: 'rgb(20 184 166)', // teal-600
+    className: 'category-sports',
     subcategories: [
       'AFL',
       'Cricket',
@@ -50,6 +58,8 @@ export const CATEGORIES: CategoryConfig[] = [
   {
     value: 'arts',
     label: 'Arts & Culture',
+    color: 'rgb(168 85 247)', // purple-600
+    className: 'category-arts',
     subcategories: [
       'Comedy Festival',
       'Film & Cinema',
@@ -62,6 +72,8 @@ export const CATEGORIES: CategoryConfig[] = [
   {
     value: 'family',
     label: 'Family',
+    color: 'rgb(16 185 129)', // emerald-600
+    className: 'category-family',
     subcategories: [
       'Kids Shows',
       'Family Entertainment',
@@ -72,6 +84,8 @@ export const CATEGORIES: CategoryConfig[] = [
   {
     value: 'other',
     label: 'Other',
+    color: 'rgb(14 165 233)', // sky-600
+    className: 'category-other',
     subcategories: [
       'Workshops',
       'Networking',
@@ -108,7 +122,8 @@ export const SHAKESPEARE_PLAYS = [
   'richard ii',
 ];
 
-// Category helpers
+// ===== HELPER FUNCTIONS =====
+
 export function getCategoryLabel(value: string): string {
   const category = CATEGORIES.find(cat => cat.value === value);
   return category?.label || value;
@@ -126,3 +141,27 @@ export function isValidSubcategory(
   const subcategories = getSubcategories(categoryValue);
   return subcategories.includes(subcategory);
 }
+
+/**
+ * Get color for a category (for charts and visualizations)
+ */
+export function getCategoryColor(categoryValue: string): string {
+  const category = CATEGORIES.find(cat => cat.value === categoryValue);
+  return category?.color || 'rgb(107 114 128)'; // gray-500 fallback
+}
+
+/**
+ * Get CSS class name for a category badge
+ */
+export function getCategoryClassName(categoryValue: string): string {
+  const category = CATEGORIES.find(cat => cat.value === categoryValue);
+  return category?.className || 'border-2 border-border/50 bg-background hover:bg-muted transition-all';
+}
+
+/**
+ * Create a color map for use in charts (legacy compatibility)
+ */
+export const CATEGORY_COLORS: Record<string, string> = CATEGORIES.reduce((acc, cat) => {
+  acc[cat.value] = cat.color;
+  return acc;
+}, {} as Record<string, string>);

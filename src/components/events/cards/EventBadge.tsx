@@ -1,4 +1,3 @@
-// components/events/cards/EventBadge.tsx
 'use client';
 
 import { useRouter } from 'next/navigation';

@@ -1,4 +1,3 @@
-// app/(protected)/profile/page.tsx
 'use client';
 
 import { signOut, useSession } from 'next-auth/react';
@@ -22,18 +21,23 @@ import {
   Sparkles,
   DollarSign,
   Zap,
-  Filter
+  Filter,
+  Package,
+  Heart
 } from 'lucide-react';
 
 interface NotificationSettings {
   inApp: boolean;
   email: boolean;
-  emailFrequency: 'daily' | 'weekly';
+  emailFrequency: 'weekly' | 'monthly';
   keywords?: string[];
   smartFiltering?: {
     enabled: boolean;
     minRecommendationScore: number;
   };
+  includeFavouriteUpdates?: boolean;
+  recommendationsSize?: 'minimal' | 'moderate' | 'comprehensive' | 'custom';
+  customRecommendationsCount?: number;
 }
 
 interface UserPreferences {
@@ -50,19 +54,24 @@ const POPULARITY_CONFIG = {
   1: { label: 'Mainstream', icon: TrendingUp, description: 'Popular and trending events' },
 } as const;
 
+const RECOMMENDATIONS_SIZE_CONFIG = {
+  minimal: { label: 'Minimal', count: '3 events', description: 'Quick highlights' },
+  moderate: { label: 'Moderate', count: '5 events', description: 'Balanced selection' },
+  comprehensive: { label: 'Comprehensive', count: '10 events', description: 'Full digest' },
+  custom: { label: 'Custom', count: 'Custom count', description: 'Your choice' },
+} as const;
+
 export default function ProfilePage() {
   const { data: session, status } = useSession();
   const [preferences, setPreferences] = useState<UserPreferences | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Redirect unauthenticated users
   useEffect(() => {
     if (status === 'unauthenticated') {
       window.location.href = '/auth/signin?callbackUrl=/profile';
     }
   }, [status]);
 
-  // Fetch user preferences
   useEffect(() => {
     const fetchPreferences = async () => {
       try {
@@ -99,6 +108,10 @@ export default function ProfilePage() {
 
   const popularityConfig = preferences ? getPopularityConfig(preferences.popularityPreference) : null;
   const PopularityIcon = popularityConfig?.icon;
+
+  const recommendationsConfig = preferences?.notifications.recommendationsSize
+    ? RECOMMENDATIONS_SIZE_CONFIG[preferences.notifications.recommendationsSize]
+    : null;
 
   return (
     <PageLayout
@@ -284,6 +297,40 @@ export default function ProfilePage() {
                         <div className="text-sm font-medium">Smart Filtering</div>
                         <div className="text-xs text-muted-foreground">
                           Minimum {Math.round((preferences.notifications.smartFiltering.minRecommendationScore || 0.6) * 100)}% match score
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Favourite Updates */}
+                  {preferences.notifications.includeFavouriteUpdates && (
+                    <div className="flex items-centre gap-3 p-3 bg-muted/50 rounded-lg border-2 hover-lift transition-all">
+                      <div className="rounded-md p-1.5 bg-primary/10" aria-hidden="true">
+                        <Heart className="h-4 w-4 text-primary" />
+                      </div>
+                      <div className="flex-1">
+                        <div className="text-sm font-medium">Favourite Updates</div>
+                        <div className="text-xs text-muted-foreground">
+                          Get notified about changes to favourited events
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Recommendations Size */}
+                  {recommendationsConfig && preferences.notifications.email && (
+                    <div className="flex items-centre gap-3 p-3 bg-muted/50 rounded-lg border-2 hover-lift transition-all">
+                      <div className="rounded-md p-1.5 bg-primary/10" aria-hidden="true">
+                        <Package className="h-4 w-4 text-primary" />
+                      </div>
+                      <div className="flex-1">
+                        <div className="text-sm font-medium">Email Digest Size</div>
+                        <div className="text-xs text-muted-foreground">
+                          {recommendationsConfig.label} - {
+                            preferences.notifications.recommendationsSize === 'custom' && preferences.notifications.customRecommendationsCount
+                              ? `${preferences.notifications.customRecommendationsCount} events`
+                              : recommendationsConfig.count
+                          }
                         </div>
                       </div>
                     </div>

@@ -1,4 +1,3 @@
-
 import { NextRequest, NextResponse } from 'next/server';
 import { sendScheduledDigests } from '@/lib/services';
 import { connectDB } from '@/lib/db';

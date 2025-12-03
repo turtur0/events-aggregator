@@ -1,4 +1,3 @@
-// components/events/cards/EventCard.tsx
 import Link from 'next/link';
 import Image from 'next/image';
 import { Calendar, MapPin, DollarSign, Users, Clock } from 'lucide-react';

@@ -1,4 +1,3 @@
-// components/events/EventInfoSidebar.tsx
 import { Calendar, MapPin, DollarSign, Clock } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/Card';
 import { Separator } from '@/components/ui/Separator';

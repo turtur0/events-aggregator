@@ -1,4 +1,3 @@
-// components/events/BookingLink.tsx
 'use client';
 
 import { trackClickthrough } from '@/lib/actions/interactions';

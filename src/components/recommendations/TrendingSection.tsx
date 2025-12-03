@@ -1,4 +1,3 @@
-// components/recommendations/TrendingSection.tsx
 'use client';
 
 import { useEffect, useState } from 'react';

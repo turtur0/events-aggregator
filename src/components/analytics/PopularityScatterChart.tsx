@@ -1,11 +1,11 @@
-// components/analytics/PopularityScatterChart.tsx
 'use client';
 
 import { useEffect, useState } from 'react';
 import { ScatterChart, Scatter, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ZAxis } from 'recharts';
 import { Loader2, TrendingUp } from 'lucide-react';
 import { ChartWrapper } from './ChartWrapper';
-import { CategoryFilter, CATEGORY_COLORS } from './CategoryFilter';
+import { CategoryFilter } from './CategoryFilter';
+import { CATEGORY_COLORS } from '@/lib/constants/categories';
 import type { PopularityData } from '@/lib/services';
 
 export function PopularityScatterChart() {

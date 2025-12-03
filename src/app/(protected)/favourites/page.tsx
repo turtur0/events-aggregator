@@ -17,7 +17,7 @@ import { UserFavourite, Event } from '@/lib/models';
 export const metadata: Metadata = {
     title: "My Favourites | Melbourne Events",
     description: "View and manage your saved Melbourne events. Keep track of concerts, shows and festivals you don't want to miss.",
-    robots: "noindex, nofollow", // Private page
+    robots: "noindex, nofollow", 
 };
 
 const ITEMS_PER_PAGE = 12;

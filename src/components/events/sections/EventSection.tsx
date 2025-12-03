@@ -1,4 +1,3 @@
-// components/events/EventSection.tsx
 import Link from 'next/link';
 import { ArrowRight } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';

@@ -1,4 +1,3 @@
-// components/auth/AuthModals.tsx
 'use client';
 
 import { useState, useEffect } from 'react';

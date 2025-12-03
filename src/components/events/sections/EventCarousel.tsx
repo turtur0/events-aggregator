@@ -1,4 +1,3 @@
-// components/events/EventCarousel.tsx
 'use client';
 
 import { useEffect, useState, useRef, useCallback } from 'react';

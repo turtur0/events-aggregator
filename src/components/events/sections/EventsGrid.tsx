@@ -1,4 +1,3 @@
-// components/events/EventsGrid.tsx
 import { EventCard } from '../cards/EventCard';
 import { EventCardSkeleton } from '@/components/events/cards/EventCardSkeleton';
 import { EmptyState } from '@/components/other/EmptyState';

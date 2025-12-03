@@ -1,4 +1,3 @@
-// lib/constants/preferences.ts
 import { Search, Target, TrendingUp, Minimize2, Grid3x3, Maximize2 } from 'lucide-react';
 
 export const POPULARITY_OPTIONS = [

@@ -114,7 +114,7 @@ export const authOptions: NextAuthOptions = {
                 token.hasCompletedOnboarding = user.hasCompletedOnboarding;
             }
 
-            // ✅ Handle manual session updates (from settings page)
+            // Handle manual session updates (from settings page)
             if (trigger === 'update') {
                 try {
                     await connectDB();
@@ -132,7 +132,7 @@ export const authOptions: NextAuthOptions = {
                 }
             }
 
-            // ✅ Refresh onboarding status if not completed
+            // Refresh onboarding status if not completed
             if (token.email && !token.hasCompletedOnboarding) {
                 try {
                     await connectDB();
@@ -174,39 +174,3 @@ export const authOptions: NextAuthOptions = {
 
     secret: process.env.NEXTAUTH_SECRET,
 };
-
-// ============================================
-// types/next-auth.d.ts - Type definitions
-// ============================================
-
-import 'next-auth';
-
-declare module 'next-auth' {
-    interface User {
-        id: string;
-        email: string;
-        name: string;
-        username?: string;
-        hasCompletedOnboarding: boolean;
-    }
-
-    interface Session {
-        user: {
-            id: string;
-            email: string;
-            name: string;
-            username?: string;
-            hasCompletedOnboarding: boolean;
-        };
-    }
-}
-
-declare module 'next-auth/jwt' {
-    interface JWT {
-        id: string;
-        name: string;
-        email: string;
-        username?: string;
-        hasCompletedOnboarding: boolean;
-    }
-}

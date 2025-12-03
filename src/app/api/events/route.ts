@@ -1,5 +1,3 @@
-// src/app/api/events/route.ts
-// Key change: All queries now exclude archived events by default (isArchived: { $ne: true })
 
 import { NextRequest, NextResponse } from 'next/server';
 import { connectDB } from '@/lib/db';

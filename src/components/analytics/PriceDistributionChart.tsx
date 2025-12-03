@@ -6,7 +6,8 @@ import { ComposedChart, Bar, Line, XAxis, YAxis, CartesianGrid, Tooltip, Respons
 import { Loader2, DollarSign } from 'lucide-react';
 import { CATEGORIES } from '@/lib/constants/categories';
 import { ChartWrapper } from './ChartWrapper';
-import { CategoryFilter, CATEGORY_COLORS } from './CategoryFilter';
+import { CategoryFilter } from './CategoryFilter';
+import { CATEGORY_COLORS } from '@/lib/constants/categories';
 import type { PriceDistribution } from '@/lib/services';
 
 export function PriceDistributionChart() {
