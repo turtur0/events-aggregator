@@ -14,9 +14,14 @@ const nunito = Nunito({
 });
 
 export const metadata: Metadata = {
-  title: "Melbourne Events | Discover Concerts, Shows & Festivals",
-  description:
-    "Discover the best events across Melbourne - concerts, theatre, sports, festivals and more. Aggregated from multiple sources, updated daily.",
+  title: "Hoddle | Every Melbourne Event in One Place",
+  description: "Like the Hoddle Grid organised Melbourne's streets, we've organised its events. Search concerts, theatre, sports and festivals from across Melbourne, updated daily.",
+  openGraph: {
+    title: "Hoddle | Every Melbourne Event in One Place",
+    description: "Every Melbourne event, perfectly organised. Search concerts, shows, sports and festivals in one place.",
+    type: "website",
+    siteName: "Hoddle",
+  },
 };
 
 export default function RootLayout({

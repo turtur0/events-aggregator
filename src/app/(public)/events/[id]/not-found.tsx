@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/Button';
 import { Calendar, Home, Search } from "lucide-react";
 
 export const metadata: Metadata = {
-  title: "Page Not Found | Melbourne Events",
+  title: "Page Not Found | Hoddle",
   description: "The page you're looking for doesn't exist. Browse Melbourne events or return to the home page.",
   robots: "noindex, nofollow",
 };

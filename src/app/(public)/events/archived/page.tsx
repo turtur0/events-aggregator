@@ -11,10 +11,10 @@ import { SerializedEvent } from "@/lib/models/Event";
 import { getUserFavourites } from "@/lib/actions/interactions";
 
 export const metadata: Metadata = {
-    title: "Archived Events | Melbourne Events",
+    title: "Archived Events | Hoddle",
     description: "Browse Melbourne's event history. Explore past concerts, shows, festivals and cultural events for research and reference.",
     openGraph: {
-        title: "Archived Events | Melbourne Events",
+        title: "Archived Events | Hoddle",
         description: "Browse Melbourne's event history and explore past concerts, shows and festivals.",
     },
 };

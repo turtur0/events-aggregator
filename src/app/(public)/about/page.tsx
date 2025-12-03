@@ -14,11 +14,10 @@ import {
     Sparkles,
     CheckCircle2
 } from "lucide-react";
-import Link from "next/link";
 
 export const metadata = {
-    title: "About Melbourne Events | Your Complete Guide to What's On in Melbourne",
-    description: "Discover how Melbourne Events brings together concerts, theatre, sports and more. Set custom alerts, compare pricing and explore event trends across Melbourne.",
+    title: "About Hoddle | Your Complete Guide to Melbourne Events",
+    description: "Discover how Hoddle brings together concerts, theatre, sports and more across Melbourne. Set custom alerts, compare pricing and explore event trends.",
 };
 
 const DATA_SOURCES = [
@@ -77,7 +76,7 @@ const ETHICAL_PRACTICES = [
     },
     {
         title: "Respectful scraping",
-        desc: "We follow robots.txt rules, implement rate limiting and avoid overload source servers."
+        desc: "We follow robots.txt rules, implement rate limiting and avoid overloading source servers."
     },
     {
         title: "Transparent data use",
@@ -91,7 +90,7 @@ export default function AboutPage() {
             icon={Sparkles}
             iconColor="text-primary"
             iconBgColor="bg-primary/10 ring-1 ring-primary/20"
-            title="About Melbourne Events"
+            title="About Hoddle"
             description="Making it easier to discover what's on in Melbourne"
             maxWidth="4xl"
         >
@@ -113,9 +112,7 @@ export default function AboutPage() {
                             venues, or worse, missing your favourite artist because you found out too late. We thought there had to be a better way.
                         </p>
                         <p className="text-muted-foreground">
-                            Melbourne Events brings it all together: concerts, theatre, sports and festivals in one search. Get custom alerts
-                            for what you actually care about, explore pricing trends across our entire database, and dive into our archive
-                            of past events preserving Melbourne's cultural history for future reference and research..
+                            Set custom alerts for what you actually care about, explore pricing trends across our entire database, and dive into our archive preserving Melbourne's cultural history for future reference and research.
                         </p>
                     </CardContent>
                 </Card>
@@ -244,9 +241,9 @@ export default function AboutPage() {
                         </p>
                         <div className="flex flex-wrap gap-4 mb-6">
                             <Button variant="outline" size="lg" asChild className="border-2 transition-all hover-lift">
-                                <a href="mailto:hello@melbourneevents.com.au" className="flex items-center">
+                                <a href="mailto:hello@hoddleevents.com.au" className="flex items-center">
                                     <Mail className="h-5 w-5 mr-2" />
-                                    hello@melbourneevents.com.au
+                                    hello@hoddleevents.com.au
                                 </a>
                             </Button>
                             <Button variant="outline" size="lg" asChild className="border-2 transition-all hover-lift">

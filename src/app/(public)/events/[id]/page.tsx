@@ -74,11 +74,11 @@ export async function generateMetadata({ params }: EventPageProps) {
     const event = await Event.findById(id).lean();
 
     if (!event) {
-        return { title: 'Event Not Found' };
+        return { title: 'Event Not Found | Hoddle' };
     }
 
     return {
-        title: `${event.title} | Melbourne Events`,
+        title: `${event.title} | Hoddle`,
         description: event.description.substring(0, 160),
         openGraph: {
             title: event.title,
@@ -87,6 +87,7 @@ export async function generateMetadata({ params }: EventPageProps) {
         },
     };
 }
+
 export default async function EventPage({ params }: EventPageProps) {
     const { id } = await params;
     await connectDB();

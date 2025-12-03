@@ -156,14 +156,14 @@ export async function generateMetadata({ params }: CategoryPageProps): Promise<M
   const info = CATEGORY_CONFIG[slug];
 
   if (!info) {
-    return { title: 'Category Not Found | Melbourne Events' };
+    return { title: 'Category Not Found | Hoddle' };
   }
 
   return {
-    title: `${info.title} | Melbourne Events`,
+    title: `${info.title} | Hoddle`,
     description: `${info.description}. Browse all ${info.title.toLowerCase()} events in Melbourne.`,
     openGraph: {
-      title: `${info.title} | Melbourne Events`,
+      title: `${info.title} | Hoddle`,
       description: info.description,
     },
   };

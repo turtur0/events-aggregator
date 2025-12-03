@@ -9,6 +9,7 @@ import { ThemeToggle } from '../other/ThemeToggle';
 import { NotificationBell } from "../notifications/NotificationBell";
 import { AuthModal } from '../auth/AuthModals';
 import { Button } from '../ui/Button';
+import { Lexend_Giga } from 'next/font/google';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -18,6 +19,12 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/DropdownMenu';
 import { cn } from '@/lib/utils';
+
+const lexendGiga = Lexend_Giga({ 
+  subsets: ['latin'],
+  weight: ['700'],
+  display: 'swap',
+});
 
 const CATEGORY_LINKS = [
   { label: "Music", slug: "music", icon: Music, description: "Concerts, gigs & live music", color: "text-orange-600 dark:text-orange-400" },
@@ -82,11 +89,13 @@ function HeaderContent() {
       <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-backdrop-filter:bg-background/60 transition-all">
         <div className="container mx-auto flex h-14 sm:h-16 items-center justify-between px-4 sm:px-6 lg:px-8">
           {/* Logo */}
-          <Link href="/" className="flex items-center gap-2 font-bold text-lg sm:text-xl group">
-            <span className="bg-primary text-primary-foreground px-2 py-1 rounded text-sm transition-transform group-hover:scale-105">
-              ME
+          <Link href="/" className="flex items-center group">
+            <span className={cn(
+              lexendGiga.className,
+              "text-xl sm:text-2xl font-bold text-primary transition-transform group-hover:scale-105"
+            )}>
+              HODDLE
             </span>
-            <span className="hidden xs:inline">Melbourne Events</span>
           </Link>
 
           {/* Navigation */}
@@ -320,9 +329,8 @@ export function Header() {
     <Suspense fallback={
       <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-backdrop-filter:bg-background/60">
         <div className="container mx-auto flex h-14 sm:h-16 items-center justify-between px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center gap-2 font-bold text-lg sm:text-xl">
-            <span className="bg-primary text-primary-foreground px-2 py-1 rounded text-sm">ME</span>
-            <span className="hidden xs:inline">Melbourne Events</span>
+          <div className={cn(lexendGiga.className, "text-xl sm:text-2xl font-bold text-primary")}>
+            HODDLE
           </div>
           <div className="flex items-center gap-2">
             <div className="h-9 w-32 bg-muted rounded animate-pulse" />

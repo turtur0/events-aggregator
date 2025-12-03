@@ -15,7 +15,7 @@ import { EventFilters } from '@/components/events/filters/EventFilters';
 import { UserFavourite, Event } from '@/lib/models';
 
 export const metadata: Metadata = {
-    title: "My Favourites | Melbourne Events",
+    title: "My Favourites | Hoddle",
     description: "View and manage your saved Melbourne events. Keep track of concerts, shows and festivals you don't want to miss.",
     robots: "noindex, nofollow", 
 };

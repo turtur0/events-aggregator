@@ -1,5 +1,13 @@
 import Link from "next/link";
 import { Github, Mail } from "lucide-react";
+import { Lexend_Giga } from 'next/font/google';
+import { cn } from '@/lib/utils';
+
+const lexendGiga = Lexend_Giga({
+    subsets: ['latin'],
+    weight: ['700'],
+    display: 'swap',
+});
 
 export function Footer() {
     return (
@@ -8,11 +16,13 @@ export function Footer() {
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-8">
                     {/* Brand */}
                     <div className="md:col-span-2">
-                        <Link href="/" className="inline-flex items-center gap-2 font-bold text-xl mb-3 group">
-                            <span className="bg-primary text-primary-foreground px-2 py-1 rounded text-sm group-hover:scale-105 transition-transform">
-                                ME
+                        <Link href="/" className="inline-flex items-center group mb-3">
+                            <span className={cn(
+                                lexendGiga.className,
+                                "text-xl font-bold text-primary group-hover:scale-105 transition-transform"
+                            )}>
+                                HODDLE
                             </span>
-                            <span>Melbourne Events</span>
                         </Link>
                         <p className="text-muted-foreground text-sm max-w-md leading-relaxed">
                             All your Melbourne events in one place. Smart alerts, powerful insights and a comprehensive archive of past events.

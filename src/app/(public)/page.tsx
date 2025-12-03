@@ -16,10 +16,10 @@ import { getUserFavourites } from "@/lib/actions/interactions";
 import { Event } from '@/lib/models';
 
 export const metadata: Metadata = {
-  title: "Melbourne Events | Find Concerts, Theatre, Sports & More",
+  title: "Hoddle | Every Melbourne Event in One Place",
   description: "Discover events across Melbourne. Search concerts, theatre, sports, festivals and more. Set custom alerts, compare pricing and explore trends. Updated daily.",
   openGraph: {
-    title: "Melbourne Events | Find Concerts, Theatre, Sports & More",
+    title: "Hoddle | Every Melbourne Event in One Place",
     description: "Discover events across Melbourne. Search concerts, theatre, sports, festivals and more.",
     type: "website",
   },
