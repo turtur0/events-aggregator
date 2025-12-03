@@ -7,6 +7,16 @@ import { computeUserProfile, scoreEventForUser, type ScoredEvent } from '@/lib/m
 import { getRecommendationsCount } from '@/lib/constants/preferences';
 
 // ============================================
+// CONFIGURATION
+// ============================================
+
+const EMAIL_CONFIG = {
+    from: 'Hoddle Events <hello@hoddleevents.com.au>',
+    baseUrl: process.env.NEXT_PUBLIC_APP_URL || 'https://hoddleevents.com.au',
+    rateLimit: 100, // ms between emails
+};
+
+// ============================================
 // TYPE DEFINITIONS
 // ============================================
 
@@ -77,10 +87,10 @@ function getDigestSubject(content: DigestContent, frequency: 'weekly' | 'monthly
     const periodText = frequency === 'weekly' ? 'This Week' : 'This Month';
 
     if (content.keywordMatches.length > 0) {
-        return `${total} events including "${content.keywordMatches[0].title}" - Melbourne Events`;
+        return `${total} events including "${content.keywordMatches[0].title}" - Hoddle`;
     }
 
-    return `${total} curated events for you ${periodText} - Melbourne Events`;
+    return `${total} curated events for you ${periodText} - Hoddle`;
 }
 
 /**
@@ -124,6 +134,7 @@ async function findKeywordMatches(
         ],
         startDate: { $gte: new Date(), $lte: maxDate },
         scrapedAt: { $gte: sinceDate },
+        isArchived: { $ne: true },
     })
         .sort({ startDate: 1 })
         .lean();
@@ -133,7 +144,6 @@ async function findKeywordMatches(
 
 /**
  * Find user's favourite events with significant content updates
- * Only includes events where lastContentChange is after the last email sent
  */
 async function findUpdatedFavourites(
     user: any,
@@ -147,11 +157,11 @@ async function findUpdatedFavourites(
 
     const favouriteEventIds = favourites.map(f => f.eventId);
 
-    // Only get events with lastContentChange after the last email
     const events = await Event.find({
         _id: { $in: favouriteEventIds },
         startDate: { $gte: new Date() },
         lastContentChange: { $exists: true, $gt: sinceDate },
+        isArchived: { $ne: true },
     })
         .sort({ startDate: 1 })
         .lean();
@@ -161,7 +171,6 @@ async function findUpdatedFavourites(
 
 /**
  * Build personalised recommendations by category using ML recommendation engine
- * Leverages user profile service for intelligent scoring and ranking
  */
 async function buildRecommendations(
     user: any,
@@ -171,19 +180,15 @@ async function buildRecommendations(
     const selectedCategories = user.preferences?.selectedCategories || [];
     if (!selectedCategories.length) return [];
 
-    // Get user's recommendation size preference
     const recommendationsSize = user.preferences?.notifications?.recommendationsSize || 'moderate';
     const customCount = user.preferences?.notifications?.customRecommendationsCount;
     const eventsPerCategory = getRecommendationsCount(recommendationsSize, customCount);
 
-    // Compute user profile once (used for all categories)
     const userProfile = await computeUserProfile(user._id, user);
 
-    // Get favourites to exclude from recommendations
     const favourites = await UserFavourite.find({ userId: user._id }).lean();
     const favouriteEventIds = new Set(favourites.map(f => f.eventId.toString()));
 
-    // Get recent favourites for novelty calculation
     const recentFavourites = favourites.slice(0, 10);
     const recentFavouriteVectors = await Promise.all(
         recentFavourites.map(async fav => {
@@ -197,11 +202,11 @@ async function buildRecommendations(
     const recommendations: { category: string; events: IEvent[] }[] = [];
 
     for (const category of selectedCategories) {
-        // Get candidate events from this category
         const candidateEvents = await Event.find({
             category,
             startDate: { $gte: new Date(), $lte: maxDate },
             scrapedAt: { $gte: sinceDate },
+            isArchived: { $ne: true },
         })
             .sort({ startDate: 1 })
             .limit(100)
@@ -209,19 +214,16 @@ async function buildRecommendations(
 
         if (!candidateEvents.length) continue;
 
-        // Filter out favourited events
         const unfavouritedEvents = candidateEvents.filter(
             event => !favouriteEventIds.has(event._id.toString())
         );
 
         if (!unfavouritedEvents.length) continue;
 
-        // Score events using ML recommendation engine
         const scoredEvents: ScoredEvent[] = unfavouritedEvents.map(event =>
             scoreEventForUser(userProfile, event, user, recentFavouriteVectors as any)
         );
 
-        // Sort by score and take top N
         scoredEvents.sort((a, b) => b.score - a.score);
         const topEvents = scoredEvents.slice(0, eventsPerCategory).map(s => s.event);
 
@@ -242,12 +244,10 @@ async function gatherDigestContent(
 ): Promise<DigestContent> {
     const now = new Date();
 
-    // Calculate lookback date (when last email was sent)
     const lookbackDays = frequency === 'weekly' ? 7 : 30;
     const lookbackDate = user.preferences?.notifications?.lastEmailSent ||
         new Date(Date.now() - lookbackDays * 24 * 60 * 60 * 1000);
 
-    // Calculate lookahead date (how far into future to recommend)
     const lookaheadDays = frequency === 'weekly' ? 30 : 60;
     const maxDate = new Date(now.getTime() + lookaheadDays * 24 * 60 * 60 * 1000);
 
@@ -272,9 +272,6 @@ async function sendDigestEmail(
     content: DigestContent,
     frequency: 'weekly' | 'monthly'
 ): Promise<void> {
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
-
-    // Serialise all events for email template
     const serialisedContent = {
         keywordMatches: content.keywordMatches.map(serialiseEvent),
         updatedFavourites: content.updatedFavourites.map(serialiseEvent),
@@ -284,24 +281,24 @@ async function sendDigestEmail(
         })),
     };
 
-    // Render email HTML
     const emailHtml = await render(
         DigestEmail({
-            userName: user.name.split(' ')[0] || 'there',
+            userName: user.name?.split(' ')[0] || 'there',
             keywordMatches: serialisedContent.keywordMatches,
             updatedFavourites: serialisedContent.updatedFavourites,
             recommendations: serialisedContent.recommendations,
-            unsubscribeUrl: `${baseUrl}/settings`,
-            preferencesUrl: `${baseUrl}/settings`,
+            unsubscribeUrl: `${EMAIL_CONFIG.baseUrl}/settings`,
+            preferencesUrl: `${EMAIL_CONFIG.baseUrl}/settings`,
         })
     );
 
     const resend = getResendClient();
     const { error } = await resend.emails.send({
-        from: 'Melbourne Events <onboarding@resend.dev>',
+        from: EMAIL_CONFIG.from,
         to: user.email,
         subject: getDigestSubject(content, frequency),
         html: emailHtml,
+        replyTo: 'hello@hoddleevents.com.au',
     });
 
     if (error) {
@@ -344,7 +341,6 @@ export async function sendScheduledDigests(
 
             await sendDigestEmail(user, content, frequency);
 
-            // Update last email sent timestamp
             await User.updateOne(
                 { _id: user._id },
                 { $set: { 'preferences.notifications.lastEmailSent': new Date() } }
@@ -352,8 +348,8 @@ export async function sendScheduledDigests(
 
             result.sent++;
 
-            // Rate limiting to avoid overwhelming email service
-            await new Promise(resolve => setTimeout(resolve, 100));
+            // Rate limiting
+            await new Promise(resolve => setTimeout(resolve, EMAIL_CONFIG.rateLimit));
 
         } catch (error) {
             console.error(`[Digest] Error for ${user.email}:`, error);
