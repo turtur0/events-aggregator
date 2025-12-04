@@ -5,7 +5,6 @@ const TICKETMASTER_BASE_URL = 'https://app.ticketmaster.com/discovery/v2';
 const MELBOURNE_LAT = '-37.8136';
 const MELBOURNE_LNG = '144.9631';
 const RADIUS = '50';
-const MAX_PAGES = 10;
 
 /**
  * Fetches a single page of events from Ticketmaster API.
@@ -55,26 +54,26 @@ export async function fetchAllTicketmasterEvents(): Promise<TicketmasterEvent[]>
   const uniqueEventsMap = new Map<string, TicketmasterEvent>();
   let page = 0;
   let hasMore = true;
+  const maxPages = 100; // Safety limit to prevent infinite loops
 
-  console.log('[Ticketmaster] Fetching events');
+  console.log('[Ticketmaster] Fetching events (unlimited mode)');
 
-  while (hasMore && page < MAX_PAGES) {
+  while (hasMore && page < maxPages) {
     try {
-      const events = await fetchTicketmasterEvents(page, 100);
+      const events = await fetchTicketmasterEvents(page, 200); // Increased from 100
 
       if (events.length === 0) {
+        console.log('[Ticketmaster] No more events found, stopping');
         hasMore = false;
         break;
       }
 
-      // Deduplicate by event name and venue
       events.forEach(event => {
         const key = createEventKey(event);
 
         if (!uniqueEventsMap.has(key)) {
           uniqueEventsMap.set(key, event);
         } else {
-          // Merge date ranges for recurring events
           const existing = uniqueEventsMap.get(key)!;
           uniqueEventsMap.set(key, mergeEventDates(existing, event));
         }
@@ -83,7 +82,6 @@ export async function fetchAllTicketmasterEvents(): Promise<TicketmasterEvent[]>
       console.log(`[Ticketmaster] Page ${page + 1}: ${uniqueEventsMap.size} unique events`);
       page++;
 
-      // Rate limiting
       await delay(200);
     } catch (error) {
       console.error(`[Ticketmaster] Failed page ${page}:`, error);
@@ -91,9 +89,9 @@ export async function fetchAllTicketmasterEvents(): Promise<TicketmasterEvent[]>
     }
   }
 
+  console.log(`[Ticketmaster] Total: ${Array.from(uniqueEventsMap.values()).length} events`);
   return Array.from(uniqueEventsMap.values());
 }
-
 /**
  * Normalises a Ticketmaster event to the standard event format.
  * 

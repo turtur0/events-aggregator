@@ -47,16 +47,16 @@ async function main() {
       verbose: true,
       sources: ['ticketmaster', 'marriner', 'whatson'],
       marrinerOptions: {
-        maxShows: 10,
-        maxDetailFetches: 50,
+        maxShows: 200,
+        maxDetailFetches: 200,
         usePuppeteer: true,
       },
       whatsonOptions: {
-        categories: ['theatre', 'music', 'comedy', 'sports'],
-        maxPages: 5,
-        maxEventsPerCategory: 40,
+        categories: ['theatre', 'music', 'comedy', 'sport', 'arts', "film", "family-and-kids", "festival"],
+        maxPages: 15,
+        maxEventsPerCategory: 300,
         fetchDetails: true,
-        detailFetchDelay: 1000,
+        detailFetchDelay: 1500,
       },
     });
 

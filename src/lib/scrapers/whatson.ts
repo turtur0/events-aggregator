@@ -2,6 +2,7 @@ import { load, CheerioAPI, Cheerio } from 'cheerio';
 import type { Element } from 'domhandler';
 import { NormalisedEvent } from './types';
 import { mapWhatsOnCategory } from '../utils/category-mapper';
+import { canScrape } from '../utils/robots-checker';
 
 const BASE_URL = 'https://whatson.melbourne.vic.gov.au';
 
@@ -72,6 +73,13 @@ export async function scrapeWhatsOnMelbourne(opts: WhatsOnScrapeOptions = {}): P
   const allEvents: NormalisedEvent[] = [];
   const seenTitles = new Set<string>();
 
+  console.log('[WhatsOn] Checking robots.txt compliance');
+  const baseAllowed = await canScrape(`${BASE_URL}/tags/theatre`);
+  if (!baseAllowed) {
+    console.log('[WhatsOn] Scraping disallowed by robots.txt');
+    return [];
+  }
+
   console.log(`[WhatsOn] Scraping categories: ${categories.join(', ')}`);
   console.log(`[WhatsOn] Detail fetching: ${fetchDetails ? 'enabled' : 'disabled'}`);
 
@@ -87,7 +95,6 @@ export async function scrapeWhatsOnMelbourne(opts: WhatsOnScrapeOptions = {}): P
     for (let i = 0; i < listingEvents.length && processedCount < limit; i++) {
       const listing = listingEvents[i];
 
-      // Skip duplicates based on title
       const titleKey = listing.title.toLowerCase().trim();
       if (seenTitles.has(titleKey)) {
         console.log(`[WhatsOn] Skipping duplicate: ${listing.title}`);
@@ -96,8 +103,14 @@ export async function scrapeWhatsOnMelbourne(opts: WhatsOnScrapeOptions = {}): P
 
       let eventData: DetailedEvent = listing;
 
-      // Optionally fetch detailed information
       if (fetchDetails) {
+        // Check robots.txt before fetching details
+        const detailsAllowed = await canScrape(listing.url);
+        if (!detailsAllowed) {
+          console.log(`[WhatsOn] Skipping ${listing.url} - disallowed by robots.txt`);
+          continue;
+        }
+
         const details = await fetchEventDetails(listing.url);
         if (details) {
           eventData = { ...listing, ...details };
@@ -114,7 +127,6 @@ export async function scrapeWhatsOnMelbourne(opts: WhatsOnScrapeOptions = {}): P
       }
     }
 
-    // Delay between categories to avoid rate limiting
     await delay(2000);
   }
 

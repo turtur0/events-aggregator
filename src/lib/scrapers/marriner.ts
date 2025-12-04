@@ -1,6 +1,7 @@
 import { load, CheerioAPI } from 'cheerio';
 import { NormalisedEvent } from './types';
 import { mapMarrinerCategory } from '../utils/category-mapper';
+import { canScrape } from '../utils/robots-checker';
 
 const BASE_URL = 'https://marrinergroup.com.au';
 const HEADERS = {
@@ -43,6 +44,14 @@ export interface ScrapeOptions {
  * @returns Array of normalised events
  */
 export async function scrapeMarrinerGroup(opts: ScrapeOptions = {}): Promise<NormalisedEvent[]> {
+  console.log('[Marriner] Checking robots.txt compliance');
+
+  const showsPageAllowed = await canScrape(`${BASE_URL}/shows`);
+  if (!showsPageAllowed) {
+    console.log('[Marriner] Scraping disallowed by robots.txt');
+    return [];
+  }
+
   console.log('[Marriner] Fetching show URLs');
 
   const urls = opts.usePuppeteer !== false
@@ -52,10 +61,19 @@ export async function scrapeMarrinerGroup(opts: ScrapeOptions = {}): Promise<Nor
   console.log(`[Marriner] Found ${urls.length} unique show URLs`);
 
   const rawShows: RawShow[] = [];
-  const fetchLimit = opts.maxDetailFetches || urls.length;
+  const fetchLimit = opts.maxDetailFetches === Infinity ? urls.length : (opts.maxDetailFetches || urls.length);
 
   for (let i = 0; i < Math.min(fetchLimit, urls.length); i++) {
-    const raw = await fetchShowDetails(urls[i]);
+    const url = urls[i];
+
+    // Check robots.txt for each individual page
+    const allowed = await canScrape(url);
+    if (!allowed) {
+      console.log(`[Marriner] Skipping ${url} - disallowed by robots.txt`);
+      continue;
+    }
+
+    const raw = await fetchShowDetails(url);
     if (raw) {
       rawShows.push(raw);
       console.log(`[Marriner] Processed ${i + 1}/${Math.min(fetchLimit, urls.length)}: ${raw.title}`);
@@ -91,13 +109,13 @@ async function fetchShowUrls(maxShows: number): Promise<string[]> {
   const urls = new Set<string>();
   let noChangeCount = 0;
   let scrollAttempts = 0;
+  const maxScrollAttempts = maxShows === Infinity ? 50 : 20; // Increase for unlimited
 
-  console.log('[Marriner] Collecting show URLs');
+  console.log('[Marriner] Collecting show URLs (unlimited mode)');
 
-  while (noChangeCount < 4 && scrollAttempts < 20 && urls.size < maxShows * 2) {
+  while (noChangeCount < 4 && scrollAttempts < maxScrollAttempts) {
     const prevSize = urls.size;
 
-    // Extract show URLs from page
     const found = await page.evaluate(() => {
       const links = Array.from(document.querySelectorAll('a[href*="/shows/"]'));
       return links
@@ -110,7 +128,6 @@ async function fetchShowUrls(maxShows: number): Promise<string[]> {
 
     console.log(`[Marriner] Scroll ${scrollAttempts + 1}: ${urls.size} URLs found`);
 
-    // Scroll to load more content
     await page.evaluate(() =>
       window.scrollBy({ top: window.innerHeight * 0.8, behavior: 'smooth' })
     );
@@ -121,10 +138,12 @@ async function fetchShowUrls(maxShows: number): Promise<string[]> {
   await browser.close();
 
   const uniqueShows = deduplicateBySlug(Array.from(urls));
-  const result = uniqueShows.slice(0, maxShows);
+
+  // Return all if maxShows is Infinity, otherwise limit
+  const result = maxShows === Infinity ? uniqueShows : uniqueShows.slice(0, maxShows);
 
   console.log(
-    `[Marriner] Collected ${urls.size} URLs, ${uniqueShows.length} unique shows, taking ${result.length}`
+    `[Marriner] Collected ${urls.size} URLs, ${uniqueShows.length} unique shows, returning ${result.length}`
   );
 
   return result;

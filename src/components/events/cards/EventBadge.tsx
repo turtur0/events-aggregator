@@ -62,7 +62,7 @@ export function EventBadge({
 
         // Subcategory badge: link to search with subcategory filter
         if (type === 'subcategory' && subcategory && category) {
-            return `/?category=${category}&subcategory=${encodeURIComponent(subcategory)}`;
+            return `/events/?category=${category}&subcategory=${encodeURIComponent(subcategory)}`;
         }
 
         // Venue badge: link to the venue's booking URL

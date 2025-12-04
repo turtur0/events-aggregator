@@ -9,8 +9,8 @@ import { scrapeMarrinerGroup } from '@/lib/scrapers';
 import { processEventsWithDeduplication } from './scrape-with-dedup';
 
 const SCRAPE_OPTIONS: ScrapeOptions = {
-  maxShows: 25,
-  maxDetailFetches: 25,
+  maxShows: Infinity,           // No limit
+  maxDetailFetches: Infinity,   // Fetch all details
   usePuppeteer: true,
 };
 

@@ -8,9 +8,9 @@ import { scrapeWhatsOnMelbourne, WhatsOnScrapeOptions } from '@/lib/scrapers';
 import { processEventsWithDeduplication } from './scrape-with-dedup';
 
 const DEFAULT_OPTIONS: WhatsOnScrapeOptions = {
-  categories: ['theatre', 'music', 'comedy', 'sport', 'art'],
-  maxPages: 2,
-  maxEventsPerCategory: 25,
+  categories: ['theatre'], // All categories
+  maxPages: Infinity,           // No page limit
+  maxEventsPerCategory: Infinity, // No event limit
   fetchDetails: true,
   detailFetchDelay: 1000,
 };
