@@ -5,7 +5,7 @@ dotenv.config({ path: path.resolve(process.cwd(), '.env.local') });
 
 import { connectDB, disconnectDB } from '@/lib/db';
 import { scrapeWhatsOnMelbourne, WhatsOnScrapeOptions } from '@/lib/scrapers';
-import { processEventsWithDeduplication } from './scrape-with-dedup';
+import { processEventsWithDeduplication } from '../utils/scrape-with-dedup';
 
 const DEFAULT_OPTIONS: WhatsOnScrapeOptions = {
   categories: ['theatre'], // All categories

@@ -9,7 +9,7 @@ if (!process.env.CI) {
 import { connectDB, disconnectDB } from '@/lib/db';
 import Event from '@/lib/models/Event';
 import { scrapeAll } from '@/lib/scrapers';
-import { processEventsWithDeduplication } from './scrape-with-dedup';
+import { processEventsWithDeduplication } from '../utils/scrape-with-dedup';
 import { archivePastEvents } from '@/lib/services/archive-service';
 
 interface ScrapeStats {

@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { connectDB } from '@/lib/db';
 import { computeTimeline } from '@/lib/services';
-import parseCategoriesParam from '../../utils/parse-categories-param';
+import parseCategoriesParam from '../../_utils/parse-categories-param';
 
 /**
  * GET /api/analytics/timeline
