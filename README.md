@@ -18,7 +18,7 @@ A full-stack events aggregator that solves Melbourne's fragmented event discover
 
 Browse thousands of events from multiple sources in one place. Advanced filtering by category, subcategory, date range, and price. Smart deduplication ensures each event appears once, even when listed across multiple platforms.
 
-**[INSERT: Search/filter demo GIF or screenshot]**
+![Search and filtering on events page](docs/unified-search.gif)
 
 ---
 
@@ -26,7 +26,7 @@ Browse thousands of events from multiple sources in one place. Advanced filterin
 
 Content-based filtering system that learns from your interactions. Events are represented as ~49-dimensional vectors (category, subcategories, price, venue tier, popularity), and cosine similarity matches them to your computed user profile. The system blends explicit preferences (onboarding selections) with learnt behaviour (favourites, clicks, views) using regularised weighted averaging, with time-decay for recency bias and cold-start handling for new users.
 
-**[INSERT: "For You" recommendations section screenshot]**
+!["For You" and "Trending" recommendation section*](docs/personalised-reccomendations-ezgif.com-video-to-gif-converter.gif)
 
 ---
 
@@ -34,7 +34,7 @@ Content-based filtering system that learns from your interactions. Events are re
 
 Granular notification controls let you set keyword alerts, category preferences, and popularity filters. Choose between weekly or monthly email digests, and control recommendation volume per category (1-20 events). Minimum match score filtering ensures you only get notified about truly relevant events.
 
-**[INSERT: Notification settings page screenshot]**
+![Notififcation page](docs/notifications.png)
 
 ---
 
@@ -42,7 +42,7 @@ Granular notification controls let you set keyword alerts, category preferences,
 
 Interactive charts visualising price distributions, event timelines, and popularity metrics across categories. Compare individual events' pricing against their category, identify pricing trends, and discover the best-value tickets. Built with Recharts for responsive, real-time data visualisation.
 
-**[INSERT: Analytics charts screenshot showing price distribution/timeline]**
+![INSERT: Analytics charts screenshot showing price distribution/timeline](docs/analytics.gif)
 
 ---
 
@@ -50,15 +50,13 @@ Interactive charts visualising price distributions, event timelines, and popular
 
 Complete record of past Melbourne events preserved for cultural research and trend analysis. Searchable archive maintains venue histories, pricing data, and event metadata—useful for academic research, market analysis, or simply rediscovering what you might have missed.
 
-**[INSERT: Archive page screenshot]**
+![INSERT: Archive page screenshot](docs/archieved-events.png)
 
 ---
 
 ### Automated Data Pipeline
 
 Daily/weekly scraping jobs collect events from all sources. Implements ethical scraping practices (robots.txt compliance, rate limiting) with automated deduplication and data validation. Scheduled cron jobs keep the database fresh without manual intervention.
-
-**[INSERT: Data pipeline flow diagram or scraping workflow visualization]**
 
 ---
 
@@ -109,7 +107,7 @@ Daily/weekly scraping jobs collect events from all sources. Implements ethical s
 - Venue capacity proxy (log-scaled to prevent stadium dominance)
 - Daily batch updates via cron job maintain fresh percentiles
 
-**[NSERT: ML system diagram showing: User Interactions → Vector Model → Cosine Similarity → Scored Recommendations]**
+![Setting page showing preferences](docs/ml-recommendations.gif)
 
 ---
 
@@ -131,10 +129,8 @@ Daily/weekly scraping jobs collect events from all sources. Implements ethical s
 **ML & Analytics**
 - Custom vector similarity engine
 - Recharts
-- Statistical analysis utilities
 
 **Data Collection**
-- Ticketmaster Discovery API
 - Cheerio & Puppeteer (web scraping)
 - Rate limiting & robots.txt compliance
 
@@ -145,7 +141,6 @@ Daily/weekly scraping jobs collect events from all sources. Implements ethical s
 **Tools & Deployment**
 - Vercel (hosting & edge functions)
 - Jest 30 (testing framework)
-- tsx (TypeScript execution)
 
 ---
 
@@ -191,12 +186,6 @@ npm run dev
 - [ ] Implement more scrapers for additional sources
 - [ ] External API integration (Spotify for artist popularity, Google Trends for search volume to improve popularity ratings)
 - [ ] Social features (friend recommendations, event sharing)
-
----
-
-## Contributing
-
-This is a portfolio project, but suggestions and feedback are welcome! Feel free to open an issue or reach out directly.
 
 ---
 
