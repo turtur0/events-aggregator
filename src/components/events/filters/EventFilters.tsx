@@ -153,8 +153,21 @@ export function EventFilters(props: EventFiltersProps) {
 
   return (
     <div className="space-y-3">
-      {/* Filter Header */}
-      <div className="bg-card border-2 rounded-lg p-4 transition-all hover:border-primary/30">
+      {/* Filter Header - Entire row clickable */}
+      <div
+        onClick={() => setShowFilters(!showFilters)}
+        className="w-full bg-card border-2 rounded-lg p-4 transition-all hover:border-primary/30 active:scale-[0.99] cursor-pointer"
+        role="button"
+        tabIndex={0}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            setShowFilters(!showFilters);
+          }
+        }}
+        aria-expanded={showFilters}
+        aria-label={showFilters ? 'Hide filters' : 'Show filters'}
+      >
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Filter className="h-4 w-4 text-primary" aria-hidden="true" />
@@ -167,27 +180,31 @@ export function EventFilters(props: EventFiltersProps) {
           </div>
 
           <div className="flex items-center gap-2">
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => setShowFilters(!showFilters)}
-              className="h-8 w-8 transition-all hover:bg-primary/10 hover:text-primary"
-              aria-expanded={showFilters}
-              aria-label={showFilters ? 'Hide filters' : 'Show filters'}
-            >
+            <div className="h-8 w-8 flex items-center justify-center transition-all hover:bg-primary/10 hover:text-primary rounded-md">
               {showFilters ? <Minus className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
-            </Button>
+            </div>
 
             {activeFilters > 0 && (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={clearAllFilters}
-                className="h-8 px-2 transition-all hover:bg-destructive/10 hover:text-destructive"
+              <div
+                onClick={(e) => {
+                  e.stopPropagation();
+                  clearAllFilters();
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    clearAllFilters();
+                  }
+                }}
+                role="button"
+                tabIndex={0}
+                className="h-8 px-2 flex items-center gap-1 transition-all hover:bg-destructive/10 hover:text-destructive rounded-md cursor-pointer"
+                aria-label="Clear all filters"
               >
-                <X className="h-4 w-4 mr-1" />
-                Clear filters
-              </Button>
+                <X className="h-4 w-4" />
+                <span className="text-sm font-medium">Clear</span>
+              </div>
             )}
           </div>
         </div>
@@ -196,19 +213,19 @@ export function EventFilters(props: EventFiltersProps) {
         {activeFilters > 0 && (
           <div className="flex flex-wrap gap-2 mt-3 pt-3 border-t animate-in fade-in slide-in-from-top-2">
             {!props.hideCategoryFilter && category !== 'all' && (
-              <FilterBadge icon={Tag} label={selectedCategory?.label || category} onRemove={() => handleCategoryChange('all')} />
+              <FilterBadge icon={Tag} label={selectedCategory?.label || category} onRemove={(e) => { e.stopPropagation(); handleCategoryChange('all'); }} />
             )}
             {!props.hideSubcategoryFilter && subcategory !== 'all' && (
-              <FilterBadge icon={Grid3x3} label={subcategory} onRemove={() => updateURL({ subcategory: 'all' })} />
+              <FilterBadge icon={Grid3x3} label={subcategory} onRemove={(e) => { e.stopPropagation(); updateURL({ subcategory: 'all' }); }} />
             )}
             {!props.hideDateFilters && (dateFilter !== 'all' || hasCustomDateRange) && (
-              <FilterBadge icon={CalendarIcon} label={getDateBadgeText()} onRemove={() => updateURL({ date: 'all', dateFrom: 'all', dateTo: 'all' })} variant="secondary" />
+              <FilterBadge icon={CalendarIcon} label={getDateBadgeText()} onRemove={(e) => { e.stopPropagation(); updateURL({ date: 'all', dateFrom: 'all', dateTo: 'all' }); }} variant="secondary" />
             )}
             {freeOnly && (
-              <FilterBadge icon={Ticket} label="Free only" onRemove={() => updateURL({ free: false })} variant="emerald" />
+              <FilterBadge icon={Ticket} label="Free only" onRemove={(e) => { e.stopPropagation(); updateURL({ free: false }); }} variant="emerald" />
             )}
             {!props.hideAccessibilityFilter && accessibleOnly && (
-              <FilterBadge icon={Users} label="Accessible only" onRemove={() => updateURL({ accessible: false })} variant="emerald" />
+              <FilterBadge icon={Users} label="Accessible only" onRemove={(e) => { e.stopPropagation(); updateURL({ accessible: false }); }} variant="emerald" />
             )}
           </div>
         )}
@@ -291,7 +308,7 @@ export function EventFilters(props: EventFiltersProps) {
                           <CalendarIcon className="h-4 w-4" />
                         </Button>
                       </PopoverTrigger>
-                      <PopoverContent className="w-[420px] p-0" align="end">
+                      <PopoverContent className="w-auto p-0" align="end" sideOffset={8}>
                         <DateRangePicker
                           dateFrom={dateFrom ? new Date(dateFrom) : undefined}
                           dateTo={dateTo ? new Date(dateTo) : undefined}
@@ -305,11 +322,23 @@ export function EventFilters(props: EventFiltersProps) {
               )}
             </div>
 
-            {/* Toggles */}
+            {/* Toggles - Entire row clickable */}
             <div className="flex flex-wrap gap-3">
-              <FilterToggle id="free-only" label="Free only" icon={Ticket} checked={freeOnly} onChange={(checked) => updateURL({ free: checked })} />
+              <FilterToggle
+                id="free-only"
+                label="Free only"
+                icon={Ticket}
+                checked={freeOnly}
+                onChange={(checked) => updateURL({ free: checked })}
+              />
               {!props.hideAccessibilityFilter && (
-                <FilterToggle id="accessible-only" label="Accessible only" icon={Users} checked={accessibleOnly} onChange={(checked) => updateURL({ accessible: checked })} />
+                <FilterToggle
+                  id="accessible-only"
+                  label="Accessible only"
+                  icon={Users}
+                  checked={accessibleOnly}
+                  onChange={(checked) => updateURL({ accessible: checked })}
+                />
               )}
             </div>
           </div>
@@ -323,7 +352,7 @@ export function EventFilters(props: EventFiltersProps) {
 function FilterBadge({ icon: Icon, label, onRemove, variant = 'primary' }: {
   icon: React.ComponentType<{ className?: string }>;
   label: string;
-  onRemove: () => void;
+  onRemove: (e: React.MouseEvent) => void;
   variant?: 'primary' | 'secondary' | 'emerald';
 }) {
   const styles = {
@@ -384,10 +413,23 @@ function FilterToggle({ id, label, icon: Icon, checked, onChange }: {
   onChange: (checked: boolean) => void;
 }) {
   return (
-    <div className="flex items-center gap-2 px-3 py-2 border-2 rounded-md transition-all hover:border-emerald-500/30 hover:scale-[1.02] bg-background">
+    <div
+      onClick={() => onChange(!checked)}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          onChange(!checked);
+        }
+      }}
+      role="button"
+      tabIndex={0}
+      className="flex items-center gap-2 px-3 py-2 border-2 rounded-md transition-all hover:border-emerald-500/30 hover:scale-[1.02] active:scale-[0.98] bg-background cursor-pointer"
+      aria-pressed={checked}
+      aria-label={`${checked ? 'Disable' : 'Enable'} ${label}`}
+    >
       <Icon className="h-3.5 w-3.5 text-primary" aria-hidden="true" />
-      <Switch id={id} checked={checked} onCheckedChange={onChange} className="data-[state=checked]:bg-emerald-600" />
-      <Label htmlFor={id} className="cursor-pointer text-sm">{label}</Label>
+      <Switch id={id} checked={checked} onCheckedChange={onChange} className="data-[state=checked]:bg-emerald-600 pointer-events-none" />
+      <Label htmlFor={id} className="text-sm pointer-events-none cursor-pointer">{label}</Label>
     </div>
   );
 }
@@ -426,50 +468,71 @@ function DateRangePicker({ dateFrom, dateTo, onDateChange, onClose }: {
   };
 
   return (
-    <div className="space-y-4 p-4 w-full">
-      <div className="text-sm text-muted-foreground text-center pb-2 border-b">
+    <div className="space-y-4 p-3 sm:p-4 max-w-[calc(100vw-2rem)] sm:max-w-none">
+      <div className="text-xs sm:text-sm text-muted-foreground text-center pb-2 border-b">
         {!selectedFrom ? 'Select start date' : !selectedTo ? 'Select end date' : 'Click a date to start new selection'}
       </div>
 
-      <Calendar
-        mode="single"
-        selected={selectedFrom}
-        onSelect={handleDateSelect}
-        disabled={(date) => isBefore(date, today)}
-        initialFocus
-        className="rounded-md border-0 w-full"
-        onDayMouseEnter={setHoveredDate}
-        onDayMouseLeave={() => setHoveredDate(undefined)}
-        modifiers={{
-          range_start: selectedFrom,
-          range_end: selectedTo,
-          range_middle: (date) => isInRange(date) && date !== selectedFrom && date !== selectedTo,
-        }}
-        modifiersClassNames={{
-          range_start: 'bg-primary text-primary-foreground font-bold rounded-l-md rounded-r-none',
-          range_end: 'bg-primary text-primary-foreground font-bold rounded-r-md rounded-l-none',
-          range_middle: 'bg-primary/15 hover:bg-primary/25 rounded-none',
-        }}
-      />
+      <div className="overflow-x-auto">
+        <Calendar
+          mode="single"
+          selected={selectedFrom}
+          onSelect={handleDateSelect}
+          disabled={(date) => isBefore(date, today)}
+          initialFocus
+          className="rounded-md border-0 w-full"
+          onDayMouseEnter={setHoveredDate}
+          onDayMouseLeave={() => setHoveredDate(undefined)}
+          modifiers={{
+            range_start: selectedFrom,
+            range_end: selectedTo,
+            range_middle: (date) => isInRange(date) && date !== selectedFrom && date !== selectedTo,
+          }}
+          modifiersClassNames={{
+            range_start: 'bg-primary text-primary-foreground font-bold rounded-l-md rounded-r-none',
+            range_end: 'bg-primary text-primary-foreground font-bold rounded-r-md rounded-l-none',
+            range_middle: 'bg-primary/15 hover:bg-primary/25 rounded-none',
+          }}
+          classNames={{
+            months: "w-full",
+            month: "w-full",
+            table: "w-full border-collapse",
+            head_cell: "text-xs sm:text-sm",
+            cell: "text-xs sm:text-sm p-0",
+            day: "h-8 w-8 sm:h-9 sm:w-9 text-xs sm:text-sm",
+            day_selected: "bg-primary text-primary-foreground",
+          }}
+        />
+      </div>
 
       {(selectedFrom || selectedTo) && (
-        <div className="px-3 py-3 bg-muted/50 rounded-md space-y-2 animate-in fade-in slide-in-from-top-2">
+        <div className="px-3 py-2 sm:py-3 bg-muted/50 rounded-md space-y-2 animate-in fade-in slide-in-from-top-2">
           <div className="flex items-center justify-between gap-3">
-            <span className="text-sm text-muted-foreground font-medium">From:</span>
-            <span className="text-sm font-semibold">{selectedFrom ? format(selectedFrom, 'dd MMM yyyy') : '—'}</span>
+            <span className="text-xs sm:text-sm text-muted-foreground font-medium">From:</span>
+            <span className="text-xs sm:text-sm font-semibold">{selectedFrom ? format(selectedFrom, 'dd MMM yyyy') : '—'}</span>
           </div>
           <div className="flex items-center justify-between gap-3">
-            <span className="text-sm text-muted-foreground font-medium">To:</span>
-            <span className="text-sm font-semibold">{selectedTo ? format(selectedTo, 'dd MMM yyyy') : '—'}</span>
+            <span className="text-xs sm:text-sm text-muted-foreground font-medium">To:</span>
+            <span className="text-xs sm:text-sm font-semibold">{selectedTo ? format(selectedTo, 'dd MMM yyyy') : '—'}</span>
           </div>
         </div>
       )}
 
       <div className="flex gap-2 pt-2 border-t">
-        <Button variant="outline" size="sm" onClick={() => { setSelectedFrom(undefined); setSelectedTo(undefined); onDateChange(undefined, undefined); onClose(); }} className="flex-1">
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => { setSelectedFrom(undefined); setSelectedTo(undefined); onDateChange(undefined, undefined); onClose(); }}
+          className="flex-1 text-xs sm:text-sm"
+        >
           Clear
         </Button>
-        <Button size="sm" onClick={() => { onDateChange(selectedFrom, selectedTo); onClose(); }} disabled={!selectedFrom} className="flex-1">
+        <Button
+          size="sm"
+          onClick={() => { onDateChange(selectedFrom, selectedTo); onClose(); }}
+          disabled={!selectedFrom}
+          className="flex-1 text-xs sm:text-sm"
+        >
           Apply
         </Button>
       </div>
