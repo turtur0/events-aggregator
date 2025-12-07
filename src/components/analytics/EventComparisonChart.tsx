@@ -180,7 +180,7 @@ export function EventComparison({ eventId, category, isFree, priceMin, priceMax 
                         <div className="relative h-14 bg-muted rounded-lg overflow-hidden mb-3">
                             {/* Value zone */}
                             <div
-                                className={`absolute inset-y-0 left-0 bg-gradient-to-r from-emerald-500/20 to-emerald-500/5 pointer-events-none transition-opacity duration-300 ${hoveredElement === 'value' ? 'opacity-100' : 'opacity-70'
+                                className={`absolute inset-y-0 left-0 bg-linear-to-r from-emerald-500/20 to-emerald-500/5 pointer-events-none transition-opacity duration-300 ${hoveredElement === 'value' ? 'opacity-100' : 'opacity-70'
                                     }`}
                                 style={{ width: `${valueZoneWidth}%` }}
                             />
@@ -223,7 +223,7 @@ export function EventComparison({ eventId, category, isFree, priceMin, priceMax 
                                             >
                                                 {/* Price range bar */}
                                                 <div
-                                                    className={`absolute inset-0 bg-gradient-to-r from-primary/40 to-primary/40 transition-all duration-300 ${hoveredElement === 'event' ? 'from-primary/60 to-primary/60 shadow-lg' : ''
+                                                    className={`absolute inset-0 bg-linear-to-r from-primary/40 to-primary/40 transition-all duration-300 ${hoveredElement === 'event' ? 'from-primary/60 to-primary/60 shadow-lg' : ''
                                                         }`}
                                                 />
 
@@ -327,7 +327,7 @@ export function EventComparison({ eventId, category, isFree, priceMin, priceMax 
 
                     {/* Stats cards */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div className="p-4 rounded-lg border-2 bg-gradient-to-br from-muted/50 to-transparent">
+                        <div className="p-4 rounded-lg border-2 bg-linear-to-br from-muted/50 to-transparent">
                             <div className="flex items-center gap-2 mb-3">
                                 <TrendingUp className="h-4 w-4 text-secondary" />
                                 <span className="text-sm font-medium">Popularity Rating</span>
@@ -348,7 +348,7 @@ export function EventComparison({ eventId, category, isFree, priceMin, priceMax 
                             </p>
                         </div>
 
-                        <div className="p-4 rounded-lg border-2 bg-gradient-to-br from-primary/5 to-transparent">
+                        <div className="p-4 rounded-lg border-2 bg-linear-to-br from-primary/5 to-transparent">
                             <div className="flex items-center gap-2 mb-3">
                                 <BarChart3 className="h-4 w-4" />
                                 <span className="text-sm font-medium">Category Insights</span>

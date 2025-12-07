@@ -166,9 +166,11 @@ function serialiseEvent(event: any) {
         lastUpdated: event.lastUpdated instanceof Date
             ? event.lastUpdated.toISOString()
             : new Date(event.lastUpdated).toISOString(),
-        archivedAt: event.archivedAt instanceof Date
-            ? event.archivedAt.toISOString()
-            : new Date(event.archivedAt).toISOString(),
+        archivedAt: event.archivedAt
+            ? (event.archivedAt instanceof Date
+                ? event.archivedAt.toISOString()
+                : new Date(event.archivedAt).toISOString())
+            : undefined,
         isArchived: true,
         stats: event.stats,
     };

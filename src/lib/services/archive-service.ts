@@ -30,18 +30,21 @@ export async function archivePastEvents(): Promise<ArchiveStats> {
     console.log(`[Archive] Starting archival process for events before ${today.toISOString()}`);
 
     try {
+        const now = new Date();
+        const melbourneNow = new Date(now.toLocaleString('en-US', { timeZone: 'Australia/Melbourne' }));
+        const endOfToday = new Date(melbourneNow);
+        endOfToday.setHours(23, 59, 59, 999);
+
         // Find events that should be archived
         const eventsToArchive = await Event.find({
             isArchived: { $ne: true },
             $or: [
-                // Events with no endDate: archive if startDate has passed
                 {
                     endDate: { $exists: false },
-                    startDate: { $lt: today },
+                    startDate: { $lt: endOfToday },
                 },
-                // Events with endDate: archive only if endDate has passed
                 {
-                    endDate: { $exists: true, $ne: null, $lt: today },
+                    endDate: { $exists: true, $ne: null, $lt: endOfToday },
                 },
             ],
         }).select('_id title startDate endDate');
