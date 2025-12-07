@@ -53,7 +53,7 @@ export function EventComparison({ eventId, category, isFree, priceMin, priceMax 
     const [data, setData] = useState<EventComparisonData | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
-    const [hoveredElement, setHoveredElement] = useState<'min' | 'max' | 'range' | null>(null);
+    const [hoveredElement, setHoveredElement] = useState<'event' | 'median' | 'value' | null>(null);
 
     useEffect(() => {
         if (eventId && !isFree) {
@@ -83,9 +83,7 @@ export function EventComparison({ eventId, category, isFree, priceMin, priceMax 
         }
     };
 
-    if (isFree) {
-        return null;
-    }
+    if (isFree) return null;
 
     if (isLoading) {
         return (
@@ -101,9 +99,7 @@ export function EventComparison({ eventId, category, isFree, priceMin, priceMax 
         );
     }
 
-    if (error || !data) {
-        return null;
-    }
+    if (error || !data) return null;
 
     const getPercentileColour = (percentile: number): string => {
         if (percentile >= 75) return 'text-emerald-600 dark:text-emerald-400';
@@ -141,6 +137,7 @@ export function EventComparison({ eventId, category, isFree, priceMin, priceMax 
 
     // Value zone: bottom 33% of price range
     const valueZoneThreshold = data.categoryStats.minPrice + (categoryRange * 0.33);
+    const valueZoneWidth = (valueZoneThreshold - data.categoryStats.minPrice) / categoryRange * 100;
 
     return (
         <ChartWrapper
@@ -179,22 +176,25 @@ export function EventComparison({ eventId, category, isFree, priceMin, priceMax 
                             </Badge>
                         </div>
 
+                        {/* Price positioning chart */}
                         <div className="relative h-14 bg-muted rounded-lg overflow-hidden mb-3">
-                            {/* Value zone: bottom third of price range */}
+                            {/* Value zone */}
                             <div
-                                className="absolute inset-y-0 left-0 bg-linear-to-r from-emerald-500/20 to-emerald-500/5 pointer-events-none"
-                                style={{
-                                    width: `${(valueZoneThreshold - data.categoryStats.minPrice) / categoryRange * 100}%`
-                                }}
+                                className={`absolute inset-y-0 left-0 bg-gradient-to-r from-emerald-500/20 to-emerald-500/5 pointer-events-none transition-opacity duration-300 ${hoveredElement === 'value' ? 'opacity-100' : 'opacity-70'
+                                    }`}
+                                style={{ width: `${valueZoneWidth}%` }}
                             />
 
                             {/* Median line */}
                             <TooltipProvider>
-                                <Tooltip>
+                                <Tooltip open={hoveredElement === 'median'}>
                                     <TooltipTrigger asChild>
                                         <div
-                                            className="absolute inset-y-0 w-0.5 bg-border z-10 cursor-help hover:bg-foreground/40 transition-colors"
+                                            className={`absolute inset-y-0 w-0.5 bg-border z-10 cursor-pointer transition-all duration-300 ${hoveredElement === 'median' ? 'bg-foreground/60 w-1 shadow-lg' : ''
+                                                }`}
                                             style={{ left: `${medianPosition}%` }}
+                                            onMouseEnter={() => setHoveredElement('median')}
+                                            onMouseLeave={() => setHoveredElement(null)}
                                         >
                                             <div className="absolute -bottom-6 left-1/2 -translate-x-1/2 text-xs text-muted-foreground whitespace-nowrap">
                                                 Median
@@ -207,86 +207,68 @@ export function EventComparison({ eventId, category, isFree, priceMin, priceMax 
                                 </Tooltip>
                             </TooltipProvider>
 
+                            {/* Event price range or single price */}
                             {hasPriceRange ? (
-                                <>
-                                    <TooltipProvider>
-                                        <Tooltip open={hoveredElement === 'range'}>
-                                            <TooltipTrigger asChild>
+                                <TooltipProvider>
+                                    <Tooltip open={hoveredElement === 'event'}>
+                                        <TooltipTrigger asChild>
+                                            <div
+                                                className="absolute inset-y-0 z-20 cursor-pointer"
+                                                style={{
+                                                    left: `${priceMinPosition}%`,
+                                                    width: `${priceMaxPosition - priceMinPosition}%`,
+                                                }}
+                                                onMouseEnter={() => setHoveredElement('event')}
+                                                onMouseLeave={() => setHoveredElement(null)}
+                                            >
+                                                {/* Price range bar */}
                                                 <div
-                                                    className="absolute inset-y-0 bg-linear-to-r from-primary/40 to-primary/40 transition-all duration-500 cursor-pointer hover:from-primary/50 hover:to-primary/50 z-20"
-                                                    style={{
-                                                        left: `${priceMinPosition}%`,
-                                                        width: `${priceMaxPosition - priceMinPosition}%`,
-                                                    }}
-                                                    onMouseEnter={() => setHoveredElement('range')}
-                                                    onMouseLeave={() => setHoveredElement(null)}
+                                                    className={`absolute inset-0 bg-gradient-to-r from-primary/40 to-primary/40 transition-all duration-300 ${hoveredElement === 'event' ? 'from-primary/60 to-primary/60 shadow-lg' : ''
+                                                        }`}
                                                 />
-                                            </TooltipTrigger>
-                                            <TooltipContent>
-                                                <p className="text-xs font-medium">
-                                                    This Event Range: ${data.eventStats.price} - ${data.eventStats.priceMax}
-                                                </p>
-                                            </TooltipContent>
-                                        </Tooltip>
-                                    </TooltipProvider>
 
-                                    <TooltipProvider>
-                                        <Tooltip open={hoveredElement === 'min'}>
-                                            <TooltipTrigger asChild>
+                                                {/* Min price marker */}
                                                 <div
-                                                    className="absolute inset-y-0 w-1.5 bg-primary rounded-l-full transition-all duration-500 z-30 cursor-pointer hover:w-2 hover:shadow-lg"
-                                                    style={{
-                                                        left: `${priceMinPosition}%`,
-                                                        transform: 'translateX(-50%)',
-                                                    }}
-                                                    onMouseEnter={() => setHoveredElement('min')}
-                                                    onMouseLeave={() => setHoveredElement(null)}
+                                                    className={`absolute inset-y-0 w-1.5 bg-primary rounded-l-full transition-all duration-300 z-10 ${hoveredElement === 'event' ? 'w-2 shadow-lg' : ''
+                                                        }`}
+                                                    style={{ left: 0, transform: 'translateX(-50%)' }}
                                                 >
                                                     <div className="absolute -top-8 left-1/2 -translate-x-1/2 text-xs font-bold whitespace-nowrap bg-background px-2 py-1 rounded border shadow-sm">
                                                         ${data.eventStats.price}
                                                     </div>
                                                 </div>
-                                            </TooltipTrigger>
-                                            <TooltipContent>
-                                                <p className="text-xs font-medium">Minimum Price: ${data.eventStats.price}</p>
-                                            </TooltipContent>
-                                        </Tooltip>
-                                    </TooltipProvider>
 
-                                    <TooltipProvider>
-                                        <Tooltip open={hoveredElement === 'max'}>
-                                            <TooltipTrigger asChild>
+                                                {/* Max price marker */}
                                                 <div
-                                                    className="absolute inset-y-0 w-1.5 bg-primary rounded-r-full transition-all duration-500 z-30 cursor-pointer hover:w-2 hover:shadow-lg"
-                                                    style={{
-                                                        left: `${priceMaxPosition}%`,
-                                                        transform: 'translateX(-50%)',
-                                                    }}
-                                                    onMouseEnter={() => setHoveredElement('max')}
-                                                    onMouseLeave={() => setHoveredElement(null)}
+                                                    className={`absolute inset-y-0 w-1.5 bg-primary rounded-r-full transition-all duration-300 z-10 ${hoveredElement === 'event' ? 'w-2 shadow-lg' : ''
+                                                        }`}
+                                                    style={{ right: 0, transform: 'translateX(50%)' }}
                                                 >
                                                     <div className="absolute -top-8 left-1/2 -translate-x-1/2 text-xs font-bold whitespace-nowrap bg-background px-2 py-1 rounded border shadow-sm">
                                                         ${data.eventStats.priceMax}
                                                     </div>
                                                 </div>
-                                            </TooltipTrigger>
-                                            <TooltipContent>
-                                                <p className="text-xs font-medium">Maximum Price: ${data.eventStats.priceMax}</p>
-                                            </TooltipContent>
-                                        </Tooltip>
-                                    </TooltipProvider>
-                                </>
+                                            </div>
+                                        </TooltipTrigger>
+                                        <TooltipContent>
+                                            <p className="text-xs font-medium">
+                                                This Event: ${data.eventStats.price} - ${data.eventStats.priceMax}
+                                            </p>
+                                        </TooltipContent>
+                                    </Tooltip>
+                                </TooltipProvider>
                             ) : (
                                 <TooltipProvider>
-                                    <Tooltip open={hoveredElement === 'min'}>
+                                    <Tooltip open={hoveredElement === 'event'}>
                                         <TooltipTrigger asChild>
                                             <div
-                                                className="absolute inset-y-0 w-1.5 bg-primary rounded-full transition-all duration-500 z-20 shadow-lg cursor-pointer hover:w-2"
+                                                className={`absolute inset-y-0 w-1.5 bg-primary rounded-full transition-all duration-300 z-20 shadow-lg cursor-pointer ${hoveredElement === 'event' ? 'w-2' : ''
+                                                    }`}
                                                 style={{
                                                     left: `${priceMinPosition}%`,
                                                     transform: 'translateX(-50%)',
                                                 }}
-                                                onMouseEnter={() => setHoveredElement('min')}
+                                                onMouseEnter={() => setHoveredElement('event')}
                                                 onMouseLeave={() => setHoveredElement(null)}
                                             >
                                                 <div className="absolute -top-8 left-1/2 -translate-x-1/2 text-xs font-bold whitespace-nowrap bg-background px-2 py-1 rounded border shadow-sm">
@@ -295,37 +277,57 @@ export function EventComparison({ eventId, category, isFree, priceMin, priceMax 
                                             </div>
                                         </TooltipTrigger>
                                         <TooltipContent>
-                                            <p className="text-xs font-medium">Event Price: ${data.eventStats.price}</p>
+                                            <p className="text-xs font-medium">This Event: ${data.eventStats.price}</p>
                                         </TooltipContent>
                                     </Tooltip>
                                 </TooltipProvider>
                             )}
                         </div>
 
+                        {/* Price range labels */}
                         <div className="flex justify-between text-xs text-muted-foreground mb-2 mt-8">
                             <span className="font-medium">${data.categoryStats.minPrice}</span>
                             <span className="font-medium">${data.categoryStats.maxPrice}</span>
                         </div>
 
-                        {/* Simplified legend */}
+                        {/* Interactive legend */}
                         <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-muted-foreground mt-3 pt-3 border-t">
-                            <div className="flex items-center gap-1.5">
-                                <div className="w-3 h-3 rounded-full bg-primary" />
+                            <button
+                                onMouseEnter={() => setHoveredElement('event')}
+                                onMouseLeave={() => setHoveredElement(null)}
+                                className={`flex items-center gap-1.5 transition-all hover:text-foreground ${hoveredElement === 'event' ? 'text-foreground scale-105' : ''
+                                    }`}
+                            >
+                                <div className={`w-3 h-3 rounded-full bg-primary transition-transform ${hoveredElement === 'event' ? 'scale-125' : ''
+                                    }`} />
                                 <span>This event</span>
-                            </div>
-                            <div className="flex items-center gap-1.5">
-                                <div className="w-0.5 h-3 bg-border" />
+                            </button>
+                            <button
+                                onMouseEnter={() => setHoveredElement('median')}
+                                onMouseLeave={() => setHoveredElement(null)}
+                                className={`flex items-center gap-1.5 transition-all hover:text-foreground ${hoveredElement === 'median' ? 'text-foreground scale-105' : ''
+                                    }`}
+                            >
+                                <div className={`w-0.5 h-3 bg-border transition-all ${hoveredElement === 'median' ? 'bg-foreground/60 w-1' : ''
+                                    }`} />
                                 <span>Category median</span>
-                            </div>
-                            <div className="flex items-center gap-1.5">
-                                <div className="w-3 h-3 bg-emerald-500/20" />
+                            </button>
+                            <button
+                                onMouseEnter={() => setHoveredElement('value')}
+                                onMouseLeave={() => setHoveredElement(null)}
+                                className={`flex items-center gap-1.5 transition-all hover:text-foreground ${hoveredElement === 'value' ? 'text-foreground scale-105' : ''
+                                    }`}
+                            >
+                                <div className={`w-3 h-3 bg-emerald-500/20 transition-opacity ${hoveredElement === 'value' ? 'opacity-100' : 'opacity-70'
+                                    }`} />
                                 <span>Value zone (bottom third of price range)</span>
-                            </div>
+                            </button>
                         </div>
                     </div>
 
+                    {/* Stats cards */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div className="p-4 rounded-lg border-2 bg-linear-to-br from-muted/50 to-transparent">
+                        <div className="p-4 rounded-lg border-2 bg-gradient-to-br from-muted/50 to-transparent">
                             <div className="flex items-center gap-2 mb-3">
                                 <TrendingUp className="h-4 w-4 text-secondary" />
                                 <span className="text-sm font-medium">Popularity Rating</span>
@@ -346,7 +348,7 @@ export function EventComparison({ eventId, category, isFree, priceMin, priceMax 
                             </p>
                         </div>
 
-                        <div className="p-4 rounded-lg border-2 bg-linear-to-br from-primary/5 to-transparent">
+                        <div className="p-4 rounded-lg border-2 bg-gradient-to-br from-primary/5 to-transparent">
                             <div className="flex items-center gap-2 mb-3">
                                 <BarChart3 className="h-4 w-4" />
                                 <span className="text-sm font-medium">Category Insights</span>
@@ -373,6 +375,7 @@ export function EventComparison({ eventId, category, isFree, priceMin, priceMax 
                     </div>
                 </div>
 
+                {/* Similar events sidebar */}
                 {data.similarEvents.length > 0 && (
                     <div className="lg:col-span-1">
                         <div className="sticky top-4">
@@ -382,13 +385,12 @@ export function EventComparison({ eventId, category, isFree, priceMin, priceMax 
                                     Events with similar pricing
                                 </p>
                             </div>
-
-                            <div className="space-y-2 max-h-[600px] overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-muted scrollbar-track-transparent">
+                            <div className="space-y-2 max-h-[600px] overflow-y-auto pr-2 pb-2 scrollbar-thin scrollbar-thumb-muted scrollbar-track-transparent">
                                 {data.similarEvents.map((event) => (
                                     <Link
                                         key={event._id}
                                         href={`/events/${event._id}`}
-                                        className="block p-3 rounded-lg border-2 bg-card transition-all hover:shadow-md hover:border-primary/30 hover:-translate-y-0.5 hover:scale-[1.02]"
+                                        className="block p-3 rounded-lg border-2 bg-card transition-all hover:shadow-md hover:border-primary/30 hover:-translate-y-0.5"
                                     >
                                         <div className="flex justify-between items-start gap-2 mb-2">
                                             <h5 className="font-medium text-sm line-clamp-2 flex-1">

@@ -1,4 +1,3 @@
-// components/analytics/PriceDistributionChart.tsx
 'use client';
 
 import { JSX, useEffect, useState } from 'react';
