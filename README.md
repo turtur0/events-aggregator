@@ -164,7 +164,7 @@ All data collection follows ethical practices: official APIs first, robots.txt c
 ### Installation
 ```bash
 # Clone the repository
-git clone git@github.com:[your username]/events-aggregator.git
+git clone git@github.com:[your username]/hoddle-events.git
 cd hoddle
 
 # Install dependencies
