@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/Button';
 import { toggleFavourite } from '@/lib/actions/interactions';
 import { cn } from '@/lib/utils';
 import { useSession } from 'next-auth/react';
-import { useRouter } from 'next/navigation';
+import { AuthModal } from '@/components/auth/AuthModals';
 
 interface FavouriteButtonProps {
     eventId: string;
@@ -24,16 +24,17 @@ export function FavouriteButton({
     className
 }: FavouriteButtonProps) {
     const { data: session } = useSession();
-    const router = useRouter();
     const [isFavourited, setIsFavourited] = useState(initialFavourited);
     const [isPending, startTransition] = useTransition();
+    const [showAuthModal, setShowAuthModal] = useState(false);
 
     const handleClick = (e: React.MouseEvent) => {
         e.preventDefault();
         e.stopPropagation();
 
+        // Show auth modal if user not signed in
         if (!session?.user) {
-            router.push('/auth/signin?callbackUrl=' + encodeURIComponent(window.location.pathname));
+            setShowAuthModal(true);
             return;
         }
 
@@ -54,52 +55,68 @@ export function FavouriteButton({
 
     if (variant === 'button') {
         return (
-            <Button
-                variant={isFavourited ? 'default' : 'outline'}
-                size="sm"
-                onClick={handleClick}
-                disabled={isPending}
-                className={cn(
-                    "transition-all duration-200",
-                    isFavourited
-                        ? "bg-primary text-primary-foreground hover:bg-primary/90"
-                        : "btn-outline-primary",
-                    isPending && "opacity-50",
-                    className
-                )}
-            >
-                <Heart
+            <>
+                <Button
+                    variant={isFavourited ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={handleClick}
+                    disabled={isPending}
                     className={cn(
-                        'h-4 w-4 mr-2 transition-all duration-200',
-                        isFavourited && 'fill-current scale-110'
+                        "transition-all duration-200",
+                        isFavourited
+                            ? "bg-primary text-primary-foreground hover:bg-primary/90"
+                            : "btn-outline-primary",
+                        isPending && "opacity-50",
+                        className
                     )}
+                >
+                    <Heart
+                        className={cn(
+                            'h-4 w-4 mr-2 transition-all duration-200',
+                            isFavourited && 'fill-current scale-110'
+                        )}
+                    />
+                    {isFavourited ? 'Saved' : 'Save'}
+                </Button>
+
+                <AuthModal
+                    isOpen={showAuthModal}
+                    onClose={() => setShowAuthModal(false)}
+                    defaultView="signin"
                 />
-                {isFavourited ? 'Saved' : 'Save'}
-            </Button>
+            </>
         );
     }
 
     return (
-        <button
-            onClick={handleClick}
-            disabled={isPending}
-            className={cn(
-                'p-2 rounded-full transition-all duration-200',
-                'bg-black/50 hover:bg-black/70 backdrop-blur-sm',
-                'active:scale-95',
-                isPending && 'opacity-50 cursor-not-allowed',
-                className
-            )}
-            aria-label={isFavourited ? 'Remove from favourites' : 'Add to favourites'}
-        >
-            <Heart
+        <>
+            <button
+                onClick={handleClick}
+                disabled={isPending}
                 className={cn(
-                    'h-5 w-5 transition-all duration-200',
-                    isFavourited
-                        ? 'fill-red-500 text-red-500 scale-110'
-                        : 'text-white hover:scale-110'
+                    'p-2 rounded-full transition-all duration-200',
+                    'bg-black/50 hover:bg-black/70 backdrop-blur-sm',
+                    'active:scale-95',
+                    isPending && 'opacity-50 cursor-not-allowed',
+                    className
                 )}
+                aria-label={isFavourited ? 'Remove from favourites' : 'Add to favourites'}
+            >
+                <Heart
+                    className={cn(
+                        'h-5 w-5 transition-all duration-200',
+                        isFavourited
+                            ? 'fill-red-500 text-red-500 scale-110'
+                            : 'text-white hover:scale-110'
+                    )}
+                />
+            </button>
+
+            <AuthModal
+                isOpen={showAuthModal}
+                onClose={() => setShowAuthModal(false)}
+                defaultView="signin"
             />
-        </button>
+        </>
     );
 }

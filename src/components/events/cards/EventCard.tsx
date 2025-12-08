@@ -93,7 +93,7 @@ export function EventCard({ event, source = 'direct', initialFavourited = false 
               type="category"
               label={getCategoryLabel(event.category)}
               category={event.category}
-              href={`/events/category/${event.category}`}
+              href={`/category/${event.category}`}
             />
             {displaySubcategories.map((subcategory) => (
               <EventBadge
