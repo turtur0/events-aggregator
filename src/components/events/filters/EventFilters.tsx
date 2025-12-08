@@ -99,7 +99,7 @@ export function EventFilters(props: EventFiltersProps) {
     });
 
     params.set('page', '1');
-    router.push(`${pathname}?${params.toString()}`, { scroll: false });
+    router.replace(`${pathname}?${params.toString()}`, { scroll: false });
   };
 
   const handleCategoryChange = (value: string) => {
