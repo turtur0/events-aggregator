@@ -2,15 +2,18 @@ import { NormalisedEvent, ScrapeResult } from './types';
 import { fetchAllTicketmasterEvents, normaliseTicketmasterEvent } from './ticketmaster';
 import { scrapeMarrinerGroup } from './marriner';
 import { scrapeWhatsOnMelbourne, WhatsOnScrapeOptions } from './whatson';
+import { scrapeFeverUpMelbourne, FeverUpScrapeOptions } from './feverup';
 
 export { fetchAllTicketmasterEvents, normaliseTicketmasterEvent } from './ticketmaster';
 export { scrapeMarrinerGroup } from './marriner';
 export { scrapeWhatsOnMelbourne } from './whatson';
+export { scrapeFeverUpMelbourne } from './feverup';
 export type { WhatsOnScrapeOptions } from './whatson';
+export type { FeverUpScrapeOptions } from './feverup';
 
 interface ScrapeAllOptions {
   /** Which sources to scrape from */
-  sources?: ('ticketmaster' | 'marriner' | 'whatson')[];
+  sources?: ('ticketmaster' | 'marriner' | 'whatson' | 'feverup')[];
   /** Enable detailed console logging */
   verbose?: boolean;
   /** Run scrapers in parallel or sequentially */
@@ -23,6 +26,8 @@ interface ScrapeAllOptions {
   };
   /** Options specific to WhatsOn scraper */
   whatsonOptions?: WhatsOnScrapeOptions;
+  /** Options specific to FeverUp scraper */
+  feverupOptions?: FeverUpScrapeOptions;
 }
 
 /**
@@ -34,7 +39,7 @@ interface ScrapeAllOptions {
 export async function scrapeAll(
   options?: ScrapeAllOptions
 ): Promise<{ events: NormalisedEvent[]; results: ScrapeResult[] }> {
-  const sources = options?.sources || ['ticketmaster', 'marriner', 'whatson'];
+  const sources = options?.sources || ['ticketmaster', 'marriner', 'whatson', 'feverup'];
   const verbose = options?.verbose ?? true;
   const parallel = options?.parallel ?? true;
 
@@ -63,6 +68,12 @@ export async function scrapeAll(
     tasks.push({
       name: 'whatson',
       fn: () => scrapeWhatsOn(verbose, options?.whatsonOptions),
+    });
+  }
+  if (sources.includes('feverup')) {
+    tasks.push({
+      name: 'feverup',
+      fn: () => scrapeFeverUp(verbose, options?.feverupOptions),
     });
   }
 
@@ -225,6 +236,51 @@ async function scrapeWhatsOn(
     return { events, stats };
   } catch (error) {
     if (verbose) console.error('[WhatsOn] Error:', error);
+    stats.errors++;
+    stats.duration = Date.now() - start;
+    return { events: [], stats };
+  }
+}
+
+/**
+ * Scrapes events from FeverUp Melbourne website.
+ */
+async function scrapeFeverUp(
+  verbose: boolean,
+  options?: FeverUpScrapeOptions
+): Promise<ScrapeResult> {
+  const start = Date.now();
+  const stats = {
+    source: 'feverup',
+    fetched: 0,
+    normalised: 0,
+    errors: 0,
+    duration: 0,
+  };
+
+  if (verbose) console.log('[FeverUp] Starting scrape');
+
+  try {
+    const defaultOptions: FeverUpScrapeOptions = {
+      maxEvents: 50,
+      fetchDetails: true,
+      detailFetchDelay: 1500,
+    };
+
+    const events = await scrapeFeverUpMelbourne({
+      ...defaultOptions,
+      ...options,
+    });
+
+    stats.fetched = events.length;
+    stats.normalised = events.length;
+
+    if (verbose) console.log(`[FeverUp] Complete: ${stats.normalised} events`);
+
+    stats.duration = Date.now() - start;
+    return { events, stats };
+  } catch (error) {
+    if (verbose) console.error('[FeverUp] Error:', error);
     stats.errors++;
     stats.duration = Date.now() - start;
     return { events: [], stats };

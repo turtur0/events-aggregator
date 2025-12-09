@@ -28,7 +28,7 @@ export interface NormalisedEvent {
   ageRestriction?: string;
   duration?: string;
 
-  source: 'ticketmaster' | 'marriner' | 'whatson';
+  source: 'ticketmaster' | 'marriner' | 'whatson' | 'feverup';
   sourceId: string;
   scrapedAt: Date;
   lastUpdated: Date;

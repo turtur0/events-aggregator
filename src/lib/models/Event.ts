@@ -27,7 +27,7 @@ export interface IEvent {
   videoUrl?: string;
 
   sources: string[];
-  primarySource: 'ticketmaster' | 'marriner' | 'whatson';
+  primarySource: 'ticketmaster' | 'marriner' | 'whatson' | 'feverup';
   sourceIds: Record<string, string>;
 
   accessibility?: string[];
@@ -81,7 +81,7 @@ const EventSchema = new Schema<IEvent>({
   sources: [{ type: String }],
   primarySource: {
     type: String,
-    enum: ['ticketmaster', 'marriner', 'whatson'],
+    enum: ['ticketmaster', 'marriner', 'whatson', "feverup"],
     required: true,
   },
   sourceIds: { type: Map, of: String },

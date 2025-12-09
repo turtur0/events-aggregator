@@ -16,6 +16,7 @@
     "scrape:ticketmaster": "tsx scripts/jobs/scrape-ticketmaster.ts",
     "scrape:marriner": "tsx scripts/jobs/scrape-marriner.ts",
     "scrape:whatson": "tsx scripts/jobs/scrape-whatson.ts",
+    "scrape:feverup": "tsx scripts/jobs/scrape-feverup.ts",
     "debug:website": "tsx scripts/dev/debug-website.ts",
     "test:website": "tsx scripts/dev/test-website.ts",
     "test-email": "tsx scripts/dev/test-email"
