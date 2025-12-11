@@ -27,10 +27,7 @@ interface ProcessContext {
   sourceName: string;
 }
 
-/** Minimum price change in dollars to trigger notifications */
-const PRICE_CHANGE_THRESHOLD = 5;
-
-/** Keywords indicating significant event changes that warrant notifications */
+const PRICE_CHANGE_THRESHOLD = 5; // Minimum $ change to trigger notifications
 const SIGNIFICANT_KEYWORDS = [
   'cancelled', 'postponed', 'rescheduled', 'sold out',
   'extra show', 'additional show', 'new date', 'date change'
@@ -39,25 +36,15 @@ const SIGNIFICANT_KEYWORDS = [
 /**
  * Processes scraped events with intelligent deduplication and merging.
  * 
- * The deduplication algorithm works in stages:
+ * Algorithm:
  * 1. Load all existing events from database
- * 2. Build lookup maps (source:sourceId -> event) for fast comparison
- * 3. For each new event:
+ * 2. For each new event:
  *    a) Check if exact source match exists (same source + sourceId)
- *       - If yes: update existing event if changes detected
- *    b) If no exact match, run fuzzy deduplication against:
- *       - All existing database events
- *       - Events inserted earlier in this batch
- *    c) Deduplication uses similarity scoring on title, dates, venue
+ *       - If yes: update existing event (always refresh lastUpdated)
+ *    b) If no exact match, run fuzzy deduplication
  *       - If confident match found: merge into existing event
  *       - If no match: insert as new event
- * 4. Track which events were processed in this batch to avoid re-insertion
- * 5. Send notifications for price drops and significant changes
- * 6. Set lastContentChange timestamp when user-facing content changes
- * 
- * @param newEvents - Freshly scraped events to process
- * @param sourceName - Name of the scraping source (e.g., 'ticketmaster')
- * @returns Statistics about inserted, updated, merged, and skipped events
+ * 3. Send notifications for price drops and significant changes
  */
 export async function processEventsWithDeduplication(
   newEvents: NormalisedEvent[],
@@ -65,19 +52,11 @@ export async function processEventsWithDeduplication(
 ): Promise<Stats> {
   console.log(`\n[Dedup] Processing ${newEvents.length} events from '${sourceName}'`);
 
-  const stats: Stats = {
-    inserted: 0,
-    updated: 0,
-    merged: 0,
-    skipped: 0,
-    notifications: 0
-  };
+  const stats: Stats = { inserted: 0, updated: 0, merged: 0, skipped: 0, notifications: 0 };
 
-  // Load all existing events for comparison
   const existing = await Event.find({}).lean();
   console.log(`[Dedup] Found ${existing.length} existing events in database`);
 
-  // Build lookup structures for efficient processing
   const context: ProcessContext = {
     existing,
     bySourceId: buildSourceIdMap(existing),
@@ -86,12 +65,11 @@ export async function processEventsWithDeduplication(
     sourceName
   };
 
-  // Process each event through the deduplication pipeline
   for (const event of newEvents) {
     try {
       const result = await processEvent(event, context);
       updateStats(stats, result);
-      logResult(result, event.title);
+      if (result.action !== 'skipped') logResult(result, event.title);
     } catch (error: any) {
       handleProcessingError(error, event.title, stats);
     }
@@ -107,35 +85,21 @@ export async function processEventsWithDeduplication(
 
 /**
  * Processes a single event through the deduplication pipeline.
- * 
- * Decision tree:
- * 1. Same source match exists → update if changed
- * 2. No source match → run fuzzy deduplication
- *    a) Duplicate found → merge into existing
- *    b) No duplicate → insert as new
- * 
- * @returns Action taken and notification count
+ * Returns the action taken and notification count.
  */
 async function processEvent(
   event: NormalisedEvent,
   context: ProcessContext
-): Promise<{
-  action: 'updated' | 'merged' | 'inserted' | 'skipped';
-  notifications: number;
-  data?: any
-}> {
+): Promise<{ action: 'updated' | 'merged' | 'inserted' | 'skipped'; notifications: number; data?: any }> {
   const { existing, bySourceId, existingDedup, batchInserted } = context;
 
-  // Check for exact source match (same source + sourceId)
+  // Check for exact source match
   const sourceKey = `${event.source}:${event.sourceId}`;
   const sameSource = bySourceId.get(sourceKey);
 
   if (sameSource) {
     const notifications = await updateExistingEvent(sameSource, event);
-    return {
-      action: notifications === -1 ? 'skipped' : 'updated',
-      notifications: Math.max(0, notifications)
-    };
+    return { action: 'updated', notifications: Math.max(0, notifications) };
   }
 
   // Prepare event for fuzzy deduplication
@@ -150,7 +114,7 @@ async function processEvent(
   const pool = [...existingDedup, ...batchInserted, eventDedup];
   const duplicates = findDuplicates(pool);
 
-  // Find best match for this event (highest confidence score)
+  // Find best match for this event
   const match = duplicates
     .filter(d => d.event1Id === tempId || d.event2Id === tempId)
     .sort((a, b) => b.confidence - a.confidence)[0];
@@ -172,7 +136,7 @@ async function processEvent(
     }
   }
 
-  // No match found - insert as new event and track in batch
+  // No match found - insert as new event
   const created = await insertNewEvent(event);
   batchInserted.push({
     _id: created._id.toString(),
@@ -186,17 +150,10 @@ async function processEvent(
 
 /**
  * Updates an existing event from the same source.
- * Only performs update if actual changes are detected.
- * Sets lastContentChange timestamp when user-facing content changes.
- * 
- * @returns Number of notifications sent, or -1 if no update needed
+ * Always refreshes lastUpdated, sets lastContentChange only when content changes.
  */
 async function updateExistingEvent(existing: any, newEvent: NormalisedEvent): Promise<number> {
   const changes = detectAllChanges(existing, newEvent);
-
-  if (!changes.hasChanges) {
-    return -1; // Skip update if nothing changed
-  }
 
   const subcategories = [...(newEvent.subcategories || [])];
   if (newEvent.subcategory && !subcategories.includes(newEvent.subcategory)) {
@@ -223,18 +180,22 @@ async function updateExistingEvent(existing: any, newEvent: NormalisedEvent): Pr
     lastUpdated: new Date(),
   };
 
-  // Set lastContentChange if user-facing content changed
   if (changes.hasContentChanges) {
     updateFields.lastContentChange = new Date();
   }
 
-  await Event.updateOne(
+  const result = await Event.updateOne(
     { _id: existing._id },
     {
       $set: updateFields,
       $addToSet: { subcategories: { $each: subcategories } },
     }
   );
+
+  if (result.matchedCount === 0) {
+    console.error(`[Dedup] Update failed: Event ${existing._id} not found`);
+    return 0;
+  }
 
   // Send notifications for significant changes
   if (changes.priceDropped || changes.significantUpdate) {
@@ -246,10 +207,7 @@ async function updateExistingEvent(existing: any, newEvent: NormalisedEvent): Pr
 
 /**
  * Merges a new event into an existing event from a different source.
- * Only performs merge if actual changes are detected.
- * Sets lastContentChange timestamp when user-facing content changes.
- * 
- * @returns Number of notifications sent, or -1 if no merge needed
+ * Always performs merge if this is a new source.
  */
 async function mergeIntoExisting(
   existingId: any,
@@ -257,11 +215,22 @@ async function mergeIntoExisting(
   newEvent: NormalisedEvent,
   fullExistingEvent?: any
 ): Promise<number> {
+  // Fetch full event if not provided
+  if (!fullExistingEvent) {
+    fullExistingEvent = await Event.findById(existingId).lean();
+    if (!fullExistingEvent) {
+      console.error(`[Dedup] Could not find event ${existingId} in database`);
+      return -1;
+    }
+  }
+
+  const existingSources = fullExistingEvent.sources || [];
+  const isNewSource = !existingSources.includes(newEvent.source);
+
   const changes = detectAllChanges(existing, newEvent);
 
-  if (!changes.hasChanges) {
-    return -1; // Skip merge if nothing changed
-  }
+  // Skip only if: (1) not a new source AND (2) no data changes
+  if (!changes.hasChanges && !isNewSource) return -1;
 
   const merged = mergeEvents(existing, newEvent);
 
@@ -285,12 +254,11 @@ async function mergeIntoExisting(
     [`sourceIds.${newEvent.source}`]: newEvent.sourceId,
   };
 
-  // Set lastContentChange if user-facing content changed
   if (changes.hasContentChanges) {
     updateFields.lastContentChange = new Date();
   }
 
-  await Event.updateOne(
+  const result = await Event.updateOne(
     { _id: existingId },
     {
       $set: updateFields,
@@ -302,6 +270,11 @@ async function mergeIntoExisting(
     }
   );
 
+  if (result.matchedCount === 0) {
+    console.error(`[Dedup] Merge failed: Event ${existingId} not found`);
+    return -1;
+  }
+
   // Send notifications for significant changes
   if (changes.priceDropped || changes.significantUpdate) {
     return await notifyFavouritedUsers(existingId, changes);
@@ -310,10 +283,7 @@ async function mergeIntoExisting(
   return 0;
 }
 
-/**
- * Inserts a new event into the database.
- * Sets lastContentChange to current time for newly inserted events.
- */
+/** Inserts a new event into the database */
 async function insertNewEvent(event: NormalisedEvent) {
   const subcategories = [...(event.subcategories || [])];
   if (event.subcategory && !subcategories.includes(event.subcategory)) {
@@ -352,19 +322,7 @@ async function insertNewEvent(event: NormalisedEvent) {
 
 /**
  * Detects all changes between existing and new event data.
- * 
- * Separates changes into two categories:
- * - User-facing content changes (hasContentChanges): title, description, dates, venue, prices, etc.
- * - Technical changes only (hasChanges but not hasContentChanges): booking URLs, video URLs
- * 
- * User-facing changes trigger lastContentChange updates and email digest notifications.
- * Technical changes only trigger lastUpdated but not lastContentChange.
- * 
- * Also checks for:
- * - Significant price changes (drops/increases over threshold)
- * - Event status keywords (cancelled, postponed, sold out, etc.)
- * 
- * @returns Object describing what changed and its significance
+ * Separates user-facing content changes from technical changes.
  */
 function detectAllChanges(existing: any, newEvent: NormalisedEvent): EventChanges {
   const changes: EventChanges = { hasChanges: false, hasContentChanges: false };
@@ -379,12 +337,12 @@ function detectAllChanges(existing: any, newEvent: NormalisedEvent): EventChange
     existing.ageRestriction !== newEvent.ageRestriction ||
     existing.duration !== newEvent.duration;
 
-  // Check date changes (more than 1 hour difference to avoid minor timestamp variations)
+  // Check date changes (>1 hour difference to avoid timestamp noise)
   const dateChanged =
     Math.abs(existing.startDate?.getTime() - newEvent.startDate?.getTime()) > 3600000 ||
     Math.abs((existing.endDate?.getTime() || 0) - (newEvent.endDate?.getTime() || 0)) > 3600000;
 
-  // Check structural changes (venue, accessibility)
+  // Check structural changes
   const venueChanged = JSON.stringify(existing.venue) !== JSON.stringify(newEvent.venue);
   const accessibilityChanged =
     JSON.stringify(existing.accessibility) !== JSON.stringify(newEvent.accessibility);
@@ -395,12 +353,12 @@ function detectAllChanges(existing: any, newEvent: NormalisedEvent): EventChange
     existing.priceMax !== newEvent.priceMax ||
     existing.priceDetails !== newEvent.priceDetails;
 
-  // Check technical-only changes (booking URL, video)
+  // Check technical-only changes
   const technicalChanged =
     existing.bookingUrl !== newEvent.bookingUrl ||
     existing.videoUrl !== newEvent.videoUrl;
 
-  // Set flags based on what changed
+  // Set flags
   if (contentChanged || dateChanged || venueChanged || accessibilityChanged || priceChanged) {
     changes.hasChanges = true;
     changes.hasContentChanges = true;
@@ -426,7 +384,7 @@ function detectAllChanges(existing: any, newEvent: NormalisedEvent): EventChange
     }
   }
 
-  // Check for significant keywords in description
+  // Check for significant keywords
   if (newEvent.description && existing.description) {
     const oldDesc = existing.description.toLowerCase();
     const newDesc = newEvent.description.toLowerCase();
@@ -442,11 +400,9 @@ function detectAllChanges(existing: any, newEvent: NormalisedEvent): EventChange
   return changes;
 }
 
-/** Sends notifications to users who have favourited this event. */
+/** Sends notifications to users who have favourited this event */
 async function notifyFavouritedUsers(eventId: any, changes: EventChanges): Promise<number> {
-  if (!changes.priceDropped && !changes.significantUpdate) {
-    return 0;
-  }
+  if (!changes.priceDropped && !changes.significantUpdate) return 0;
 
   try {
     const updatedEvent = await Event.findById(eventId).lean();
@@ -459,7 +415,7 @@ async function notifyFavouritedUsers(eventId: any, changes: EventChanges): Promi
   }
 }
 
-/** Builds a map of source:sourceId → event for fast lookups. */
+/** Builds a map of source:sourceId → event for fast lookups */
 function buildSourceIdMap(events: any[]): Map<string, any> {
   return new Map(
     events.map(e => {
@@ -469,7 +425,7 @@ function buildSourceIdMap(events: any[]): Map<string, any> {
   );
 }
 
-/** Converts database events to EventForDedup format for comparison. */
+/** Converts database events to EventForDedup format */
 function mapToEventForDedup(events: any[]): (EventForDedup & { _id: string })[] {
   return events.map(e => ({
     _id: e._id.toString(),
@@ -495,7 +451,7 @@ function mapToEventForDedup(events: any[]): (EventForDedup & { _id: string })[] 
   }));
 }
 
-/** Extracts source ID from event's sourceIds map/object. */
+/** Extracts source ID from event's sourceIds map/object */
 function getSourceId(event: any, source: string): string {
   if (!event.sourceIds) return '';
 
@@ -507,7 +463,7 @@ function getSourceId(event: any, source: string): string {
   return event.sourceIds[source] || '';
 }
 
-/** Updates statistics based on processing result. */
+/** Updates statistics based on processing result */
 function updateStats(stats: Stats, result: { action: string; notifications: number }) {
   if (result.action === 'inserted') stats.inserted++;
   else if (result.action === 'updated') stats.updated++;
@@ -517,25 +473,18 @@ function updateStats(stats: Stats, result: { action: string; notifications: numb
   stats.notifications += result.notifications;
 }
 
-/** Logs processing result (skips logging for skipped events). */
+/** Logs processing result */
 function logResult(result: any, title: string) {
-  if (result.action === 'skipped') return;
-
   const action = result.action.charAt(0).toUpperCase() + result.action.slice(1);
   let log = `[Dedup] ${action}: ${title}`;
 
-  if (result.data?.reason) {
-    log += ` (${result.data.reason})`;
-  }
-
-  if (result.notifications > 0) {
-    log += ` [${result.notifications} notifications]`;
-  }
+  if (result.data?.reason) log += ` (${result.data.reason})`;
+  if (result.notifications > 0) log += ` [${result.notifications} notifications]`;
 
   console.log(log);
 }
 
-/** Handles errors during event processing. */
+/** Handles errors during event processing */
 function handleProcessingError(error: any, title: string, stats: Stats) {
   if (error?.code === 11000) {
     console.log(`[Dedup] Duplicate key error: ${title}`);

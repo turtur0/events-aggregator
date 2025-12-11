@@ -263,7 +263,6 @@ async function scrapeFeverUp(
   try {
     const defaultOptions: FeverUpScrapeOptions = {
       maxEvents: 50,
-      fetchDetails: true,
       detailFetchDelay: 1500,
     };
 
