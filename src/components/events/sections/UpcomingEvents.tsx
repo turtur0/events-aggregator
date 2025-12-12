@@ -60,7 +60,7 @@ export function UpcomingEvents({ userFavourites }: UpcomingEventsProps) {
 
     if (thisWeekEvents.length === 0 && thisMonthEvents.length === 0) {
         return (
-            <Card className="border-2 border-primary/20 bg-gradient-to-br from-primary/5 to-transparent">
+            <Card className="border-2 border-primary/20 bg-linear-to-br from-primary/5 to-transparent">
                 <CardHeader>
                     <CardTitle className="flex items-center gap-2 text-2xl">
                         <Calendar className="h-6 w-6 text-primary" />

@@ -41,13 +41,14 @@ export function EventCarousel({
     const [visibleCards, setVisibleCards] = useState(1);
     const scrollRef = useRef<HTMLDivElement>(null);
     const touchStartX = useRef(0);
+    const touchStartY = useRef(0);
     const touchEndX = useRef(0);
     const isDragging = useRef(false);
+    const hasMoved = useRef(false);
 
     const totalEvents = events.length;
     const infiniteEvents = totalEvents > 0 ? [...events, ...events, ...events] : [];
 
-    // Calculate visible cards based on screen size
     useEffect(() => {
         const updateVisibleCards = () => {
             const width = window.innerWidth;
@@ -61,7 +62,6 @@ export function EventCarousel({
         return () => window.removeEventListener('resize', updateVisibleCards);
     }, []);
 
-    // Auto-scroll timer
     useEffect(() => {
         if (!autoScroll || totalEvents === 0 || isPaused) return;
 
@@ -72,7 +72,6 @@ export function EventCarousel({
         return () => clearInterval(timer);
     }, [autoScroll, autoScrollInterval, totalEvents, isPaused]);
 
-    // Smooth infinite scroll with proper centring
     useEffect(() => {
         if (!scrollRef.current || totalEvents === 0) return;
 
@@ -84,7 +83,7 @@ export function EventCarousel({
 
         container.scrollTo({ left: scrollPos, behavior: 'smooth' });
 
-        // Seamless wrap - reset to middle section
+        // Seamless wrap
         if (currentIndex >= totalEvents * 2) {
             setTimeout(() => {
                 container.scrollTo({ left: totalEvents * (cardWidth + gap), behavior: 'auto' });
@@ -98,33 +97,58 @@ export function EventCarousel({
         }
     }, [currentIndex, totalEvents, visibleCards]);
 
-    // Touch/drag handlers
     const handleTouchStart = (e: React.TouchEvent | React.MouseEvent) => {
-        isDragging.current = true;
-        touchStartX.current = 'touches' in e ? e.touches[0].clientX : e.clientX;
+        const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX;
+        const clientY = 'touches' in e ? e.touches[0].clientY : 0;
+
+        touchStartX.current = clientX;
+        touchStartY.current = clientY;
+        touchEndX.current = clientX;
+        isDragging.current = false;
+        hasMoved.current = false;
         setIsPaused(true);
     };
 
     const handleTouchMove = (e: React.TouchEvent | React.MouseEvent) => {
-        if (!isDragging.current) return;
-        touchEndX.current = 'touches' in e ? e.touches[0].clientX : e.clientX;
+        const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX;
+        const clientY = 'touches' in e ? e.touches[0].clientY : 0;
+
+        touchEndX.current = clientX;
+
+        // Check if user has moved enough to be considered dragging (not a tap)
+        const deltaX = Math.abs(clientX - touchStartX.current);
+        const deltaY = Math.abs(clientY - touchStartY.current);
+
+        // Only start dragging if horizontal movement exceeds vertical (horizontal swipe)
+        if (deltaX > 10 || deltaY > 10) {
+            hasMoved.current = true;
+
+            if (deltaX > deltaY) {
+                isDragging.current = true;
+                // Prevent vertical scroll when swiping horizontally
+                if ('touches' in e) {
+                    e.preventDefault();
+                }
+            }
+        }
     };
 
     const handleTouchEnd = () => {
-        if (!isDragging.current) return;
-        isDragging.current = false;
+        // Only trigger navigation if user actually dragged
+        if (isDragging.current && hasMoved.current) {
+            const swipeDistance = touchStartX.current - touchEndX.current;
+            const threshold = 50;
 
-        const swipeDistance = touchStartX.current - touchEndX.current;
-        const threshold = 50;
-
-        if (Math.abs(swipeDistance) > threshold) {
-            setCurrentIndex(prev => swipeDistance > 0 ? prev + 1 : prev - 1);
+            if (Math.abs(swipeDistance) > threshold) {
+                setCurrentIndex(prev => swipeDistance > 0 ? prev + 1 : prev - 1);
+            }
         }
 
+        isDragging.current = false;
+        hasMoved.current = false;
         setTimeout(() => setIsPaused(false), 1000);
     };
 
-    // Navigation
     const goToPrevious = () => setCurrentIndex(prev => prev - 1);
     const goToNext = () => setCurrentIndex(prev => prev + 1);
     const goToIndex = (index: number) => setCurrentIndex(totalEvents + index);
@@ -134,7 +158,7 @@ export function EventCarousel({
     if (totalEvents === 0) return null;
 
     return (
-        <Card className={`relative overflow-hidden border-2 ${borderClass} bg-linear-to-br ${gradientClass} via-transparent to-transparent shadow-sm hover:shadow-md hover:border-opacity-50 transition-all`}>
+        <Card className={`relative overflow-hidden border-2 ${borderClass} bg-gradient-to-br ${gradientClass} via-transparent to-transparent shadow-sm hover:shadow-md hover:border-opacity-50 transition-all`}>
             <CardHeader>
                 <div className="flex items-center justify-between mb-4">
                     <div className="flex-1 min-w-0">
@@ -173,25 +197,22 @@ export function EventCarousel({
             <CardContent>
                 <div
                     ref={scrollRef}
-                    className="flex gap-6 overflow-x-hidden cursor-grab active:cursor-grabbing select-none"
+                    className="flex gap-6 overflow-x-hidden select-none touch-pan-y"
                     onMouseEnter={() => setIsPaused(true)}
+                    onMouseLeave={() => setIsPaused(false)}
                     onTouchStart={handleTouchStart}
                     onTouchMove={handleTouchMove}
                     onTouchEnd={handleTouchEnd}
-                    onMouseDown={handleTouchStart}
-                    onMouseMove={handleTouchMove}
-                    onMouseUp={handleTouchEnd}
-                    onMouseLeave={(e) => {
-                        setIsPaused(false);
-                        handleTouchEnd();
-                    }}
                     style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
                 >
                     {infiniteEvents.map((event, idx) => (
                         <div
                             key={`${event._id}-${idx}`}
                             className="flex-none w-full sm:w-[calc(50%-12px)] lg:w-[calc(33.333%-16px)]"
-                            style={{ pointerEvents: isDragging.current ? 'none' : 'auto' }}
+                            style={{
+                                pointerEvents: isDragging.current ? 'none' : 'auto',
+                                touchAction: 'pan-y'
+                            }}
                         >
                             <EventCard
                                 event={event}
