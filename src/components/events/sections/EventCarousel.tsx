@@ -5,10 +5,10 @@ import { EventCard } from '@/components/events/cards/EventCard';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
-import { SerializedEvent } from '@/lib/models/Event';
+import { SerialisedEvent } from '@/lib/models/Event';
 
 interface EventCarouselProps {
-    events: SerializedEvent[];
+    events: SerialisedEvent[];
     userFavourites: Set<string>;
     title: string;
     description?: string;
