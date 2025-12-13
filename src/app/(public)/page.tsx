@@ -82,12 +82,11 @@ export default async function HomePage() {
             {/* Badge */}
             <Badge
               variant="secondary"
-              className="mb-6 border-2 border-primary/20 bg-primary/5 text-foreground hover:bg-primary/10 transition-colors duration-(--transition-base)"
+              className="mb-6 border-2 border-primary/20 bg-primary/5 text-foreground hover:bg-primary/10 active:bg-primary/15 transition-colors duration-(--transition-base) touch-manipulation"
             >
               <Zap className="h-3 w-3 mr-1 text-primary" />
               Updated daily from {sourceCount} sources
             </Badge>
-
 
             {/* Heading */}
             <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold tracking-tight mb-6">
@@ -109,14 +108,19 @@ export default async function HomePage() {
 
             {/* CTA Buttons */}
             <div className="flex flex-col sm:flex-row justify-center gap-4">
-              <Button asChild size="lg" className="group">
+              <Button asChild size="lg" className="group touch-manipulation active:scale-95 transition-transform">
                 <Link href="/events">
                   Browse All Events
-                  <ArrowRight className="ml-2 h-5 w-5 transition-transform group-hover:translate-x-1" />
+                  <ArrowRight className="ml-2 h-5 w-5 transition-transform group-hover:translate-x-1 group-active:translate-x-2" />
                 </Link>
               </Button>
 
-              <Button variant="outline" size="lg" asChild className="border-2 border-secondary/30 bg-secondary/5 text-secondary hover:bg-secondary/10 hover:border-secondary/50 transition-all duration-(--transition-base)">
+              <Button
+                variant="outline"
+                size="lg"
+                asChild
+                className="border-2 border-secondary/30 bg-secondary/5 text-secondary hover:bg-secondary/10 active:bg-secondary/15 hover:border-secondary/50 active:border-secondary/60 transition-all duration-(--transition-base) touch-manipulation active:scale-95"
+              >
                 <Link href="/insights">
                   <Sparkles className="mr-2 h-5 w-5" />
                   View Insights
@@ -141,7 +145,7 @@ export default async function HomePage() {
               <Link
                 key={category.slug}
                 href={`/category/${category.slug}`}
-                className={`flex flex-col items-center justify-center p-6 rounded-xl transition-transform hover:scale-105 ${category.className}`}
+                className={`flex flex-col items-center justify-center p-6 rounded-xl transition-all hover:scale-105 active:scale-100 touch-manipulation ${category.className}`}
               >
                 <Icon className="h-8 w-8 mb-3" />
                 <span className="font-medium text-center text-sm">{category.label}</span>

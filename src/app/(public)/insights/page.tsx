@@ -76,9 +76,9 @@ export default function InsightsPage() {
                         <div className="hidden sm:flex items-center rounded-lg border-2 bg-background p-1 gap-1">
                             <button
                                 onClick={() => setViewMode('grid')}
-                                className={`p-2 rounded transition-all ${viewMode === 'grid'
+                                className={`p-2 rounded transition-all touch-manipulation active:scale-95 ${viewMode === 'grid'
                                         ? 'bg-primary text-primary-foreground shadow-sm'
-                                        : 'text-muted-foreground hover:text-foreground hover:bg-muted'
+                                        : 'text-muted-foreground hover:text-foreground active:text-foreground hover:bg-muted active:bg-muted'
                                     }`}
                                 title="Grid view"
                                 aria-label="Grid view"
@@ -87,9 +87,9 @@ export default function InsightsPage() {
                             </button>
                             <button
                                 onClick={() => setViewMode('list')}
-                                className={`p-2 rounded transition-all ${viewMode === 'list'
+                                className={`p-2 rounded transition-all touch-manipulation active:scale-95 ${viewMode === 'list'
                                         ? 'bg-primary text-primary-foreground shadow-sm'
-                                        : 'text-muted-foreground hover:text-foreground hover:bg-muted'
+                                        : 'text-muted-foreground hover:text-foreground active:text-foreground hover:bg-muted active:bg-muted'
                                     }`}
                                 title="List view"
                                 aria-label="List view"
@@ -102,7 +102,7 @@ export default function InsightsPage() {
                         <div className="relative ml-auto">
                             <button
                                 onClick={() => setShowSelector(!showSelector)}
-                                className="flex items-center gap-2 px-4 py-2 rounded-lg border-2 bg-background hover:bg-muted transition-all text-sm font-medium"
+                                className="flex items-center gap-2 px-4 py-2 rounded-lg border-2 bg-background hover:bg-muted active:bg-muted/80 active:scale-95 transition-all text-sm font-medium touch-manipulation"
                                 aria-expanded={showSelector}
                                 aria-label="Customise charts"
                             >
@@ -135,7 +135,7 @@ export default function InsightsPage() {
                                                 return (
                                                     <label
                                                         key={chart.id}
-                                                        className="flex items-center gap-3 p-3 hover:bg-muted cursor-pointer transition-colors border-b last:border-b-0"
+                                                        className="flex items-center gap-3 p-3 hover:bg-muted active:bg-muted/80 cursor-pointer transition-colors border-b last:border-b-0 touch-manipulation"
                                                     >
                                                         <input
                                                             type="checkbox"

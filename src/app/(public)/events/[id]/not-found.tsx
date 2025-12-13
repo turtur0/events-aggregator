@@ -34,10 +34,10 @@ export default function NotFound() {
             <Button
               asChild
               size="lg"
-              className="w-full sm:w-auto group"
+              className="w-full sm:w-auto group touch-manipulation active:scale-95 transition-transform"
             >
               <Link href="/" className="flex items-center justify-center">
-                <Home className="mr-2 h-5 w-5 transition-transform group-hover:scale-110" />
+                <Home className="mr-2 h-5 w-5 transition-transform group-hover:scale-110 group-active:scale-125" />
                 Go to Home
               </Link>
             </Button>
@@ -46,10 +46,10 @@ export default function NotFound() {
               variant="outline"
               size="lg"
               asChild
-              className="w-full sm:w-auto group border-2"
+              className="w-full sm:w-auto group border-2 touch-manipulation active:scale-95 active:bg-muted transition-all"
             >
               <Link href="/events" className="flex items-center justify-center">
-                <Search className="mr-2 h-5 w-5 transition-transform group-hover:scale-110" />
+                <Search className="mr-2 h-5 w-5 transition-transform group-hover:scale-110 group-active:scale-125" />
                 Browse Events
               </Link>
             </Button>
