@@ -61,16 +61,20 @@ export interface RecommendationResponse extends EventResponse {
  * Transforms database event model to API response format
  */
 export function transformEvent(event: any): EventResponse {
+    // Ensure dates are valid
+    const startDate = event.startDate ? new Date(event.startDate) : new Date();
+    const endDate = event.endDate ? new Date(event.endDate) : null;
+
     return {
         id: event._id.toString(),
         title: event.title || 'Untitled Event',
         description: event.description || '',
-        category: event.category,
+        category: event.category || 'other',
         subcategories: event.subcategories || [],
 
         schedule: {
-            start: event.startDate.toISOString(),
-            end: event.endDate?.toISOString() || null,
+            start: startDate.toISOString(),
+            end: endDate?.toISOString() || null,
         },
 
         venue: {
@@ -87,8 +91,8 @@ export function transformEvent(event: any): EventResponse {
         },
 
         booking: {
-            url: event.bookingUrl,
-            source: event.primarySource,
+            url: event.bookingUrl || '',
+            source: event.primarySource || 'website',
         },
 
         media: {

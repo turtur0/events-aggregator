@@ -20,18 +20,18 @@ export function EventCard({ event, source = 'direct', initialFavourited = false 
    * Formats pricing information for display
    */
   const formatPrice = (): string => {
-    if (event.pricing.isFree) return 'Free';
+    if (event.pricing?.isFree) return 'Free';
 
     const normalizePrice = (price?: number): string | null => {
       if (price == null || isNaN(price)) return null;
       return price.toFixed(2);
     };
 
-    const min = normalizePrice(event.pricing.min);
-    const max = normalizePrice(event.pricing.max);
+    const min = normalizePrice(event.pricing?.min);
+    const max = normalizePrice(event.pricing?.max);
 
-    if (min && max) return `$${min} - $${max}`;
-    if (min) return `From $${min}`;
+    if (min && max) return `${min} - ${max}`;
+    if (min) return `From ${min}`;
     return 'Check website';
   };
 
@@ -40,8 +40,8 @@ export function EventCard({ event, source = 'direct', initialFavourited = false 
    */
   const formatDate = (): string => {
     try {
-      const start = new Date(event.schedule.start);
-      if (!event.schedule.end) return format(start, 'EEE, MMM d, yyyy');
+      const start = new Date(event.schedule?.start || new Date());
+      if (!event.schedule?.end) return format(start, 'EEE, MMM d, yyyy');
 
       const end = new Date(event.schedule.end);
       if (isSameDay(start, end)) return format(start, 'EEE, MMM d, yyyy');
@@ -55,14 +55,14 @@ export function EventCard({ event, source = 'direct', initialFavourited = false 
   const displaySubcategories = event.subcategories?.slice(0, 2) || [];
   const hasMoreSubcategories = (event.subcategories?.length || 0) > 2;
   const additionalCount = hasMoreSubcategories ? event.subcategories!.length - 2 : 0;
-  const isMultiDay = !!event.schedule.end;
+  const isMultiDay = !!event.schedule?.end;
 
   return (
     <Card className="group overflow-hidden border-2 border-border/50 hover:border-primary/50 active:border-primary/60 hover:shadow-[0_0_20px_rgba(var(--primary-rgb),0.15)] active:shadow-[0_0_25px_rgba(var(--primary-rgb),0.2)] transition-all duration-300 hover:-translate-y-1 active:translate-y-0 active:scale-[0.98]">
       <Link href={`/events/${event.id}`}>
         {/* Image Section */}
         <div className="relative h-48 w-full bg-muted overflow-hidden">
-          {event.media.imageUrl ? (
+          {event.media?.imageUrl ? (
             <Image
               src={event.media.imageUrl}
               alt={event.title}
@@ -129,7 +129,7 @@ export function EventCard({ event, source = 'direct', initialFavourited = false 
             {/* Venue */}
             <div className="flex items-centre gap-2 text-sm text-muted-foreground group-hover:text-foreground group-active:text-foreground transition-colours">
               <MapPin className="h-4 w-4 shrink-0" aria-hidden="true" />
-              <span className="line-clamp-1">{event.venue.name}</span>
+              <span className="line-clamp-1">{event.venue?.name || 'TBA'}</span>
             </div>
 
             {/* Duration */}
