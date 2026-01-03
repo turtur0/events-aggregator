@@ -6,6 +6,7 @@ import { Tabs, TabsList, TabsTrigger } from '@/components/ui/Tabs';
 import { EventCarousel } from '@/components/events/sections/EventCarousel';
 import { CarouselSkeleton } from '@/components/other/CarouselSkeleton';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
+import type { EventResponse } from '@/lib/transformers/event-transformer';
 
 interface TrendingSectionProps {
     userFavourites: Set<string>;
@@ -17,6 +18,12 @@ interface TrendingConfig {
     title: string;
     description: string;
     icon: LucideIcon;
+}
+
+interface TrendingApiResponse {
+    events: EventResponse[];
+    count: number;
+    type: TrendingType;
 }
 
 const TRENDING_CONFIG: Record<TrendingType, TrendingConfig> = {
@@ -34,7 +41,7 @@ const TRENDING_CONFIG: Record<TrendingType, TrendingConfig> = {
 
 export function TrendingSection({ userFavourites }: TrendingSectionProps) {
     const [type, setType] = useState<TrendingType>('trending');
-    const [events, setEvents] = useState<any[] | null>(null);
+    const [events, setEvents] = useState<EventResponse[] | null>(null);
     const [isLoading, setIsLoading] = useState(true);
 
     const config = TRENDING_CONFIG[type];
@@ -46,11 +53,17 @@ export function TrendingSection({ userFavourites }: TrendingSectionProps) {
             setIsLoading(true);
             try {
                 const res = await fetch(`/api/recommendations/trending?type=${type}&limit=12`);
-                const data = await res.json();
 
-                setEvents(res.ok && data.events ? data.events : []);
+                if (!res.ok) {
+                    console.error('[Trending] API error:', res.status);
+                    setEvents([]);
+                    return;
+                }
+
+                const data: TrendingApiResponse = await res.json();
+                setEvents(data.events || []);
             } catch (error) {
-                console.error('Error fetching trending events:', error);
+                console.error('[Trending] Error fetching events:', error);
                 setEvents([]);
             } finally {
                 setIsLoading(false);
@@ -60,7 +73,7 @@ export function TrendingSection({ userFavourites }: TrendingSectionProps) {
         fetchEvents();
     }, [type]);
 
-    // Render tabs component
+    // Tabs component
     const renderTabs = () => (
         <Tabs value={type} onValueChange={(v) => setType(v as TrendingType)}>
             <TabsList className="bg-muted/50">
@@ -82,7 +95,6 @@ export function TrendingSection({ userFavourites }: TrendingSectionProps) {
         </Tabs>
     );
 
-    // Loading state
     if (isLoading) {
         return (
             <CarouselSkeleton
@@ -93,7 +105,6 @@ export function TrendingSection({ userFavourites }: TrendingSectionProps) {
         );
     }
 
-    // Empty state
     if (!events || events.length === 0) {
         return (
             <Card className="border-2 border-primary/20 bg-linear-to-br from-primary/5 via-transparent to-transparent shadow-sm transition-all">
@@ -120,7 +131,6 @@ export function TrendingSection({ userFavourites }: TrendingSectionProps) {
         );
     }
 
-    // Carousel with events
     return (
         <EventCarousel
             events={events}
