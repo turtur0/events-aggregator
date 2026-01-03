@@ -6,14 +6,24 @@ import { Alert, AlertDescription } from '@/components/ui/Alert';
 import { EventCarousel } from '@/components/events/sections/EventCarousel';
 import { CarouselSkeleton } from '@/components/other/CarouselSkeleton';
 import { Card, CardContent } from '@/components/ui/Card';
+import type { EventResponse } from '@/lib/transformers/event-transformer';
 
 interface SimilarEventsProps {
     eventId: string;
     userFavourites: Set<string>;
 }
 
+interface SimilarEventResponse extends EventResponse {
+    similarity: number;
+}
+
+interface SimilarEventsApiResponse {
+    similarEvents: SimilarEventResponse[];
+    count: number;
+}
+
 export function SimilarEvents({ eventId, userFavourites }: SimilarEventsProps) {
-    const [events, setEvents] = useState<any[] | null>(null);
+    const [events, setEvents] = useState<SimilarEventResponse[] | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
@@ -27,16 +37,11 @@ export function SimilarEvents({ eventId, userFavourites }: SimilarEventsProps) {
                     throw new Error(errorData.error || 'Failed to fetch similar events');
                 }
 
-                const data = await res.json();
+                const data: SimilarEventsApiResponse = await res.json();
 
-                if (!data.similarEvents || data.similarEvents.length === 0) {
-                    setEvents([]);
-                    return;
-                }
-
-                setEvents(data.similarEvents);
+                setEvents(data.similarEvents || []);
             } catch (error) {
-                console.error('Error fetching similar events:', error);
+                console.error('[Similar Events] Error:', error);
                 setError('Unable to load similar events');
                 setEvents([]);
             } finally {

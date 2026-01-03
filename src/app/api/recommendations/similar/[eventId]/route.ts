@@ -2,11 +2,21 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getSimilarEvents } from '@/lib/ml';
 import { connectDB } from '@/lib/db';
 import mongoose from 'mongoose';
+import { transformEvent, type EventResponse } from '@/lib/transformers/event-transformer';
+
+interface SimilarEventResponse extends EventResponse {
+    similarity: number;
+}
+
+interface SimilarEventsApiResponse {
+    similarEvents: SimilarEventResponse[];
+    count: number;
+}
 
 /**
- * GET /api/events/[eventId]/similar
+ * GET /api/recommendations/similar/[eventId]
  * Returns events similar to the specified event.
- * 
+ *
  * Query params:
  * - limit: number of events (default: 6)
  */
@@ -19,64 +29,67 @@ export async function GET(
 
         const { eventId } = await context.params;
 
+        // Validate event ID format
         if (!mongoose.Types.ObjectId.isValid(eventId)) {
-            return NextResponse.json(
-                { error: 'Invalid event ID' },
-                { status: 400 }
-            );
+            return createErrorResponse('Invalid event ID', 400);
         }
 
-        const { searchParams } = new URL(req.url);
-        const limit = parseInt(searchParams.get('limit') || '6');
+        const limit = parseLimit(req);
 
         const similarEvents = await getSimilarEvents(
             new mongoose.Types.ObjectId(eventId),
             { limit }
         );
 
+        // Handle empty results
         if (!similarEvents?.length) {
-            return NextResponse.json({
-                similarEvents: [],
-                count: 0,
-            });
+            return createSuccessResponse([]);
         }
 
-        const formatted = formatSimilarEvents(similarEvents);
+        const transformedEvents = transformSimilarEvents(similarEvents);
 
-        return NextResponse.json({
-            similarEvents: formatted,
-            count: formatted.length,
-        });
+        return createSuccessResponse(transformedEvents);
     } catch (error) {
-        console.error('Error getting similar events:', error);
-        return NextResponse.json(
-            {
-                error: 'Failed to get similar events',
-                details: error instanceof Error ? error.message : 'Unknown error'
-            },
-            { status: 500 }
-        );
+        console.error('[Similar Events API] Error:', error);
+        return createErrorResponse('Failed to get similar events', 500);
     }
 }
 
-/** Formats similar events with similarity scores. */
-function formatSimilarEvents(events: Array<{ event: any; similarity: number }>) {
+/**
+ * Parses limit from query params
+ */
+function parseLimit(req: NextRequest): number {
+    const { searchParams } = new URL(req.url);
+    return parseInt(searchParams.get('limit') || '6');
+}
+
+/**
+ * Transforms similar events with similarity scores
+ */
+function transformSimilarEvents(
+    events: Array<{ event: any; similarity: number }>
+): SimilarEventResponse[] {
     return events.map(({ event, similarity }) => ({
-        _id: event._id.toString(),
-        title: event.title,
-        description: event.description,
-        category: event.category,
-        subcategories: event.subcategories || [],
-        startDate: event.startDate.toISOString(),
-        endDate: event.endDate?.toISOString(),
-        venue: event.venue,
-        priceMin: event.priceMin,
-        priceMax: event.priceMax,
-        isFree: event.isFree,
-        bookingUrl: event.bookingUrl,
-        imageUrl: event.imageUrl,
-        primarySource: event.primarySource,
-        stats: event.stats || {},
+        ...transformEvent(event),
         similarity: Math.round(similarity * 100),
     }));
+}
+
+/**
+ * Creates success response
+ */
+function createSuccessResponse(
+    events: SimilarEventResponse[]
+): NextResponse<SimilarEventsApiResponse> {
+    return NextResponse.json({
+        similarEvents: events,
+        count: events.length,
+    });
+}
+
+/**
+ * Creates error response with appropriate status code
+ */
+function createErrorResponse(message: string, status: number): NextResponse {
+    return NextResponse.json({ error: message }, { status });
 }
