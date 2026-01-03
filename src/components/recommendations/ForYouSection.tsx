@@ -7,15 +7,23 @@ import { EventCarousel } from '@/components/events/sections/EventCarousel';
 import { EventSection } from '@/components/events/sections/EventSection';
 import { CarouselSkeleton } from '@/components/other/CarouselSkeleton';
 import Link from 'next/link';
+import type { EventResponse } from '@/lib/transformers/event-transformer';
 
 interface ForYouSectionProps {
     userFavourites: Set<string>;
 }
 
+interface RecommendationsApiResponse {
+    recommendations: EventResponse[];
+    count: number;
+    isPersonalised: boolean;
+    timestamp: string;
+}
+
 export function ForYouSection({ userFavourites }: ForYouSectionProps) {
-    const [events, setEvents] = useState<any[] | null>(null);
+    const [events, setEvents] = useState<EventResponse[] | null>(null);
     const [isLoading, setIsLoading] = useState(true);
-    const [isPersonalized, setIsPersonalized] = useState(false);
+    const [isPersonalised, setIsPersonalised] = useState(false);
 
     useEffect(() => {
         async function fetchRecommendations() {
@@ -31,15 +39,16 @@ export function ForYouSection({ userFavourites }: ForYouSectionProps) {
                     cache: 'no-store',
                 });
 
-                const data = await res.json();
-
-                if (!res.ok || !data.recommendations) {
+                if (!res.ok) {
+                    console.error('[ForYou] API error:', res.status, res.statusText);
                     setEvents([]);
                     return;
                 }
 
+                const data: RecommendationsApiResponse = await res.json();
+
                 setEvents(data.recommendations || []);
-                setIsPersonalized(data.isPersonalized || false);
+                setIsPersonalised(data.isPersonalised || false);
             } catch (error) {
                 console.error('[ForYou] Error fetching recommendations:', error);
                 setEvents([]);
@@ -65,7 +74,7 @@ export function ForYouSection({ userFavourites }: ForYouSectionProps) {
         return (
             <EventSection
                 title="For You"
-                description="Personalized recommendations based on your favorites"
+                description="Personalised recommendations based on your favourites"
                 icon={<Heart className="h-6 w-6 text-primary" />}
                 borderClass="border-primary/20"
                 gradientClass="from-primary/5"
@@ -76,7 +85,7 @@ export function ForYouSection({ userFavourites }: ForYouSectionProps) {
                         We're still learning your preferences!
                     </p>
                     <p className="text-sm text-muted-foreground">
-                        Start favoriting events to get personalized recommendations tailored just for you.
+                        Start favouriting events to get personalised recommendations tailored just for you.
                     </p>
                     <Button asChild className="mt-4 hover-lift group">
                         <Link href="/events">
@@ -95,9 +104,9 @@ export function ForYouSection({ userFavourites }: ForYouSectionProps) {
             userFavourites={userFavourites}
             title="For You"
             description={
-                isPersonalized
-                    ? "Personalized recommendations based on your favorites"
-                    : "Discover great events happening in Melbourne"
+                isPersonalised
+                    ? 'Personalised recommendations based on your favourites'
+                    : 'Discover great events happening in Melbourne'
             }
             icon={<Heart className="h-6 w-6 text-primary" />}
             source="recommendation"

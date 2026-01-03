@@ -8,7 +8,7 @@
 
 ---
 
-A full-stack events aggregator that solves Melbourne's fragmented event discovery problem by combining multiple ticketing, venue and events platforms into one searchable database. Features data deduplication, ML-based recommendations, event analytics, custom automated in-app and email notifications, and a historical archive of past events.
+A full-stack events aggregator that solves Melbourne's fragmented event discovery problem by combining multiple ticketing, venue and events platforms into one searchable database. It features data deduplication, ML-based recommendations, event analytics, custom automated in-app and email notifications, and a historical archive of past events.
 
 ---
 
@@ -194,4 +194,4 @@ MIT Licence - see [LICENCE](LICENCE) file for details.
 
 ---
 
-*Built as a portfolio project to demonstrate full-stack development, ML implementation, and data engineering capabilities.*
+*Built as a portfolio project to demonstrate full-stack development and data engineering capabilities.*

@@ -5,10 +5,10 @@ import { EventCard } from '@/components/events/cards/EventCard';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
-import { SerialisedEvent } from '@/lib/models/Event';
+import type { EventResponse } from '@/lib/transformers/event-transformer';
 
 interface EventCarouselProps {
-    events: SerialisedEvent[];
+    events: EventResponse[]; // ← Type-safe!
     userFavourites: Set<string>;
     title: string;
     description?: string;
@@ -115,17 +115,14 @@ export function EventCarousel({
 
         touchEndX.current = clientX;
 
-        // Check if user has moved enough to be considered dragging (not a tap)
         const deltaX = Math.abs(clientX - touchStartX.current);
         const deltaY = Math.abs(clientY - touchStartY.current);
 
-        // Only start dragging if horizontal movement exceeds vertical (horizontal swipe)
         if (deltaX > 10 || deltaY > 10) {
             hasMoved.current = true;
 
             if (deltaX > deltaY) {
                 isDragging.current = true;
-                // Prevent vertical scroll when swiping horizontally
                 if ('touches' in e) {
                     e.preventDefault();
                 }
@@ -134,7 +131,6 @@ export function EventCarousel({
     };
 
     const handleTouchEnd = () => {
-        // Only trigger navigation if user actually dragged
         if (isDragging.current && hasMoved.current) {
             const swipeDistance = touchStartX.current - touchEndX.current;
             const threshold = 50;
@@ -207,7 +203,7 @@ export function EventCarousel({
                 >
                     {infiniteEvents.map((event, idx) => (
                         <div
-                            key={`${event._id}-${idx}`}
+                            key={`${event.id}-${idx}`} // ← Changed from event._id
                             className="flex-none w-full sm:w-[calc(50%-12px)] lg:w-[calc(33.333%-16px)]"
                             style={{
                                 pointerEvents: isDragging.current ? 'none' : 'auto',
@@ -217,7 +213,7 @@ export function EventCarousel({
                             <EventCard
                                 event={event}
                                 source={source}
-                                initialFavourited={userFavourites.has(event._id)}
+                                initialFavourited={userFavourites.has(event.id)} // ← Changed from event._id
                             />
                         </div>
                     ))}
