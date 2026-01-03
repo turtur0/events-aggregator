@@ -5,6 +5,7 @@ import { Event, type IEvent } from '@/lib/models';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { getPersonalisedRecommendations } from '@/lib/ml/user-profile-service';
+import { serialiseEvent, type EventResponse } from '@/lib/transformers/event-transformer';
 
 const EVENTS_PER_PAGE = 18;
 
@@ -17,12 +18,26 @@ type SortOption =
   | 'date-late'
   | 'recently-added';
 
-interface AggregatedEvent extends IEvent {
-  _id: Types.ObjectId;
-  relevanceScore?: number;
-  mlScore?: number;
+interface EventsApiResponse {
+  events: EventResponse[];
+  pagination: {
+    currentPage: number;
+    totalPages: number;
+    totalEvents: number;
+    hasMore: boolean;
+  };
 }
 
+/**
+ * GET /api/events
+ * Returns filtered, sorted, and paginated events.
+ *
+ * Query params:
+ * - page: page number (default: 1)
+ * - q: search query
+ * - sort: sort option
+ * - category, subcategory, date filters, price filters, etc.
+ */
 export async function GET(request: NextRequest) {
   try {
     await connectDB();
@@ -55,25 +70,20 @@ export async function GET(request: NextRequest) {
     }
 
     // Handle standard sorted queries
-    return await fetchSortedEvents(
-      matchConditions,
-      page,
-      sortOption || 'date-soon'
-    );
+    return await fetchSortedEvents(matchConditions, page, sortOption || 'date-soon');
   } catch (error) {
-    console.error('Events API error:', error);
-    return NextResponse.json(
-      { error: 'Failed to fetch events' },
-      { status: 500 }
-    );
+    console.error('[Events API] Error:', error);
+    return createErrorResponse('Failed to fetch events', 500);
   }
 }
 
+/**
+ * Builds MongoDB match conditions from query params
+ */
 function buildMatchConditions(searchParams: URLSearchParams): FilterQuery<IEvent> {
   const now = new Date();
 
   const matchConditions: FilterQuery<IEvent> = {
-    // Show events where endDate >= now, or if no endDate, where startDate >= now
     $or: [
       { endDate: { $gte: now } },
       { endDate: { $exists: false }, startDate: { $gte: now } },
@@ -96,7 +106,7 @@ function buildMatchConditions(searchParams: URLSearchParams): FilterQuery<IEvent
     };
   }
 
-  // Date range filter
+  // Date range filters
   const dateFilter = searchParams.get('date');
   const dateFrom = searchParams.get('dateFrom');
   const dateTo = searchParams.get('dateTo');
@@ -112,12 +122,14 @@ function buildMatchConditions(searchParams: URLSearchParams): FilterQuery<IEvent
   if (freeOnly) {
     matchConditions.isFree = true;
   } else {
-    applyPriceFilters(matchConditions, searchParams);
+    const priceMin = searchParams.get('priceMin');
+    const priceMax = searchParams.get('priceMax');
+    if (priceMin) matchConditions.priceMin = { $gte: parseInt(priceMin) };
+    if (priceMax) matchConditions.priceMax = { $lte: parseInt(priceMax) };
   }
 
   // Accessibility filter
-  const accessibleOnly = searchParams.get('accessible') === 'true';
-  if (accessibleOnly) {
+  if (searchParams.get('accessible') === 'true') {
     matchConditions.accessibility = {
       $exists: true,
       $ne: null,
@@ -128,36 +140,31 @@ function buildMatchConditions(searchParams: URLSearchParams): FilterQuery<IEvent
   return matchConditions;
 }
 
+/**
+ * Applies preset date filters (today, this-week, etc.)
+ */
 function applyDateFilter(matchConditions: FilterQuery<IEvent>, dateFilter: string, now: Date) {
   const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
 
-  switch (dateFilter) {
-    case 'today': {
-      const tomorrow = new Date(today);
-      tomorrow.setDate(tomorrow.getDate() + 1);
-      matchConditions.startDate = { $gte: today, $lt: tomorrow };
-      break;
-    }
-    case 'this-week': {
-      const weekEnd = new Date(today);
-      weekEnd.setDate(weekEnd.getDate() + 7);
-      matchConditions.startDate = { $gte: today, $lt: weekEnd };
-      break;
-    }
-    case 'this-month': {
-      const monthEnd = new Date(today.getFullYear(), today.getMonth() + 1, 1);
-      matchConditions.startDate = { $gte: today, $lt: monthEnd };
-      break;
-    }
-    case 'next-month': {
-      const nextMonthStart = new Date(today.getFullYear(), today.getMonth() + 1, 1);
-      const nextMonthEnd = new Date(today.getFullYear(), today.getMonth() + 2, 1);
-      matchConditions.startDate = { $gte: nextMonthStart, $lt: nextMonthEnd };
-      break;
-    }
+  const filters: Record<string, [Date, Date]> = {
+    today: [today, new Date(today.getTime() + 86400000)],
+    'this-week': [today, new Date(today.getTime() + 7 * 86400000)],
+    'this-month': [today, new Date(today.getFullYear(), today.getMonth() + 1, 1)],
+    'next-month': [
+      new Date(today.getFullYear(), today.getMonth() + 1, 1),
+      new Date(today.getFullYear(), today.getMonth() + 2, 1),
+    ],
+  };
+
+  const [start, end] = filters[dateFilter] || [today, null];
+  if (end) {
+    matchConditions.startDate = { $gte: start, $lt: end };
   }
 }
 
+/**
+ * Applies custom date range filters
+ */
 function applyCustomDateRange(
   matchConditions: FilterQuery<IEvent>,
   dateFrom?: string,
@@ -187,21 +194,9 @@ function applyCustomDateRange(
   matchConditions.startDate = dateConditions;
 }
 
-function applyPriceFilters(
-  matchConditions: FilterQuery<IEvent>,
-  searchParams: URLSearchParams
-) {
-  const priceMin = searchParams.get('priceMin');
-  const priceMax = searchParams.get('priceMax');
-
-  if (priceMin) {
-    matchConditions.priceMin = { $gte: parseInt(priceMin) };
-  }
-  if (priceMax) {
-    matchConditions.priceMax = { $lte: parseInt(priceMax) };
-  }
-}
-
+/**
+ * Returns sort configuration for MongoDB
+ */
 function getSortConfig(sortOption: SortOption): Record<string, 1 | -1> {
   const configs: Record<SortOption, Record<string, 1 | -1>> = {
     popular: { 'stats.categoryPopularityPercentile': -1, startDate: 1 },
@@ -216,6 +211,9 @@ function getSortConfig(sortOption: SortOption): Record<string, 1 | -1> {
   return configs[sortOption] || configs['date-soon'];
 }
 
+/**
+ * Fetches personalised recommended events
+ */
 async function fetchRecommendedEvents(
   matchConditions: FilterQuery<IEvent>,
   page: number,
@@ -238,64 +236,65 @@ async function fetchRecommendedEvents(
 
     let filteredEvents = recommendations
       .map(r => r.event)
-      .filter(event => !event.isArchived);
-
-    // Apply date filter (endDate or startDate logic)
-    const now = new Date();
-    filteredEvents = filteredEvents.filter(event => {
-      if (event.endDate) {
-        return new Date(event.endDate) >= now;
-      }
-      return new Date(event.startDate) >= now;
-    });
-
-    // Apply subcategory filter
-    if (matchConditions.subcategories?.$elemMatch) {
-      const subcatRegex = matchConditions.subcategories.$elemMatch.$regex;
-      if (subcatRegex) {
-        filteredEvents = filteredEvents.filter(event =>
-          event.subcategories?.some(sub => subcatRegex.test(sub))
-        );
-      }
-    }
-
-    // Apply date range filters
-    if (matchConditions.startDate) {
-      const { $gte, $lt } = matchConditions.startDate;
-      filteredEvents = filteredEvents.filter(event => {
-        const eventDate = new Date(event.startDate);
-        if ($gte && eventDate < $gte) return false;
-        if ($lt && eventDate >= $lt) return false;
-        return true;
-      });
-    }
-
-    // Apply free filter
-    if (matchConditions.isFree === true) {
-      filteredEvents = filteredEvents.filter(event => event.isFree === true);
-    }
-
-    // Apply accessibility filter
-    if (matchConditions.accessibility) {
-      filteredEvents = filteredEvents.filter(
-        event => event.accessibility && event.accessibility.length > 0
-      );
-    }
+      .filter(event => !event.isArchived && isEventValid(event, matchConditions));
 
     // Paginate
     const skip = (page - 1) * EVENTS_PER_PAGE;
     const paginatedEvents = filteredEvents.slice(skip, skip + EVENTS_PER_PAGE);
 
-    return NextResponse.json({
-      events: paginatedEvents.map(serialiseEvent),
-      pagination: buildPagination(page, filteredEvents.length),
-    });
+    return createSuccessResponse(
+      paginatedEvents.map(serialiseEvent),
+      page,
+      filteredEvents.length
+    );
   } catch (error) {
-    console.error('Error fetching recommendations:', error);
+    console.error('[Events API] Recommendation error:', error);
     return fetchSortedEvents(matchConditions, page, 'date-soon');
   }
 }
 
+/**
+ * Checks if event matches filter conditions
+ */
+function isEventValid(event: any, conditions: FilterQuery<IEvent>): boolean {
+  const now = new Date();
+
+  // Date validity
+  if (event.endDate) {
+    if (new Date(event.endDate) < now) return false;
+  } else if (new Date(event.startDate) < now) {
+    return false;
+  }
+
+  // Subcategory filter
+  if (conditions.subcategories?.$elemMatch) {
+    const regex = conditions.subcategories.$elemMatch.$regex;
+    if (regex && !event.subcategories?.some((sub: string) => regex.test(sub))) {
+      return false;
+    }
+  }
+
+  // Date range filter
+  if (conditions.startDate) {
+    const eventDate = new Date(event.startDate);
+    if (conditions.startDate.$gte && eventDate < conditions.startDate.$gte) return false;
+    if (conditions.startDate.$lt && eventDate >= conditions.startDate.$lt) return false;
+  }
+
+  // Free filter
+  if (conditions.isFree === true && event.isFree !== true) return false;
+
+  // Accessibility filter
+  if (conditions.accessibility && (!event.accessibility || event.accessibility.length === 0)) {
+    return false;
+  }
+
+  return true;
+}
+
+/**
+ * Fetches sorted events without search
+ */
 async function fetchSortedEvents(
   matchConditions: FilterQuery<IEvent>,
   page: number,
@@ -305,20 +304,16 @@ async function fetchSortedEvents(
   const sortConfig = getSortConfig(sortOption);
 
   const [events, totalEvents] = await Promise.all([
-    Event.find(matchConditions)
-      .sort(sortConfig)
-      .skip(skip)
-      .limit(EVENTS_PER_PAGE)
-      .lean(),
+    Event.find(matchConditions).sort(sortConfig).skip(skip).limit(EVENTS_PER_PAGE).lean(),
     Event.countDocuments(matchConditions),
   ]);
 
-  return NextResponse.json({
-    events: events.map(serialiseEvent),
-    pagination: buildPagination(page, totalEvents),
-  });
+  return createSuccessResponse(events.map(serialiseEvent), page, totalEvents);
 }
 
+/**
+ * Fetches search results with relevance scoring
+ */
 async function fetchSearchResults(
   matchConditions: FilterQuery<IEvent>,
   searchQuery: string,
@@ -339,16 +334,19 @@ async function fetchSearchResults(
     ],
   };
 
-  const sortConfigs: Record<string, Record<string, 1 | -1>> = {
-    popular: { relevanceScore: -1, 'stats.categoryPopularityPercentile': -1, startDate: 1 },
-    'price-low': { relevanceScore: -1, priceMin: 1, startDate: 1 },
-    'price-high': { relevanceScore: -1, priceMax: -1, startDate: 1 },
-    'date-late': { relevanceScore: -1, startDate: -1 },
-    'recently-added': { relevanceScore: -1, scrapedAt: -1 },
-    default: { relevanceScore: -1, startDate: 1 },
+  // Build sort config with relevance
+  const baseSortConfigs: Record<string, Record<string, 1 | -1>> = {
+    popular: { 'stats.categoryPopularityPercentile': -1, startDate: 1 },
+    'price-low': { priceMin: 1, startDate: 1 },
+    'price-high': { priceMax: -1, startDate: 1 },
+    'date-late': { startDate: -1 },
+    'recently-added': { scrapedAt: -1 },
   };
 
-  const finalSort = sortConfigs[sortOption] || sortConfigs.default;
+  const finalSort: Record<string, 1 | -1> = {
+    relevanceScore: -1 as const,
+    ...(baseSortConfigs[sortOption] || { startDate: 1 as const }),
+  };
 
   const pipeline = [
     { $match: searchConditions },
@@ -376,61 +374,36 @@ async function fetchSearchResults(
   ];
 
   const results = await Event.aggregate(pipeline);
-  const events: AggregatedEvent[] = results[0]?.events || [];
+  const events = results[0]?.events || [];
   const totalEvents = results[0]?.totalCount[0]?.count || 0;
 
+  return createSuccessResponse(events.map(serialiseEvent), page, totalEvents);
+}
+
+/**
+ * Creates success response with pagination
+ */
+function createSuccessResponse(
+  events: EventResponse[],
+  page: number,
+  totalEvents: number
+): NextResponse<EventsApiResponse> {
+  const totalPages = Math.ceil(totalEvents / EVENTS_PER_PAGE);
+
   return NextResponse.json({
-    events: events.map(serialiseEvent),
-    pagination: buildPagination(page, totalEvents),
+    events,
+    pagination: {
+      currentPage: page,
+      totalPages,
+      totalEvents,
+      hasMore: page < totalPages,
+    },
   });
 }
 
-function serialiseEvent(event: any) {
-  return {
-    _id: event._id.toString(),
-    title: event.title,
-    description: event.description,
-    category: event.category,
-    subcategories: event.subcategories || [],
-    startDate: event.startDate instanceof Date
-      ? event.startDate.toISOString()
-      : new Date(event.startDate).toISOString(),
-    endDate: event.endDate
-      ? (event.endDate instanceof Date
-        ? event.endDate.toISOString()
-        : new Date(event.endDate).toISOString())
-      : undefined,
-    venue: event.venue,
-    priceMin: event.priceMin,
-    priceMax: event.priceMax,
-    isFree: event.isFree,
-    bookingUrl: event.bookingUrl,
-    bookingUrls: event.bookingUrls,
-    imageUrl: event.imageUrl,
-    accessibility: event.accessibility || [],
-    duration: event.duration,
-    ageRestriction: event.ageRestriction,
-    sources: event.sources || [],
-    sourceIds: event.sourceIds,
-    primarySource: event.primarySource,
-    scrapedAt: event.scrapedAt instanceof Date
-      ? event.scrapedAt.toISOString()
-      : new Date(event.scrapedAt).toISOString(),
-    lastUpdated: event.lastUpdated instanceof Date
-      ? event.lastUpdated.toISOString()
-      : new Date(event.lastUpdated).toISOString(),
-    stats: event.stats,
-    isArchived: event.isArchived || false,
-  };
-}
-
-function buildPagination(page: number, totalEvents: number) {
-  const totalPages = Math.ceil(totalEvents / EVENTS_PER_PAGE);
-
-  return {
-    currentPage: page,
-    totalPages,
-    totalEvents,
-    hasMore: page < totalPages,
-  };
+/**
+ * Creates error response
+ */
+function createErrorResponse(message: string, status: number): NextResponse {
+  return NextResponse.json({ error: message }, { status });
 }

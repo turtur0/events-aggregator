@@ -7,14 +7,25 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import { EventCarousel } from '@/components/events/sections/EventCarousel';
 import { CarouselSkeleton } from '@/components/other/CarouselSkeleton';
 import Link from 'next/link';
+import type { EventResponse } from '@/lib/transformers/event-transformer';
 
 interface UpcomingEventsProps {
     userFavourites: Set<string>;
 }
 
+interface EventsApiResponse {
+    events: EventResponse[];
+    pagination: {
+        currentPage: number;
+        totalPages: number;
+        totalEvents: number;
+        hasMore: boolean;
+    };
+}
+
 export function UpcomingEvents({ userFavourites }: UpcomingEventsProps) {
-    const [thisWeekEvents, setThisWeekEvents] = useState<any[]>([]);
-    const [thisMonthEvents, setThisMonthEvents] = useState<any[]>([]);
+    const [thisWeekEvents, setThisWeekEvents] = useState<EventResponse[]>([]);
+    const [thisMonthEvents, setThisMonthEvents] = useState<EventResponse[]>([]);
     const [isLoading, setIsLoading] = useState(true);
 
     useEffect(() => {
@@ -25,16 +36,26 @@ export function UpcomingEvents({ userFavourites }: UpcomingEventsProps) {
                 const dateToParam = endOfMonth.toISOString().split('T')[0];
 
                 const res = await fetch(`/api/events?sort=date-soon&dateTo=${dateToParam}`);
-                if (!res.ok) throw new Error('Failed to fetch events');
 
-                const { events = [] } = await res.json();
+                if (!res.ok) {
+                    console.error('[UpcomingEvents] API error:', res.status);
+                    return;
+                }
+
+                const data: EventsApiResponse = await res.json();
+                const events = data.events || [];
 
                 // Split events into this week and later
                 const weekEnd = new Date(now);
                 weekEnd.setDate(now.getDate() + 7);
 
-                const week = events.filter((e: any) => new Date(e.startDate) <= weekEnd).slice(0, 12);
-                const later = events.filter((e: any) => new Date(e.startDate) > weekEnd).slice(0, 12);
+                const week = events
+                    .filter(e => new Date(e.schedule.start) <= weekEnd)
+                    .slice(0, 12);
+
+                const later = events
+                    .filter(e => new Date(e.schedule.start) > weekEnd)
+                    .slice(0, 12);
 
                 setThisWeekEvents(week);
                 setThisMonthEvents(later);
@@ -66,7 +87,9 @@ export function UpcomingEvents({ userFavourites }: UpcomingEventsProps) {
                         <Calendar className="h-6 w-6 text-primary" />
                         Upcoming Events
                     </CardTitle>
-                    <p className="text-sm text-muted-foreground">Don't miss what's happening in Melbourne</p>
+                    <p className="text-sm text-muted-foreground">
+                        Don't miss what's happening in Melbourne
+                    </p>
                 </CardHeader>
                 <CardContent>
                     <div className="text-center py-8 space-y-4">
@@ -94,9 +117,9 @@ export function UpcomingEvents({ userFavourites }: UpcomingEventsProps) {
                     source="homepage"
                     borderClass="border-primary/20"
                     gradientClass="from-primary/5"
-                    autoScroll={true}
+                    autoScroll
                     autoScrollInterval={5000}
-                    showProgress={true}
+                    showProgress
                 />
             )}
 
@@ -109,9 +132,9 @@ export function UpcomingEvents({ userFavourites }: UpcomingEventsProps) {
                     source="homepage"
                     borderClass="border-secondary/20"
                     gradientClass="from-secondary/5"
-                    autoScroll={true}
+                    autoScroll
                     autoScrollInterval={5000}
-                    showProgress={true}
+                    showProgress
                 />
             )}
         </div>
