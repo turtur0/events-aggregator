@@ -2,14 +2,17 @@ import { EventCard } from '../cards/EventCard';
 import { EventCardSkeleton } from '@/components/events/cards/EventCardSkeleton';
 import { EmptyState } from '@/components/other/EmptyState';
 import { Pagination } from '@/components/other/Pagination';
+import type { EventResponse } from '@/lib/transformers/event-transformer';
+
+type EventSource = 'search' | 'recommendation' | 'category_browse' | 'homepage' | 'direct' | 'similar_events';
 
 interface EventsGridProps {
-    events: any[];
+    events: EventResponse[]; 
     totalEvents: number;
     totalPages: number;
     currentPage: number;
     userFavourites: Set<string>;
-    source?: string;
+    source?: EventSource; 
     emptyTitle?: string;
     emptyDescription?: string;
     showCount?: boolean;
@@ -57,9 +60,10 @@ export function EventsGrid({
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
                 {events.map((event) => (
                     <EventCard
-                        key={event._id}
+                        key={event.id}
                         event={event}
-                        initialFavourited={userFavourites.has(event._id)}
+                        source={source}
+                        initialFavourited={userFavourites.has(event.id)} 
                     />
                 ))}
             </div>
