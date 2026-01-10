@@ -2,9 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { connectDB } from '@/lib/db';
 import { FilterQuery } from 'mongoose';
 import { Event, type IEvent } from '@/lib/models';
+import { transformEvent } from '@/lib/transformers/event-transformer';
 
 const EVENTS_PER_PAGE = 18;
-
 type SortOption = 'date-recent' | 'date-old' | 'popular' | 'recently-archived';
 
 export async function GET(request: NextRequest) {
@@ -18,13 +18,12 @@ export async function GET(request: NextRequest) {
 
         const matchConditions = buildMatchConditions(searchParams);
 
-        // Handle search
-        if (searchQuery.trim()) {
-            return await fetchSearchResults(matchConditions, searchQuery, page, sortOption);
-        }
+        // Handle search vs standard queries
+        const result = searchQuery.trim()
+            ? await fetchSearchResults(matchConditions, searchQuery, page, sortOption)
+            : await fetchArchivedEvents(matchConditions, page, sortOption);
 
-        // Handle standard queries
-        return await fetchArchivedEvents(matchConditions, page, sortOption);
+        return NextResponse.json(result);
     } catch (error) {
         console.error('Archived events API error:', error);
         return NextResponse.json(
@@ -35,17 +34,13 @@ export async function GET(request: NextRequest) {
 }
 
 function buildMatchConditions(searchParams: URLSearchParams): FilterQuery<IEvent> {
-    const matchConditions: FilterQuery<IEvent> = {
-        isArchived: true, // Only archived events
-    };
+    const matchConditions: FilterQuery<IEvent> = { isArchived: true };
 
-    // Category filter
     const category = searchParams.get('category');
     if (category && category !== 'all') {
         matchConditions.category = { $regex: new RegExp(`^${category}$`, 'i') };
     }
 
-    // Subcategory filter
     const subcategory = searchParams.get('subcategory');
     if (subcategory && subcategory !== 'all') {
         matchConditions.subcategories = {
@@ -53,9 +48,7 @@ function buildMatchConditions(searchParams: URLSearchParams): FilterQuery<IEvent
         };
     }
 
-    // Price filters
-    const freeOnly = searchParams.get('free') === 'true';
-    if (freeOnly) {
+    if (searchParams.get('free') === 'true') {
         matchConditions.isFree = true;
     }
 
@@ -66,10 +59,9 @@ function getSortConfig(sortOption: SortOption): Record<string, 1 | -1> {
     const configs: Record<SortOption, Record<string, 1 | -1>> = {
         'date-recent': { startDate: -1 },
         'date-old': { startDate: 1 },
-        popular: { 'stats.categoryPopularityPercentile': -1, startDate: -1 },
+        'popular': { 'stats.categoryPopularityPercentile': -1, startDate: -1 },
         'recently-archived': { archivedAt: -1, startDate: -1 },
     };
-
     return configs[sortOption] || configs['date-recent'];
 }
 
@@ -90,10 +82,10 @@ async function fetchArchivedEvents(
         Event.countDocuments(matchConditions),
     ]);
 
-    return NextResponse.json({
-        events: events.map(serialiseEvent),
+    return {
+        events: events.map(transformEvent),
         pagination: buildPagination(page, totalEvents),
-    });
+    };
 }
 
 async function fetchSearchResults(
@@ -127,58 +119,14 @@ async function fetchSearchResults(
         Event.countDocuments(searchConditions),
     ]);
 
-    return NextResponse.json({
-        events: events.map(serialiseEvent),
-        pagination: buildPagination(page, totalEvents),
-    });
-}
-
-function serialiseEvent(event: any) {
     return {
-        _id: event._id.toString(),
-        title: event.title,
-        description: event.description,
-        category: event.category,
-        subcategories: event.subcategories || [],
-        startDate: event.startDate instanceof Date
-            ? event.startDate.toISOString()
-            : new Date(event.startDate).toISOString(),
-        endDate: event.endDate
-            ? (event.endDate instanceof Date
-                ? event.endDate.toISOString()
-                : new Date(event.endDate).toISOString())
-            : undefined,
-        venue: event.venue,
-        priceMin: event.priceMin,
-        priceMax: event.priceMax,
-        isFree: event.isFree,
-        bookingUrl: event.bookingUrl,
-        bookingUrls: event.bookingUrls,
-        imageUrl: event.imageUrl,
-        accessibility: event.accessibility || [],
-        duration: event.duration,
-        ageRestriction: event.ageRestriction,
-        sources: event.sources || [],
-        primarySource: event.primarySource,
-        scrapedAt: event.scrapedAt instanceof Date
-            ? event.scrapedAt.toISOString()
-            : new Date(event.scrapedAt).toISOString(),
-        lastUpdated: event.lastUpdated instanceof Date
-            ? event.lastUpdated.toISOString()
-            : new Date(event.lastUpdated).toISOString(),
-        archivedAt: event.archivedAt
-            ? (event.archivedAt instanceof Date
-                ? event.archivedAt.toISOString()
-                : new Date(event.archivedAt).toISOString())
-            : undefined,
-        isArchived: true,
-        stats: event.stats,
+        events: events.map(transformEvent),
+        pagination: buildPagination(page, totalEvents),
     };
 }
 
 function buildPagination(page: number, totalEvents: number) {
     const totalPages = Math.ceil(totalEvents / EVENTS_PER_PAGE);
-
     return {
         currentPage: page,
         totalPages,

@@ -5,7 +5,7 @@ import { Event, type IEvent } from '@/lib/models';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { getPersonalisedRecommendations } from '@/lib/ml/user-profile-service';
-import { serialiseEvent, type EventResponse } from '@/lib/transformers/event-transformer';
+import { transformEvent, type EventResponse } from '@/lib/transformers/event-transformer';
 
 const EVENTS_PER_PAGE = 18;
 
@@ -243,7 +243,7 @@ async function fetchRecommendedEvents(
     const paginatedEvents = filteredEvents.slice(skip, skip + EVENTS_PER_PAGE);
 
     return createSuccessResponse(
-      paginatedEvents.map(serialiseEvent),
+      paginatedEvents.map(transformEvent),
       page,
       filteredEvents.length
     );
@@ -308,7 +308,7 @@ async function fetchSortedEvents(
     Event.countDocuments(matchConditions),
   ]);
 
-  return createSuccessResponse(events.map(serialiseEvent), page, totalEvents);
+  return createSuccessResponse(events.map(transformEvent), page, totalEvents);
 }
 
 /**
@@ -377,7 +377,7 @@ async function fetchSearchResults(
   const events = results[0]?.events || [];
   const totalEvents = results[0]?.totalCount[0]?.count || 0;
 
-  return createSuccessResponse(events.map(serialiseEvent), page, totalEvents);
+  return createSuccessResponse(events.map(transformEvent), page, totalEvents);
 }
 
 /**

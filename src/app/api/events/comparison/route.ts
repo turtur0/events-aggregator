@@ -23,7 +23,7 @@ export interface EventComparisonData {
         popularityPercentile: number;
     };
     similarEvents: Array<{
-        _id: string;
+        id: string; 
         title: string;
         price: number;
         priceMax?: number;
@@ -33,11 +33,9 @@ export interface EventComparisonData {
 
 function calculatePercentile(sortedValues: number[], value: number): number {
     if (sortedValues.length === 0) return 0;
-
     const index = sortedValues.findIndex(v => v >= value);
     if (index === -1) return 100;
     if (index === 0) return 0;
-
     return Math.round((index / sortedValues.length) * 100);
 }
 
@@ -46,26 +44,18 @@ export async function GET(request: NextRequest) {
         await connectDB();
 
         const eventId = request.nextUrl.searchParams.get('eventId');
-
         if (!eventId) {
-            return NextResponse.json(
-                { error: 'Event ID required' },
-                { status: 400 }
-            );
+            return NextResponse.json({ error: 'Event ID required' }, { status: 400 });
         }
 
         const event = await Event.findById(eventId).lean();
-
         if (!event) {
-            return NextResponse.json(
-                { error: 'Event not found' },
-                { status: 404 }
-            );
+            return NextResponse.json({ error: 'Event not found' }, { status: 404 });
         }
 
         const now = new Date();
 
-        // Get all upcoming paid events in the same category
+        // Get category events for comparison
         const categoryEvents = await Event.find({
             category: event.category,
             startDate: { $gte: now },
@@ -82,7 +72,7 @@ export async function GET(request: NextRequest) {
             }, { status: 404 });
         }
 
-        // Collect ALL price points (min and max) for true category range
+        // Price analysis
         const allPricePoints: number[] = [];
         const minPrices: number[] = [];
 
@@ -94,24 +84,20 @@ export async function GET(request: NextRequest) {
                 allPricePoints.push(min);
                 minPrices.push(min);
             }
-
-            // Include max price if it exists and is greater than min
             if (max && max > min) {
                 allPricePoints.push(max);
             }
         });
 
-        // Extract popularity data
         const popularities = categoryEvents
             .map(e => e.stats?.categoryPopularityPercentile || 0)
             .filter(p => p > 0);
 
-        // Sort for calculations
         const sortedAllPrices = [...allPricePoints].sort((a, b) => a - b);
         const sortedMinPrices = [...minPrices].sort((a, b) => a - b);
         const sortedPopularities = [...popularities].sort((a, b) => a - b);
 
-        // Calculate category statistics
+        // Category statistics
         const categoryStats = {
             avgPrice: Math.round(minPrices.reduce((sum, p) => sum + p, 0) / minPrices.length),
             medianPrice: Math.round(sortedMinPrices[Math.floor(sortedMinPrices.length / 2)]),
@@ -123,7 +109,7 @@ export async function GET(request: NextRequest) {
                 : 0,
         };
 
-        // Calculate percentiles for this event
+        // Event percentiles
         const eventPriceMin = event.priceMin || 0;
         const eventPriceMax = event.priceMax;
         const eventPopularity = event.stats?.categoryPopularityPercentile || 0;
@@ -134,7 +120,7 @@ export async function GET(request: NextRequest) {
             : undefined;
         const popularityPercentile = calculatePercentile(sortedPopularities, eventPopularity);
 
-        // Find similar events (±20% of minimum price)
+        // Similar events
         const priceLower = eventPriceMin * 0.8;
         const priceUpper = eventPriceMin * 1.2;
 
@@ -146,7 +132,7 @@ export async function GET(request: NextRequest) {
             .sort((a, b) => (b.stats?.categoryPopularityPercentile || 0) - (a.stats?.categoryPopularityPercentile || 0))
             .slice(0, 5)
             .map(e => ({
-                _id: e._id.toString(),
+                id: e._id.toString(),
                 title: e.title,
                 price: e.priceMin || 0,
                 priceMax: e.priceMax,
@@ -173,10 +159,7 @@ export async function GET(request: NextRequest) {
     } catch (error) {
         console.error('[Event Comparison API] Error:', error);
         return NextResponse.json(
-            {
-                error: 'Failed to compute comparison data',
-                details: error instanceof Error ? error.message : 'Unknown error'
-            },
+            { error: 'Failed to compute comparison data' },
             { status: 500 }
         );
     }

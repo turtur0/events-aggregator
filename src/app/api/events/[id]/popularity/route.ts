@@ -2,10 +2,6 @@ import { NextRequest, NextResponse } from 'next/server';
 import { connectDB } from '@/lib/db';
 import { compareToCategory } from '@/lib/ml';
 
-/**
- * GET /api/events/[id]/popularity
- * Returns popularity statistics for an event compared to its category.
- */
 export async function GET(
     req: NextRequest,
     context: { params: Promise<{ id: string }> }
@@ -31,7 +27,6 @@ export async function GET(
     }
 }
 
-/** Returns human-readable popularity description based on percentile. */
 function getPopularityDescription(percentile: number): string {
     if (percentile >= 0.9) return 'Highly popular - one of the most sought-after events in this category';
     if (percentile >= 0.7) return 'Popular - well-attended and well-reviewed';

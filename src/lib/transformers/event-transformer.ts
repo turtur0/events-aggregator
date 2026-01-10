@@ -1,8 +1,7 @@
 /**
- * Event data transformation layer
- * Converts database models to consistent API response formats
+ * Canonical event response type - the ONLY shape components should know about.
+ * This is your API contract.
  */
-
 export interface EventResponse {
     id: string;
     title: string;
@@ -43,7 +42,7 @@ export interface EventResponse {
         clicks: number;
     };
 
-    // Additional fields needed by EventCard
+    // Additional optional fields
     duration?: string;
     ageRestriction?: string;
     accessibility?: string[];
@@ -58,90 +57,19 @@ export interface RecommendationResponse extends EventResponse {
 }
 
 /**
- * Transforms database event model to API response format
+ * THE ONLY TRANSFORMER YOU NEED
+ * Handles all database → API transformations in one place
  */
 export function transformEvent(event: any): EventResponse {
-    // Ensure dates are valid
-    const startDate = event.startDate ? new Date(event.startDate) : new Date();
-    const endDate = event.endDate ? new Date(event.endDate) : null;
-
-    return {
-        id: event._id.toString(),
-        title: event.title || 'Untitled Event',
-        description: event.description || '',
-        category: event.category || 'other',
-        subcategories: event.subcategories || [],
-
-        schedule: {
-            start: startDate.toISOString(),
-            end: endDate?.toISOString() || null,
-        },
-
-        venue: {
-            name: event.venue?.name || 'TBA',
-            location: event.venue?.location || 'Melbourne',
-            capacity: event.venue?.capacity,
-            tier: event.venue?.tier,
-        },
-
-        pricing: {
-            min: event.priceMin,
-            max: event.priceMax,
-            isFree: event.isFree || false,
-        },
-
-        booking: {
-            url: event.bookingUrl || '',
-            source: event.primarySource || 'website',
-        },
-
-        media: {
-            imageUrl: event.imageUrl || null,
-        },
-
-        engagement: {
-            views: event.stats?.viewCount || 0,
-            favourites: event.stats?.favouriteCount || 0,
-            clicks: event.stats?.clickthroughCount || 0,
-        },
-
-        // Additional fields
-        duration: event.duration,
-        ageRestriction: event.ageRestriction,
-        accessibility: event.accessibility || [],
-        sources: event.sources || [],
-    };
-}
-
-/**
- * Transforms event with recommendation metadata
- */
-export function transformRecommendation(
-    event: any,
-    score: number,
-    reason: string
-): RecommendationResponse {
-    return {
-        ...transformEvent(event),
-        recommendation: {
-            score,
-            reason,
-        },
-    };
-}
-
-/**
- * Serialises raw event data (handles both Mongoose docs and plain objects)
- */
-export function serialiseEvent(event: any): EventResponse {
-    // Helper to safely convert dates
+    // Safe date conversion
     const toISOString = (date: any): string => {
         if (!date) return new Date().toISOString();
-        return date instanceof Date ? date.toISOString() : new Date(date).toISOString();
+        if (date instanceof Date) return date.toISOString();
+        return new Date(date).toISOString();
     };
 
     return {
-        id: event._id.toString(),
+        id: event._id?.toString() || event.id?.toString(),
         title: event.title || 'Untitled Event',
         description: event.description || '',
         category: event.category || 'other',
@@ -154,7 +82,7 @@ export function serialiseEvent(event: any): EventResponse {
 
         venue: {
             name: event.venue?.name || 'TBA',
-            location: event.venue?.location || 'Melbourne',
+            location: event.venue?.location || event.venue?.suburb || 'Melbourne',
             capacity: event.venue?.capacity,
             tier: event.venue?.tier,
         },
@@ -180,9 +108,27 @@ export function serialiseEvent(event: any): EventResponse {
             clicks: event.stats?.clickthroughCount || 0,
         },
 
+        // Optional fields
         duration: event.duration,
         ageRestriction: event.ageRestriction,
         accessibility: event.accessibility || [],
         sources: event.sources || [],
+    };
+}
+
+/**
+ * Transform event with recommendation metadata
+ */
+export function transformRecommendation(
+    event: any,
+    score: number,
+    reason: string
+): RecommendationResponse {
+    return {
+        ...transformEvent(event),
+        recommendation: {
+            score,
+            reason,
+        },
     };
 }
