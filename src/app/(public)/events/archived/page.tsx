@@ -8,7 +8,7 @@ import { EventsGrid, EventsGridSkeleton } from '@/components/events/sections/Eve
 import { SearchBar } from '@/components/events/filters/SearchBar';
 import { EventFilters } from '@/components/events/filters/EventFilters';
 import { getUserFavourites } from "@/lib/actions/interactions";
-import { transformEvent } from '@/lib/transformers/event-transformer';
+import { getEvents, type EventFilters as Filters, type SortOption } from "@/lib/services/event-service";
 
 export const metadata: Metadata = {
     title: "Archived Events | Hoddle",
@@ -30,54 +30,28 @@ interface ArchivedEventsPageProps {
     }>;
 }
 
-async function fetchArchivedEvents(params: URLSearchParams) {
-    const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
-    const response = await fetch(`${baseUrl}/api/events/archived?${params.toString()}`, {
-        cache: 'no-store',
-    });
-
-    if (!response.ok) {
-        throw new Error('Failed to fetch archived events');
-    }
-
-    return response.json();
-}
-
 interface ArchivedEventsGridWrapperProps {
     page: number;
-    searchQuery: string;
-    category: string;
-    subcategory: string;
-    freeOnly: boolean;
-    sortOption: string;
+    filters: Filters;
+    sortOption: SortOption;
     userFavourites: Set<string>;
 }
 
 async function ArchivedEventsGridWrapper(props: ArchivedEventsGridWrapperProps) {
-    const params = new URLSearchParams({ page: props.page.toString() });
+    const data = await getEvents(props.filters, props.sortOption, { page: props.page, pageSize: 24 });
 
-    // Apply filters
-    if (props.searchQuery.trim()) params.set('q', props.searchQuery.trim());
-    if (props.category) params.set('category', props.category);
-    if (props.subcategory) params.set('subcategory', props.subcategory);
-    if (props.freeOnly) params.set('free', 'true');
-    if (props.sortOption) params.set('sort', props.sortOption);
+    const { events, pagination } = data;
+    const { totalEvents, totalPages, currentPage } = pagination;
 
-    const data = await fetchArchivedEvents(params);
-
-    // Transform events from API response
-    const transformedEvents = data.events.map(transformEvent);
-    const { totalEvents, totalPages } = data.pagination;
-
-    const source = props.searchQuery ? 'search' : props.category ? 'category_browse' : 'direct';
-    const hasFilters = props.searchQuery || props.category || props.subcategory || props.freeOnly;
+    const source = props.filters.searchQuery ? 'search' : props.filters.category ? 'category_browse' : 'direct';
+    const hasFilters = Object.values(props.filters).some(v => v !== undefined && v !== false && v !== 'isArchived');
 
     return (
         <EventsGrid
-            events={transformedEvents}
+            events={events}
             totalEvents={totalEvents}
             totalPages={totalPages}
-            currentPage={props.page}
+            currentPage={currentPage}
             userFavourites={props.userFavourites}
             source={source}
             emptyTitle={hasFilters ? "No archived events found" : "No archived events yet"}
@@ -94,13 +68,18 @@ export default async function ArchivedEventsPage({ searchParams }: ArchivedEvent
     const params = await searchParams;
     const session = await getServerSession(authOptions);
 
-    // Parse search parameters
+    // Parse parameters
     const currentPage = Number(params.page) || 1;
-    const searchQuery = params.q || '';
-    const category = params.category || '';
-    const subcategory = params.subcategory || '';
-    const freeOnly = params.free === 'true';
-    const sortOption = params.sort || 'date-recent';
+    const sortOption = (params.sort as SortOption) || 'date-late';
+
+    // Build filters object
+    const filters: Filters = {
+        searchQuery: params.q || undefined,
+        category: params.category || undefined,
+        subcategory: params.subcategory || undefined,
+        freeOnly: params.free === 'true',
+        isArchived: true, // Key difference
+    };
 
     // Get user favourites
     let userFavourites = new Set<string>();
@@ -110,14 +89,14 @@ export default async function ArchivedEventsPage({ searchParams }: ArchivedEvent
     }
 
     // Create unique key for Suspense
-    const suspenseKey = `archived-${currentPage}-${searchQuery}-${category}-${subcategory}-${freeOnly}-${sortOption}`;
+    const suspenseKey = `archived-${currentPage}-${JSON.stringify(filters)}-${sortOption}`;
 
     return (
         <EventsPageLayout
             icon={Archive}
             iconColor="text-muted-foreground"
             iconBgColor="bg-muted/50 ring-1 ring-border"
-            title={searchQuery ? `Archived: "${searchQuery}"` : 'Archived Events'}
+            title={filters.searchQuery ? `Archived: "${filters.searchQuery}"` : 'Archived Events'}
             description="Browse past events and shows from Melbourne's event history"
             filters={
                 <div className="space-y-4">
@@ -135,10 +114,7 @@ export default async function ArchivedEventsPage({ searchParams }: ArchivedEvent
             <Suspense fallback={<EventsGridSkeleton />} key={suspenseKey}>
                 <ArchivedEventsGridWrapper
                     page={currentPage}
-                    searchQuery={searchQuery}
-                    category={category}
-                    subcategory={subcategory}
-                    freeOnly={freeOnly}
+                    filters={filters}
                     sortOption={sortOption}
                     userFavourites={userFavourites}
                 />
