@@ -5,6 +5,7 @@ import DigestEmail from '@/lib/email/templates/digest-email';
 import { Event, User, UserFavourite, type IEvent } from '@/lib/models';
 import { computeUserProfile, scoreEventForUser, type ScoredEvent } from '@/lib/ml';
 import { getRecommendationsCount } from '@/lib/constants/preferences';
+import { transformEvent, type EventResponse } from '@/lib/transformers/event-transformer';
 
 // ============================================
 // CONFIGURATION
@@ -20,18 +21,6 @@ const EMAIL_CONFIG = {
 // TYPE DEFINITIONS
 // ============================================
 
-interface SerialisedEvent {
-    _id: string;
-    title: string;
-    startDate: string;
-    venue: { name: string };
-    priceMin?: number;
-    priceMax?: number;
-    isFree: boolean;
-    imageUrl?: string;
-    category: string;
-}
-
 interface DigestContent {
     keywordMatches: IEvent[];
     updatedFavourites: IEvent[];
@@ -42,6 +31,19 @@ interface DigestResult {
     sent: number;
     skipped: number;
     errors: number;
+}
+
+// Email template expects a simplified event shape
+interface EmailEvent {
+    _id: string;
+    title: string;
+    startDate: string;
+    venue: { name: string };
+    priceMin?: number;
+    priceMax?: number;
+    isFree: boolean;
+    imageUrl?: string;
+    category: string;
 }
 
 // ============================================
@@ -94,19 +96,20 @@ function getDigestSubject(content: DigestContent, frequency: 'weekly' | 'monthly
 }
 
 /**
- * Convert event to serialisable format for email template
+ * Convert EventResponse to email template format
+ * Email templates expect a different shape than our standard API response
  */
-function serialiseEvent(event: IEvent): SerialisedEvent {
+function toEmailFormat(eventResponse: EventResponse): EmailEvent {
     return {
-        _id: event._id.toString(),
-        title: event.title,
-        startDate: event.startDate.toISOString(),
-        venue: { name: event.venue.name },
-        priceMin: event.priceMin,
-        priceMax: event.priceMax,
-        isFree: event.isFree,
-        imageUrl: event.imageUrl,
-        category: event.category,
+        _id: eventResponse.id,
+        title: eventResponse.title,
+        startDate: eventResponse.schedule.start,
+        venue: { name: eventResponse.venue.name },
+        priceMin: eventResponse.pricing.min,
+        priceMax: eventResponse.pricing.max,
+        isFree: eventResponse.pricing.isFree,
+        imageUrl: eventResponse.media.imageUrl || undefined,
+        category: eventResponse.category,
     };
 }
 
@@ -272,21 +275,22 @@ async function sendDigestEmail(
     content: DigestContent,
     frequency: 'weekly' | 'monthly'
 ): Promise<void> {
-    const serialisedContent = {
-        keywordMatches: content.keywordMatches.map(serialiseEvent),
-        updatedFavourites: content.updatedFavourites.map(serialiseEvent),
+    // Transform database events to API format, then to email format
+    const transformedContent = {
+        keywordMatches: content.keywordMatches.map(e => toEmailFormat(transformEvent(e))),
+        updatedFavourites: content.updatedFavourites.map(e => toEmailFormat(transformEvent(e))),
         recommendations: content.recommendations.map(cat => ({
             category: cat.category,
-            events: cat.events.map(serialiseEvent),
+            events: cat.events.map(e => toEmailFormat(transformEvent(e))),
         })),
     };
 
     const emailHtml = await render(
         DigestEmail({
             userName: user.name?.split(' ')[0] || 'there',
-            keywordMatches: serialisedContent.keywordMatches,
-            updatedFavourites: serialisedContent.updatedFavourites,
-            recommendations: serialisedContent.recommendations,
+            keywordMatches: transformedContent.keywordMatches,
+            updatedFavourites: transformedContent.updatedFavourites,
+            recommendations: transformedContent.recommendations,
             unsubscribeUrl: `${EMAIL_CONFIG.baseUrl}/settings`,
             preferencesUrl: `${EMAIL_CONFIG.baseUrl}/settings`,
         })

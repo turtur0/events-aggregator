@@ -33,7 +33,7 @@ interface EventComparisonData {
         popularityPercentile: number;
     };
     similarEvents: Array<{
-        _id: string;
+        id: string;
         title: string;
         price: number;
         priceMax?: number;
@@ -388,8 +388,8 @@ export function EventComparison({ eventId, category, isFree, priceMin, priceMax 
                             <div className="space-y-2 max-h-[600px] overflow-y-auto pr-2 pb-2 scrollbar-thin scrollbar-thumb-muted scrollbar-track-transparent">
                                 {data.similarEvents.map((event) => (
                                     <Link
-                                        key={event._id}
-                                        href={`/events/${event._id}`}
+                                        key={event.id}
+                                        href={`/events/${event.id}`}
                                         className="block p-3 rounded-lg border-2 bg-card transition-all hover:shadow-md hover:border-primary/30 hover:-translate-y-0.5"
                                     >
                                         <div className="flex justify-between items-start gap-2 mb-2">

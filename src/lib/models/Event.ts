@@ -42,12 +42,11 @@ export interface IEvent {
   isArchived: boolean;
   archivedAt?: Date;
 
-  // External popularity data
   externalPopularity?: {
     spotify?: {
       artistId: string;
       artistName: string;
-      popularity: number; // 0-100
+      popularity: number;
       followers: number;
       lastFetched: Date;
     };
@@ -57,7 +56,6 @@ export interface IEvent {
     viewCount: number;
     favouriteCount: number;
     clickthroughCount: number;
-
     categoryPopularityPercentile?: number;
     rawPopularityScore?: number;
     lastPopularityUpdate?: Date;
@@ -109,7 +107,6 @@ const EventSchema = new Schema<IEvent>({
   isArchived: { type: Boolean, default: false, index: true },
   archivedAt: Date,
 
-  // External popularity data
   externalPopularity: {
     spotify: {
       artistId: String,
@@ -139,17 +136,7 @@ EventSchema.index({ sources: 1 });
 EventSchema.index({ primarySource: 1, 'sourceIds.$**': 1 });
 EventSchema.index({ 'stats.categoryPopularityPercentile': 1 });
 EventSchema.index({ lastContentChange: 1 });
-EventSchema.index({ 'externalPopularity.spotify.lastFetched': 1 }); // For batch processing
+EventSchema.index({ 'externalPopularity.spotify.lastFetched': 1 });
 
 const Event: Model<IEvent> = mongoose.models.Event || mongoose.model<IEvent>('Event', EventSchema);
 export default Event;
-
-export interface SerialisedEvent extends Omit<IEvent, 'startDate' | 'endDate' | 'scrapedAt' | 'lastUpdated' | 'lastContentChange' | 'archivedAt'> {
-  _id: string;
-  startDate: string;
-  endDate?: string;
-  scrapedAt: string;
-  lastUpdated: string;
-  lastContentChange?: string;
-  archivedAt?: string;
-}
