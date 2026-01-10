@@ -3,14 +3,10 @@
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { connectDB } from '@/lib/db';
-;
 import UserFavourite from '../models/UserFavourite';
-;
 import mongoose from 'mongoose';
 import { Event, UserInteraction } from '@/lib/models';
-
-type InteractionSource = 'search' | 'recommendation' | 'category_browse' | 'homepage' | 'direct' | 'similar_events';
-
+import type { EventSource } from '@/lib/types/events';
 interface ToggleFavouriteResult {
     success: boolean;
     isFavourited: boolean;
@@ -19,7 +15,7 @@ interface ToggleFavouriteResult {
 
 export async function toggleFavourite(
     eventId: string,
-    source: InteractionSource = 'direct'
+    source: EventSource = 'direct' // ← Use shared type
 ): Promise<ToggleFavouriteResult> {
     try {
         const session = await getServerSession(authOptions);
@@ -82,7 +78,7 @@ export async function toggleFavourite(
 
 export async function trackView(
     eventId: string,
-    source: InteractionSource = 'direct'
+    source: EventSource = 'direct' // ← Use shared type
 ): Promise<void> {
     try {
         const session = await getServerSession(authOptions);
@@ -124,7 +120,7 @@ export async function trackView(
 
 export async function trackClickthrough(
     eventId: string,
-    source: InteractionSource = 'direct'
+    source: EventSource = 'direct' // ← Use shared type
 ): Promise<void> {
     try {
         const session = await getServerSession(authOptions);

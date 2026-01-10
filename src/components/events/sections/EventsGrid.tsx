@@ -3,11 +3,10 @@ import { EventCardSkeleton } from '@/components/events/cards/EventCardSkeleton';
 import { EmptyState } from '@/components/other/EmptyState';
 import { Pagination } from '@/components/other/Pagination';
 import type { EventResponse } from '@/lib/transformers/event-transformer';
-
-type EventSource = 'search' | 'recommendation' | 'category_browse' | 'homepage' | 'direct' | 'similar_events';
+import type { EventSource } from '@/lib/types/events';
 
 interface EventsGridProps {
-    events: EventResponse[]; 
+    events: EventResponse[];
     totalEvents: number;
     totalPages: number;
     currentPage: number;

@@ -7,11 +7,12 @@ import { toggleFavourite } from '@/lib/actions/interactions';
 import { cn } from '@/lib/utils';
 import { useSession } from 'next-auth/react';
 import { AuthModal } from '@/components/auth/AuthModals';
+import type { EventSource } from '@/lib/types/events';
 
 interface FavouriteButtonProps {
     eventId: string;
     initialFavourited?: boolean;
-    source?: 'search' | 'recommendation' | 'category_browse' | 'homepage' | 'direct' | 'similar_events';
+    source?: EventSource;
     variant?: 'icon' | 'button';
     className?: string;
 }

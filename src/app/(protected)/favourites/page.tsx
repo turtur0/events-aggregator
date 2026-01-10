@@ -13,11 +13,12 @@ import { EmptyState } from '@/components/other/EmptyState';
 import { SearchBar } from '@/components/events/filters/SearchBar';
 import { EventFilters } from '@/components/events/filters/EventFilters';
 import { UserFavourite, Event } from '@/lib/models';
+import { transformEvent } from '@/lib/transformers/event-transformer'; 
 
 export const metadata: Metadata = {
     title: "My Favourites | Hoddle",
     description: "View and manage your saved Melbourne events. Keep track of concerts, shows and festivals you don't want to miss.",
-    robots: "noindex, nofollow", 
+    robots: "noindex, nofollow",
 };
 
 const ITEMS_PER_PAGE = 12;
@@ -138,24 +139,7 @@ export default async function FavouritesPage({ searchParams }: FavouritesPagePro
         { searchQuery, category, subcategory, dateFilter, freeOnly }
     );
 
-    // Serialise events
-    const serialisedEvents = events.map(e => ({
-        _id: e._id.toString(),
-        title: e.title,
-        description: e.description,
-        category: e.category,
-        subcategories: e.subcategories || [],
-        startDate: e.startDate.toISOString(),
-        endDate: e.endDate?.toISOString(),
-        venue: e.venue,
-        priceMin: e.priceMin,
-        priceMax: e.priceMax,
-        isFree: e.isFree,
-        bookingUrl: e.bookingUrl,
-        imageUrl: e.imageUrl,
-        primarySource: e.primarySource,
-        sources: e.sources || [],
-    }));
+    const transformedEvents = events.map(transformEvent);
 
     // Get all user favourites for heart icons
     const allFavourites = await UserFavourite.find({
@@ -206,7 +190,7 @@ export default async function FavouritesPage({ searchParams }: FavouritesPagePro
                 </div>
             ) : (
                 <EventsGrid
-                    events={serialisedEvents}
+                    events={transformedEvents}
                     totalEvents={totalFavourites}
                     totalPages={totalPages}
                     currentPage={currentPage}

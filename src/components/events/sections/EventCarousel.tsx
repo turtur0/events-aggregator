@@ -6,14 +6,15 @@ import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import type { EventResponse } from '@/lib/transformers/event-transformer';
+import type { EventSource } from '@/lib/types/events';
 
 interface EventCarouselProps {
-    events: EventResponse[]; // ← Type-safe!
+    events: EventResponse[];
     userFavourites: Set<string>;
     title: string;
     description?: string;
     icon: React.ReactNode;
-    source?: 'search' | 'recommendation' | 'category_browse' | 'homepage' | 'direct' | 'similar_events';
+    source?: EventSource;
     borderClass?: string;
     gradientClass?: string;
     autoScroll?: boolean;
@@ -203,7 +204,7 @@ export function EventCarousel({
                 >
                     {infiniteEvents.map((event, idx) => (
                         <div
-                            key={`${event.id}-${idx}`} // ← Changed from event._id
+                            key={`${event.id}-${idx}`}
                             className="flex-none w-full sm:w-[calc(50%-12px)] lg:w-[calc(33.333%-16px)]"
                             style={{
                                 pointerEvents: isDragging.current ? 'none' : 'auto',
@@ -213,7 +214,7 @@ export function EventCarousel({
                             <EventCard
                                 event={event}
                                 source={source}
-                                initialFavourited={userFavourites.has(event.id)} // ← Changed from event._id
+                                initialFavourited={userFavourites.has(event.id)}
                             />
                         </div>
                     ))}

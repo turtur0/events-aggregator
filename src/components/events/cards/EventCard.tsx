@@ -9,11 +9,14 @@ import { format, isSameDay, isSameMonth } from 'date-fns';
 import { getCategoryLabel } from '@/lib/constants/categories';
 import type { EventResponse } from '@/lib/transformers/event-transformer';
 
+import type { EventSource } from '@/lib/types/events';
+
 interface EventCardProps {
   event: EventResponse;
-  source?: 'search' | 'recommendation' | 'category_browse' | 'homepage' | 'direct' | 'similar_events';
+  source?: EventSource; 
   initialFavourited?: boolean;
 }
+
 
 export function EventCard({ event, source = 'direct', initialFavourited = false }: EventCardProps) {
   /**

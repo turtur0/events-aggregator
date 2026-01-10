@@ -7,8 +7,8 @@ import { EventsPageLayout } from '@/components/layout/EventsPageLayout';
 import { EventsGrid, EventsGridSkeleton } from '@/components/events/sections/EventsGrid';
 import { SearchBar } from '@/components/events/filters/SearchBar';
 import { EventFilters } from '@/components/events/filters/EventFilters';
-import { SerialisedEvent } from "@/lib/models/Event";
 import { getUserFavourites } from "@/lib/actions/interactions";
+import { transformEvent } from '@/lib/transformers/event-transformer';
 
 export const metadata: Metadata = {
     title: "Archived Events | Hoddle",
@@ -64,7 +64,9 @@ async function ArchivedEventsGridWrapper(props: ArchivedEventsGridWrapperProps) 
     if (props.sortOption) params.set('sort', props.sortOption);
 
     const data = await fetchArchivedEvents(params);
-    const events: SerialisedEvent[] = data.events;
+
+    // Transform events from API response
+    const transformedEvents = data.events.map(transformEvent);
     const { totalEvents, totalPages } = data.pagination;
 
     const source = props.searchQuery ? 'search' : props.category ? 'category_browse' : 'direct';
@@ -72,7 +74,7 @@ async function ArchivedEventsGridWrapper(props: ArchivedEventsGridWrapperProps) 
 
     return (
         <EventsGrid
-            events={events}
+            events={transformedEvents}
             totalEvents={totalEvents}
             totalPages={totalPages}
             currentPage={props.page}
